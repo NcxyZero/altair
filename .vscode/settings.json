@@ -1,0 +1,71 @@
+{
+	// autoformatter
+	"cSpell.diagnosticLevel": "Hint",
+	"cSpell.enabled": false,
+	"editor.formatOnPaste": true,
+	"editor.formatOnSave": true,
+	"explorer.compactFolders": false,
+	"files.eol": "\n",
+	"files.insertFinalNewline": true,
+	"git.autoStash": true, // przywróć ostatni stash: git stash apply
+	"git.rebaseWhenSync": true, // anuluj: git rebase --abort
+	"[jsonc]": {
+		"editor.defaultFormatter": "vscode.json-language-features",
+		"editor.quickSuggestions": {
+			"strings": true
+		},
+		"editor.suggest.insertMode": "replace",
+		"editor.wordWrapColumn": 120
+	},
+	"[markdown]": {
+		"editor.formatOnSave": true,
+		"editor.wordWrap": "bounded",
+		"editor.wordWrapColumn": 120
+	},
+	"[lua][luau]": {
+		"editor.defaultFormatter": "JohnnyMorganz.stylua"
+	},
+	"[yaml]": {
+		"editor.defaultFormatter": "redhat.vscode-yaml",
+		"editor.formatOnSave": true,
+		"editor.tabSize": 2,
+		"editor.wordWrap": "bounded",
+		"editor.wordWrapColumn": 120
+	},
+	// hide useless folders
+	"files.exclude": {
+		"Packages": true
+	},
+	"search.exclude": {
+		"**/node_modules": true,
+		"**/bower_components": true,
+		"**/*.code-search": true,
+		"**/.history": true
+	},
+	"material-icon-theme.files.associations": {
+		"*.story.luau": "Storybook",
+		"*.luau": "Lua"
+	},
+	"material-icon-theme.folders.associations": {
+		"story": "Storybook",
+		"component": "Components",
+		"reflex": "Cart",
+		"ui": "Interface",
+		"tags": "Log",
+		"siteComponents": "Public"
+	},
+	"luau-lsp.completion.imports.requireStyle": "alwaysAbsolute",
+	"luau-lsp.completion.imports.separateGroupsWithLine": true,
+	"luau-lsp.completion.imports.enabled": true,
+	"luau-lsp.sourcemap.rojoProjectFile": "default.project.json",
+	"stylua.targetReleaseVersion": "latest",
+	// ustawienia dla roblox lsp. Nie zostaly weryfikowane
+	"robloxLsp.completion.alwaysShowMethods": true,
+	"robloxLsp.completion.callParenthesess": true,
+	"robloxLsp.completion.endAutocompletion": true,
+	"robloxLsp.hint.returnType": true,
+	"robloxLsp.hint.setType": true,
+	"robloxLsp.hint.paramName": true,
+	"robloxLsp.hint.enable": true,
+	"robloxLsp.typeChecking.mode": "Non Strict"
+}

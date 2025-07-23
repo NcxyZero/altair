@@ -1,9 +1,45 @@
-/Packages
-/ServerPackages
-
-# Project place file
-/src.rbxlx
-
 # Roblox Studio lock files
-/*.rbxlx.lock
 /*.rbxl.lock
+/*.rbxlx.lock
+
+# Wally lockfile
+wally.lock
+
+# Wally packages
+Packages
+ServerPackages
+
+# Rojo
+sourcemap.json
+
+# macOS
+.DS_Store
+
+# Environment variables
+.env
+
+# Code coverage
+coverage.out
+
+# Profiling
+profile.out
+profile.svg
+
+# Time trace
+trace.json
+
+# IntelliJ IDEA
+.idea/*
+# !.idea/fileTypes.xml
+# !.idea/jsonSchemes.xml
+# !.idea/externalDependencies.xml
+# !.idea/modules.xml
+# !.idea/vcs.xml
+# !.idea/encodings.xml
+# !.idea/.gitignore
+# !.idea/runConfigurations/
+# !.idea/codeStyles/
+# !.idea/inspectionProfiles/
+
+# Luau LSP
+luau-lsp.exe

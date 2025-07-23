@@ -1,0 +1,64 @@
+{
+	"client get server producer yield async": {
+		"scope": "luau,lua",
+		"prefix": ["producer-async"],
+		"body": ["ClientPlayerData.getServerProducerAsync():expect()"],
+		"description": "Wait for data"
+	},
+	"client get server state yield async": {
+		"scope": "luau,lua",
+		"prefix": "state-async",
+		"body": ["ClientPlayerData.getServerProducerAsync():expect():getState()"],
+		"description": "Wait for data and get the state"
+	},
+	"server get profile": {
+		"scope": "luau,lua",
+		"prefix": "profile",
+		"body": ["ServerPlayerData.GetPlayerProfile(player)"],
+		"description": "Get player profile"
+	},
+	"server wait for profile": {
+		"scope": "luau,lua",
+		"prefix": "profile-async",
+		"body": ["ServerPlayerProfile.WaitForPlayerProfile(player):expect()"],
+		"description": "Wait for player profile"
+	},
+	"client get server state": {
+		"scope": "luau,lua",
+		"prefix": "state",
+		"body": ["ClientPlayerData.serverProfile:getState()"],
+		"description": "Get local player state"
+	},
+	"client get server producer": {
+		"scope": "luau,lua",
+		"prefix": "producer",
+		"body": ["ClientPlayerData.serverProfile"],
+		"description": "Get local player producer"
+	},
+	"subscribe client": {
+		"scope": "luau,lua",
+		"prefix": "subscribe, subscribe-client",
+		"body": [
+			"ClientPlayerData.serverProfile:subscribe(function(state: {[string]: any})",
+			"\treturn state.$1",
+			"end, function($2)",
+			"\t$0",
+			"end)",
+			""
+		],
+		"description": "subscribe to reflex state changes on client"
+	},
+	"subscribe server": {
+		"scope": "luau,lua",
+		"prefix": "subscribe-server",
+		"body": [
+			"ServerPlayerData.GetPlayerProfile(player).producer:subscribe(function(state: {[string]: any})",
+			"\treturn state.$1",
+			"end, function($2)",
+			"\t$0",
+			"end)",
+			""
+		],
+		"description": "subscribe to reflex state changes on server"
+	}
+}

@@ -1,0 +1,17 @@
+{
+	":GiveTask($1:Connect(function($2)...": {
+		"scope": "luau,lua",
+		"prefix": [":GiveTask", "GiveTask"],
+		"body": [":GiveTask($1:Connect(function($2)", "\t$0", "end))", ""]
+	},
+	"local $1: Maid.Maid = Maid.new()": {
+		"scope": "luau,lua",
+		"prefix": ["LocalMaid", "NewMaid"],
+		"body": ["local $1: Maid.Maid = Maid.new()"]
+	},
+	"self.$1 = Maid.new()": {
+		"scope": "luau,lua",
+		"prefix": ["SelfMaid", "NewMaid"],
+		"body": ["self.$1 = Maid.new()"]
+	}
+}

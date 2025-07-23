@@ -1,0 +1,9 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Linguist overrides for previews on GitHub
+.vscode/*.json linguist-language=jsonc
+.eslintrc linguist-language=jsonc
+.prettierrc linguist-language=jsonc
+.yarnrc linguist-language=sh
+wally.lock linguist-language=TOML

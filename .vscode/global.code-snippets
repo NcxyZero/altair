@@ -1,0 +1,52 @@
+{
+	// https://code.visualstudio.com/docs/editor/userdefinedsnippets
+	"() -> ()": {
+		"scope": "luau,lua",
+		"prefix": ["void", "function"],
+		"body": ["() -> ()"],
+		"description": "No arguments void function type"
+	},
+	"($1) -> ($2)": {
+		"scope": "luau,lua",
+		"prefix": ["arg", "function"],
+		"body": ["($1) -> ($2)"],
+		"description": "Function type with arguments"
+	},
+	":Connect(function($1)...": {
+		"scope": "luau,lua",
+		"prefix": [":Connect", "Connect"],
+		"body": [":Connect(function($1)", "\t$0", "end)", ""]
+	},
+	":Once(function($1)...": {
+		"scope": "luau,lua",
+		"prefix": [":Once", "Once"],
+		"body": [":Once(function($1)", "\t$0", "end)", ""]
+	},
+	"for _index: number, ": {
+		"scope": "luau,lua",
+		"prefix": "index",
+		"body": ["for _index: number, "],
+		"description": "The beginning of typed array loop"
+	},
+	"game:IsLoaded() / game.Loaded:Wait()": {
+		"scope": "luau,lua",
+		"prefix": "loaded",
+		"body": ["if not game:IsLoaded() then", "\tgame.Loaded:Wait()", "end", ""],
+		"description": "Wait for game to load if not already"
+	},
+	"repeat task.wait() until": {
+		"scope": "luau,lua",
+		"prefix": ["repeat", "wait"],
+		"body": ["repeat", "\ttask.wait()", "until $0", ""]
+	},
+	"task.defer(function()...": {
+		"scope": "luau,lua",
+		"prefix": "defer",
+		"body": ["task.defer(function()", "\t$0", "end)", ""]
+	},
+	"task.spawn(function()...": {
+		"scope": "luau,lua",
+		"prefix": "spawn",
+		"body": ["task.spawn(function()", "\t$0", "end)", ""]
+	}
+}
