@@ -9,7 +9,7 @@
 		},
 		"ReplicatedStorage": {
 			"$className": "ReplicatedStorage",
-			"package": {
+			"Packages": {
 				"$className": "Folder",
 				"$path": "Packages"
 			},
@@ -29,7 +29,7 @@
 				"$path": "ServerPackages"
 			}
 		},
-		
+
 		"StarterPlayer": {
 			"$className": "StarterPlayer",
 			"StarterPlayerScripts": {
@@ -39,4 +39,3 @@
 		}
 	}
 }
-
