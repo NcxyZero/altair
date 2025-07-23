@@ -317,17 +317,17 @@ function ServerData:Init(): ()
 		return self.gameProducer:getState()
 	end
 
-	-- Initialize existing players
-	for _, player in ipairs(Players:GetPlayers()) do
-		task.spawn(function()
-			self:PlayerAdded(player)
-		end)
-	end
+	-- -- Initialize existing players
+	-- for _, player in ipairs(Players:GetPlayers()) do
+	-- 	task.spawn(function()
+	-- 		self:PlayerAdded(player)
+	-- 	end)
+	-- end
 
-	-- Connect player removing event
-	Players.PlayerRemoving:Connect(function(player)
-		self:PlayerRemoving(player)
-	end)
+	-- -- Connect player removing event
+	-- Players.PlayerRemoving:Connect(function(player)
+	-- 	self:PlayerRemoving(player)
+	-- end)
 end
 
 return ServerData
