@@ -1,0 +1,19 @@
+[package]
+name = "ncxyzero/altair"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[place]
+shared-packages = "game.ReplicatedStorage.package"
+
+[dependencies]
+Bridgenet2 = "ncxyzero/bridgenet2-fork@1.1.5"
+Maid = "nightcycle/maid@1.1.4"
+ProfileService = "brittonfischer/profileservice@2.1.5"
+Promise = "lukadev-0/typed-promise@4.0.2"
+Reflex = "littensy/reflex@4.3.1"
+Signal = "sleitnick/signal@2.0.1"
+
+[server-dependencies]
+Lapis = "nezuo/lapis@0.3.1"

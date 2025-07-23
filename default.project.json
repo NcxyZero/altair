@@ -1,0 +1,42 @@
+{
+	"name": "altair",
+	"tree": {
+		"$className": "DataModel",
+		"ReplicatedFirst": {
+			"$ignoreUnknownInstances": true,
+			"$className": "ReplicatedFirst",
+			"$path": "src/preload"
+		},
+		"ReplicatedStorage": {
+			"$className": "ReplicatedStorage",
+			"package": {
+				"$className": "Folder",
+				"$path": "Packages"
+			},
+			"shared": {
+				"$className": "Folder",
+				"$path": "src/shared"
+			}
+		},
+		"ServerScriptService": {
+			"$className": "ServerScriptService",
+			"server": {
+				"$className": "Folder",
+				"$path": "src/server"
+			},
+			"server_package": {
+				"$className": "Folder",
+				"$path": "ServerPackages"
+			}
+		},
+		
+		"StarterPlayer": {
+			"$className": "StarterPlayer",
+			"StarterPlayerScripts": {
+				"$className": "StarterPlayerScripts",
+				"$path": "src/client"
+			}
+		}
+	}
+}
+
