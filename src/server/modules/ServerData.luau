@@ -6,6 +6,12 @@ local Promise = require(ReplicatedStorage.Packages.Promise)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local Signal = require(ReplicatedStorage.Packages.Signal)
 
+-- Import profile producers
+local gameProfile = require(ReplicatedStorage.shared.reflex.gameProfile)
+local playerProfile = require(ReplicatedStorage.shared.reflex.playerProfile)
+local settingsProfile = require(ReplicatedStorage.shared.reflex.settingsProfile)
+local inventoryProfile = require(ReplicatedStorage.shared.reflex.inventoryProfile)
+
 export type ServerPlayerProfile = {
 	player: Player,
 	profileStore: any,
@@ -32,23 +38,6 @@ ServerData.type = "controller"
 ServerData.profiles = {}
 ServerData.gameData = {}
 ServerData.playerDataLoadedEvent = Signal.new()
-
--- Default state for player profiles
-local DEFAULT_PLAYER_STATE = {
-	userId = 0,
-	coins = 0,
-	inventory = {},
-	settings = {
-		musicVolume = 0.5,
-		sfxVolume = 0.5,
-	},
-}
-
--- Default state for game data
-local DEFAULT_GAME_STATE = {
-	serverStartTime = os.time(),
-	activePlayers = 0,
-}
 
 -- Keys for datastore
 local DATASTORE_KEY = "PlayerData_v1"
@@ -80,54 +69,6 @@ local SAVE_EXCEPTIONS = {
 	"savedInteriorCFrame",
 }
 
--- Create a producer for player data
-local function CreatePlayerProducer(data: any)
-	local producer = Reflex.createProducer(data, {
-		setCoins = function(state, coins: number)
-			state.coins = coins
-			return state
-		end,
-		addCoins = function(state, amount: number)
-			state.coins += amount
-			return state
-		end,
-		setInventoryItem = function(state, itemId: string, amount: number)
-			state.inventory[itemId] = amount
-			return state
-		end,
-		removeInventoryItem = function(state, itemId: string)
-			state.inventory[itemId] = nil
-			return state
-		end,
-		setSetting = function(state, key: string, value: any)
-			state.settings[key] = value
-			return state
-		end,
-	})
-
-	return producer
-end
-
--- Create a producer for game data
-local function CreateGameProducer(data: any)
-	local producer = Reflex.createProducer(data, {
-		setActivePlayers = function(state, count: number)
-			state.activePlayers = count
-			return state
-		end,
-		incrementActivePlayers = function(state)
-			state.activePlayers += 1
-			return state
-		end,
-		decrementActivePlayers = function(state)
-			state.activePlayers = math.max(0, state.activePlayers - 1)
-			return state
-		end,
-	})
-
-	return producer
-end
-
 function ServerData:GetPlayerProfile(player: Player): ServerPlayerProfile?
 	return self.profiles[player]
 end
@@ -154,7 +95,7 @@ function ServerData:WaitForPlayerProfile(player: Player): Promise.TypedPromise<S
 end
 
 function ServerData:PlayerAdded(player: Player): ()
-	local ProfileStore = ProfileService.GetProfileStore(DATASTORE_KEY, DEFAULT_PLAYER_STATE)
+	local ProfileStore = ProfileService.GetProfileStore(DATASTORE_KEY, playerProfile.DEFAULT_STATE)
 	local profileStore = ProfileStore:LoadProfileAsync(getPlayerKey(player.UserId))
 
 	if not profileStore then
@@ -180,10 +121,22 @@ function ServerData:PlayerAdded(player: Player): ()
 	local data = profileStore.Data
 	data.userId = player.UserId
 
+	-- Create individual producers
+	local playerProducer = playerProfile.CreateProducer(data)
+	local settingsProducer = settingsProfile.CreateProducer(data.settings or settingsProfile.DEFAULT_STATE)
+	local inventoryProducer = inventoryProfile.CreateProducer(data.inventory or inventoryProfile.DEFAULT_STATE)
+
+	-- Combine producers
+	local combinedProducer = Reflex.combineProducers({
+		player = playerProducer,
+		settings = settingsProducer,
+		inventory = inventoryProducer,
+	})
+
 	local profile: ServerPlayerProfile = {
 		player = player,
 		profileStore = profileStore,
-		producer = CreatePlayerProducer(data),
+		producer = combinedProducer,
 		nextActionIsReplicated = false,
 	}
 
@@ -221,16 +174,26 @@ function ServerData:PlayerRemoving(player: Player): ()
 	end
 
 	-- Save player data
-	local baseStoreData = profile.producer:getState()
+	local combinedState = profile.producer:getState()
 	local saveableData = {}
 
-	for key, value in pairs(baseStoreData) do
+	-- Extract data from combined state
+	local playerState = combinedState.player
+	local settingsState = combinedState.settings
+	local inventoryState = combinedState.inventory
+
+	-- Combine into a single state for saving
+	for key, value in pairs(playerState) do
 		if table.find(SAVE_EXCEPTIONS, key) ~= nil then
 			continue
 		end
 
 		saveableData[key] = value
 	end
+
+	-- Add settings and inventory
+	saveableData.settings = settingsState
+	saveableData.inventory = inventoryState
 
 	profile.profileStore.Data = saveableData
 	profile.profileStore:Release()
@@ -242,7 +205,7 @@ end
 
 function ServerData:Init(): ()
 	-- Initialize game data
-	self.gameProducer = CreateGameProducer(DEFAULT_GAME_STATE)
+	self.gameProducer = gameProfile.CreateProducer(gameProfile.DEFAULT_STATE)
 
 	local nextActionIsReplicated = false
 
@@ -310,24 +273,33 @@ function ServerData:Init(): ()
 			return nil
 		end
 
-		return profile.profileStore.Data
+		-- Return combined state for client
+		local combinedState = profile.producer:getState()
+		local clientData = {
+			userId = combinedState.player.userId,
+			coins = combinedState.player.coins,
+			inventory = combinedState.inventory,
+			settings = combinedState.settings,
+		}
+
+		return clientData
 	end
 
 	GetGameData.OnServerInvoke = function()
 		return self.gameProducer:getState()
 	end
 
-	-- -- Initialize existing players
-	-- for _, player in ipairs(Players:GetPlayers()) do
-	-- 	task.spawn(function()
-	-- 		self:PlayerAdded(player)
-	-- 	end)
-	-- end
+	-- Initialize existing players
+	for _, player in ipairs(Players:GetPlayers()) do
+		task.spawn(function()
+			self:PlayerAdded(player)
+		end)
+	end
 
-	-- -- Connect player removing event
-	-- Players.PlayerRemoving:Connect(function(player)
-	-- 	self:PlayerRemoving(player)
-	-- end)
+	-- Connect player removing event
+	Players.PlayerRemoving:Connect(function(player)
+		self:PlayerRemoving(player)
+	end)
 end
 
 return ServerData

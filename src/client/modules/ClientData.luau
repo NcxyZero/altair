@@ -5,6 +5,12 @@ local Promise = require(ReplicatedStorage.Packages.Promise)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local Signal = require(ReplicatedStorage.Packages.Signal)
 
+-- Import profile producers
+local gameProfile = require(ReplicatedStorage.shared.reflex.gameProfile)
+local playerProfile = require(ReplicatedStorage.shared.reflex.playerProfile)
+local settingsProfile = require(ReplicatedStorage.shared.reflex.settingsProfile)
+local inventoryProfile = require(ReplicatedStorage.shared.reflex.inventoryProfile)
+
 export type Default = {
 	index: number,
 	type: string,
@@ -111,27 +117,16 @@ function ClientData:Init(): ()
 			end
 		end
 
-		self.playerProducer = Reflex.createProducer(playerData, {
-			setCoins = function(state, coins: number)
-				state.coins = coins
-				return state
-			end,
-			addCoins = function(state, amount: number)
-				state.coins += amount
-				return state
-			end,
-			setInventoryItem = function(state, itemId: string, amount: number)
-				state.inventory[itemId] = amount
-				return state
-			end,
-			removeInventoryItem = function(state, itemId: string)
-				state.inventory[itemId] = nil
-				return state
-			end,
-			setSetting = function(state, key: string, value: any)
-				state.settings[key] = value
-				return state
-			end,
+		-- Create individual producers
+		local playerProducer = playerProfile.CreateProducer(playerData)
+		local settingsProducer = settingsProfile.CreateProducer(playerData.settings or settingsProfile.DEFAULT_STATE)
+		local inventoryProducer = inventoryProfile.CreateProducer(playerData.inventory or inventoryProfile.DEFAULT_STATE)
+
+		-- Combine producers
+		self.playerProducer = Reflex.combineProducers({
+			player = playerProducer,
+			settings = settingsProducer,
+			inventory = inventoryProducer,
 		})
 
 		self.playerProducer:applyMiddleware(replicateMiddleware)
@@ -168,19 +163,16 @@ function ClientData:Init(): ()
 			end
 		end
 
-		self.gameProducer = Reflex.createProducer(gameData, {
-			setActivePlayers = function(state, count: number)
-				state.activePlayers = count
-				return state
-			end,
-		})
-
+		-- Use gameProfile module
+		self.gameProducer = gameProfile.CreateProducer(gameData)
 		self.gameProducer:applyMiddleware(replicateMiddleware)
 		self.isGameDataLoaded = true
 		self.gameDataLoadedSignal:Fire()
 	end
 
 	-- Set up remote events
+	local nextActionIsReplicated = false
+
 	ReplicatedStorage:WaitForChild("ReplicateStore").OnClientEvent:Connect(function(data)
 		if type(data) ~= "table" then
 			return
@@ -193,7 +185,23 @@ function ClientData:Init(): ()
 			self.playerDataLoadedSignal:Wait()
 		end
 
-		self.playerProducer[data.name](unpack(data.arguments))
+		-- Handle action based on naming convention
+		-- Format: producerName_actionName
+		local actionParts = string.split(data.name, "_")
+		if #actionParts == 2 then
+			local producerName = actionParts[1]
+			local actionName = actionParts[2]
+
+			-- Call the action on the appropriate producer
+			if self.playerProducer[data.name] then
+				self.playerProducer[data.name](unpack(data.arguments))
+			else
+				warn("Unknown action:", data.name)
+			end
+		else
+			-- Fallback for actions without producer prefix
+			self.playerProducer[data.name](unpack(data.arguments))
+		end
 	end)
 
 	ReplicatedStorage:WaitForChild("ReplicateGameStore").OnClientEvent:Connect(function(data)
@@ -208,7 +216,12 @@ function ClientData:Init(): ()
 			self.gameDataLoadedSignal:Wait()
 		end
 
-		self.gameProducer[data.name](unpack(data.arguments))
+		-- Call the action on the game producer
+		if self.gameProducer[data.name] then
+			self.gameProducer[data.name](unpack(data.arguments))
+		else
+			warn("Unknown game action:", data.name)
+		end
 	end)
 
 	-- Start loading data
