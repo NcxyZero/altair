@@ -3,8 +3,8 @@ export type Default = {
     type: string,
     gameData: {},
     profiles: {},
-    PlayerAdded: (player: Player) -> (),
-    PlayerRemoving: (player: Player) -> (),
+    PlayerAdded: (self: Default, player: Player) -> (),
+    PlayerRemoving: (self: Default, player: Player) -> (),
     Init: () -> (),
 }
 
@@ -14,11 +14,11 @@ ServerData.type = "controller"
 ServerData.profiles = {}
 ServerData.gameData = {}
 
-function ServerData:PlayerAdded()
-
+function ServerData:PlayerAdded(player: Player)
+    
 end
 
-function ServerData:PlayerRemoving()
+function ServerData:PlayerRemoving(player: Player)
 
 end
 
