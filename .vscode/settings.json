@@ -34,7 +34,8 @@
 	},
 	// hide useless folders
 	"files.exclude": {
-		"Packages": true
+		"Packages": true,
+		"ServerPackages": true,
 	},
 	"search.exclude": {
 		"**/node_modules": true,
