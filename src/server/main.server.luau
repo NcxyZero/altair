@@ -13,6 +13,10 @@ local loadFirst = {}
 local load = {}
 
 for _index: number, module: Instance in modules:GetChildren() do
+	if module.Name:lower():find("template") then
+		continue
+	end
+
 	pcall(function(): ()
 		local required: unknown = require(module)
 		local moduleType: string = required.type or "module"

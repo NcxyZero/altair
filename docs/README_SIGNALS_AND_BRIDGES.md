@@ -38,7 +38,7 @@ myBridge.OnClientEvent:Connect(function(message: string)
     print(message)
 end)
 
-myBridge:FireServer("Hello, World!")
+myBridge:Fire("Hello, World!")
 ```
 
 ## Bridge Server
@@ -49,8 +49,8 @@ local GetBridge = require(ReplicatedStorage.util.GetBridge)
 
 local myBridge = GetBridge("MyBridge")
 
-myBridge.OnServerEvent:Connect(function(message: string)
-    myBridge:FireServer(message)
+myBridge.OnServerEvent:Connect(function(player: Player, message: string)
+    myBridge:Fire(player, message)
     print(message)
 end)
 ```

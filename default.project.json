@@ -9,7 +9,7 @@
 		},
 		"ReplicatedStorage": {
 			"$className": "ReplicatedStorage",
-			"Packages": {
+			"package": {
 				"$className": "Folder",
 				"$path": "Packages"
 			},

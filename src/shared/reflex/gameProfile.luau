@@ -1,6 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Reflex = require(ReplicatedStorage.Packages.Reflex)
+local Reflex = require(ReplicatedStorage.package.Reflex)
 
 export type Producer = Reflex.Producer<State, Actions>
 

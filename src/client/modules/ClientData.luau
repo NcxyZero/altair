@@ -1,15 +1,15 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Promise = require(ReplicatedStorage.Packages.Promise)
-local Reflex = require(ReplicatedStorage.Packages.Reflex)
-local Signal = require(ReplicatedStorage.Packages.Signal)
+local Promise = require(ReplicatedStorage.package.Promise)
+local Reflex = require(ReplicatedStorage.package.Reflex)
+local Signal = require(ReplicatedStorage.package.Signal)
 
 -- Import profile producers
 local gameProfile = require(ReplicatedStorage.shared.reflex.gameProfile)
+local inventoryProfile = require(ReplicatedStorage.shared.reflex.inventoryProfile)
 local playerProfile = require(ReplicatedStorage.shared.reflex.playerProfile)
 local settingsProfile = require(ReplicatedStorage.shared.reflex.settingsProfile)
-local inventoryProfile = require(ReplicatedStorage.shared.reflex.inventoryProfile)
 
 export type Default = {
 	index: number,
@@ -120,7 +120,8 @@ function ClientData:Init(): ()
 		-- Create individual producers
 		local playerProducer = playerProfile.CreateProducer(playerData)
 		local settingsProducer = settingsProfile.CreateProducer(playerData.settings or settingsProfile.DEFAULT_STATE)
-		local inventoryProducer = inventoryProfile.CreateProducer(playerData.inventory or inventoryProfile.DEFAULT_STATE)
+		local inventoryProducer =
+			inventoryProfile.CreateProducer(playerData.inventory or inventoryProfile.DEFAULT_STATE)
 
 		-- Combine producers
 		self.playerProducer = Reflex.combineProducers({

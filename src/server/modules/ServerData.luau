@@ -1,16 +1,16 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local ProfileService = require(ReplicatedStorage.Packages.ProfileService)
-local Promise = require(ReplicatedStorage.Packages.Promise)
-local Reflex = require(ReplicatedStorage.Packages.Reflex)
-local Signal = require(ReplicatedStorage.Packages.Signal)
+local ProfileService = require(ReplicatedStorage.package.ProfileService)
+local Promise = require(ReplicatedStorage.package.Promise)
+local Reflex = require(ReplicatedStorage.package.Reflex)
+local Signal = require(ReplicatedStorage.package.Signal)
 
 -- Import profile producers
 local gameProfile = require(ReplicatedStorage.shared.reflex.gameProfile)
+local inventoryProfile = require(ReplicatedStorage.shared.reflex.inventoryProfile)
 local playerProfile = require(ReplicatedStorage.shared.reflex.playerProfile)
 local settingsProfile = require(ReplicatedStorage.shared.reflex.settingsProfile)
-local inventoryProfile = require(ReplicatedStorage.shared.reflex.inventoryProfile)
 
 export type ServerPlayerProfile = {
 	player: Player,
