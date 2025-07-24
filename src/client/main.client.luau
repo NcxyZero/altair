@@ -8,6 +8,7 @@ local modules = (script.Parent :: Folder):WaitForChild("modules")
 local path = {}
 path.controller = {}
 path.module = {}
+path.local_tag = {}
 path.tag = {}
 local loadFirst = {}
 local load = {}
@@ -29,8 +30,6 @@ for _index: number, module: Instance in modules:GetChildren() do
 				table.insert(load, required)
 			end
 		end
-
-		path[moduleType][module.Name] = path[moduleType][module.Name] :: required.Default
 	end)
 end
 
@@ -74,6 +73,47 @@ local function InitTag(required: unknown): ()
 	end
 end
 
+local function InitLocalTag(required: unknown): ()
+	local tag: string = required.tag
+	if not tag then
+		return
+	end
+
+	local new: ((Instance) -> unknown)? = required.new
+	if not new then
+		return
+	end
+
+	CollectionService:GetInstanceAddedSignal(tag):Connect(function(instance: Instance): ()
+		if not Players.LocalPlayer:IsAncestorOf(instance) then
+			if not Players.LocalPlayer.Character or not Players.LocalPlayer.Character:IsAncestorOf(instance) then
+				return
+			end
+		end
+
+		local class: unknown = new(instance)
+		tags[instance] = class
+	end)
+
+	CollectionService:GetInstanceRemovedSignal(tag):Connect(function(instance: Instance): ()
+		if tags[instance] and tags[instance].Destroy then
+			tags[instance]:Destroy(instance)
+			tags[instance] = nil
+		end
+	end)
+
+	for _index: number, instance: Instance in CollectionService:GetTagged(tag) do
+		if not Players.LocalPlayer:IsAncestorOf(instance) then
+			if not Players.LocalPlayer.Character or not Players.LocalPlayer.Character:IsAncestorOf(instance) then
+				continue
+			end
+		end
+
+		local class: unknown = new(instance)
+		tags[instance] = class
+	end
+end
+
 for _index: number, required: unknown in loadFirst do
 	InitController(required)
 end
@@ -84,6 +124,10 @@ end
 
 for _index: number, required: unknown in path.tag do
 	task.spawn(InitTag, required)
+end
+
+for _index: number, required: unknown in path.local_tag do
+	task.spawn(InitLocalTag, required)
 end
 
 Players.PlayerAdded:Connect(function(player: Player): ()
@@ -243,13 +287,13 @@ RunService.PreRender:Connect(function(delta: number): ()
 end)
 
 for _index: number, ui in Players.LocalPlayer.PlayerGui:GetChildren() do
-	if ui:IsA("ScreenGui") then
+	if ui:IsA("ScreenGui") and not ui:GetAttribute("SkipResetOnSpawn") then
 		ui.ResetOnSpawn = false
 	end
 end
 
 Players.LocalPlayer.PlayerGui.ChildAdded:Connect(function(ui: Instance): ()
-	if ui:IsA("ScreenGui") then
+	if ui:IsA("ScreenGui") and not ui:GetAttribute("SkipResetOnSpawn") then
 		ui.ResetOnSpawn = false
 	end
 end)

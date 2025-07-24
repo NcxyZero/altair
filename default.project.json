@@ -16,6 +16,10 @@
 			"shared": {
 				"$className": "Folder",
 				"$path": "src/shared"
+			},
+			"util": {
+				"$className": "Folder",
+				"$path": "src/util"
 			}
 		},
 		"ServerScriptService": {
@@ -29,7 +33,6 @@
 				"$path": "ServerPackages"
 			}
 		},
-
 		"StarterPlayer": {
 			"$className": "StarterPlayer",
 			"StarterPlayerScripts": {
