@@ -13,7 +13,11 @@ path.tag = {}
 local loadFirst = {}
 local load = {}
 
-for _index: number, module: Instance in modules:GetChildren() do
+for _index: number, module: Instance in modules:GetDescendants() do
+	if not module:IsA("ModuleScript") then
+		continue
+	end
+
 	if module.Name:lower():find("template") then
 		continue
 	end
