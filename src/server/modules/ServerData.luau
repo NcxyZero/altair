@@ -74,7 +74,7 @@ function ServerData:GetPlayerProfile(player: Player): ServerPlayerProfile?
 end
 
 function ServerData:WaitForPlayerProfile(player: Player): Promise.TypedPromise<ServerPlayerProfile>
-	return Promise.new(function(resolve, reject)
+	return Promise.new(function(resolve: (ServerPlayerProfile) -> ()): ()
 		local profile = self:GetPlayerProfile(player)
 		local connection
 
@@ -83,7 +83,7 @@ function ServerData:WaitForPlayerProfile(player: Player): Promise.TypedPromise<S
 			return
 		end
 
-		connection = self.playerDataLoadedEvent:Connect(function(newPlayer, data)
+		connection = self.playerDataLoadedEvent:Connect(function(newPlayer: Player, data: ServerPlayerProfile): ()
 			if newPlayer ~= player then
 				return
 			end
@@ -97,7 +97,6 @@ end
 function ServerData:PlayerAdded(player: Player): ()
 	local ProfileStore = ProfileService.GetProfileStore(DATASTORE_KEY, playerProfile.DEFAULT_STATE)
 	local profileStore = ProfileStore:LoadProfileAsync(getPlayerKey(player.UserId))
-
 	if not profileStore then
 		player:Kick("Failed to load your data. Please try again later.")
 		return
@@ -106,7 +105,7 @@ function ServerData:PlayerAdded(player: Player): ()
 	profileStore:AddUserId(player.UserId) -- GDPR compliance
 	profileStore:Reconcile() -- Fill in missing variables from ProfileTemplate
 
-	profileStore:ListenToRelease(function()
+	profileStore:ListenToRelease(function(): ()
 		self.profiles[player] = nil
 		-- The profile could've been loaded on another Roblox server:
 		player:Kick("Your data has been loaded on another server.")
@@ -140,9 +139,9 @@ function ServerData:PlayerAdded(player: Player): ()
 		nextActionIsReplicated = false,
 	}
 
-	local replicateMiddleware: Reflex.Middleware = function()
-		return function(dispatch, name)
-			return function(...)
+	local replicateMiddleware: Reflex.Middleware = function(): ((...any) -> any, string) -> (...any) -> any
+		return function(dispatch: (...any) -> any, name: string): (...any) -> any
+			return function(...: any): any
 				if profile.nextActionIsReplicated then
 					profile.nextActionIsReplicated = false
 					return dispatch(...)
@@ -209,9 +208,9 @@ function ServerData:Init(): ()
 
 	local nextActionIsReplicated = false
 
-	local replicateMiddleware: Reflex.Middleware = function()
-		return function(dispatch, name)
-			return function(...)
+	local replicateMiddleware: Reflex.Middleware = function(): ((...any) -> any, string) -> (...any) -> any
+		return function(dispatch: (...any) -> any, name: string): (...any) -> any
+			return function(...: any): any
 				if nextActionIsReplicated then
 					nextActionIsReplicated = false
 					return dispatch(...)
@@ -230,19 +229,19 @@ function ServerData:Init(): ()
 	self.gameProducer:applyMiddleware(replicateMiddleware)
 
 	-- Set up remote events
-	ReplicateStore.OnServerEvent:Connect(function(player, data: any)
+	ReplicateStore.OnServerEvent:Connect(function(player: Player, data: { name: string, [string]: any }): ()
 		if type(data) ~= "table" then
 			return
 		end
 
 		-- Secure actions are not allowed to be replicated
-		local isSecureAction = data.name:find("^secure")
+		local isSecureAction: number? = data.name:find("^secure")
 		if isSecureAction then
 			warn("Player tried to replicate secure reflex action", data.name)
 			return
 		end
 
-		local profile = self:GetPlayerProfile(player)
+		local profile: ServerPlayerProfile? = self:GetPlayerProfile(player)
 		if not profile then
 			return
 		end
@@ -251,7 +250,7 @@ function ServerData:Init(): ()
 		profile.producer[data.name](unpack(data.arguments))
 	end)
 
-	ReplicateGameStore.OnServerEvent:Connect(function(player, data: any)
+	ReplicateGameStore.OnServerEvent:Connect(function(_player: Player, data: any): ()
 		if type(data) ~= "table" then
 			return
 		end
@@ -267,7 +266,7 @@ function ServerData:Init(): ()
 		self.gameProducer[data.name](unpack(data.arguments))
 	end)
 
-	GetPlayerData.OnServerInvoke = function(player)
+	GetPlayerData.OnServerInvoke = function(player: Player): ...any
 		local profile = self:GetPlayerProfile(player)
 		if not profile then
 			return nil
@@ -285,19 +284,19 @@ function ServerData:Init(): ()
 		return clientData
 	end
 
-	GetGameData.OnServerInvoke = function()
+	GetGameData.OnServerInvoke = function(): ...any
 		return self.gameProducer:getState()
 	end
 
 	-- Initialize existing players
-	for _, player in ipairs(Players:GetPlayers()) do
-		task.spawn(function()
+	for _index: number, player in ipairs(Players:GetPlayers()) do
+		task.spawn(function(): ()
 			self:PlayerAdded(player)
 		end)
 	end
 
 	-- Connect player removing event
-	Players.PlayerRemoving:Connect(function(player)
+	Players.PlayerRemoving:Connect(function(player): ()
 		self:PlayerRemoving(player)
 	end)
 end

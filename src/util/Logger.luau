@@ -1,7 +1,7 @@
 local RunService = game:GetService("RunService")
 local Logger = {}
 
-Logger.warn = function(message: string)
+Logger.warn = function(message: string): ()
 	if not RunService:IsStudio() then
 		return
 	end
@@ -9,7 +9,7 @@ Logger.warn = function(message: string)
 	warn(message)
 end
 
-Logger.print = function(message: string)
+Logger.print = function(message: string): ()
 	if not RunService:IsStudio() then
 		return
 	end
@@ -17,7 +17,7 @@ Logger.print = function(message: string)
 	print(message)
 end
 
-Logger.error = function(message: string)
+Logger.error = function(message: string): ()
 	if not RunService:IsStudio() then
 		return
 	end
@@ -25,7 +25,7 @@ Logger.error = function(message: string)
 	error(message)
 end
 
-Logger.assert = function(value: boolean?, message: string)
+Logger.assert = function(value: boolean?, message: string): ()
 	if not RunService:IsStudio() then
 		return
 	end

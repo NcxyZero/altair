@@ -56,8 +56,8 @@ local function CreateClientProducer(data: any)
 end
 
 -- Async function to get player producer
-function ClientData:getPlayerProducerAsync()
-	return Promise.new(function(resolve)
+function ClientData:getPlayerProducerAsync(): Promise.TypedPromise<any>
+	return Promise.new(function(resolve: (any) -> ()): ()
 		if not self.isPlayerDataLoaded then
 			self.playerDataLoadedSignal:Wait()
 		end
@@ -67,8 +67,8 @@ function ClientData:getPlayerProducerAsync()
 end
 
 -- Async function to get game producer
-function ClientData:getGameProducerAsync()
-	return Promise.new(function(resolve)
+function ClientData:getGameProducerAsync(): Promise.TypedPromise<any>
+	return Promise.new(function(resolve: (any) -> ()): ()
 		if not self.isGameDataLoaded then
 			self.gameDataLoadedSignal:Wait()
 		end
@@ -89,9 +89,8 @@ function ClientData:Init(): ()
 	self.clientProducer = CreateClientProducer(DEFAULT_CLIENT_STATE)
 
 	-- Load player data
-	local function loadPlayerData()
+	local function loadPlayerData(): ()
 		local playerData = ReplicatedStorage:WaitForChild("GetPlayerData"):InvokeServer()
-
 		if not playerData then
 			task.wait(0.5)
 			return loadPlayerData()
@@ -99,9 +98,9 @@ function ClientData:Init(): ()
 
 		local nextActionIsReplicated = false
 
-		local replicateMiddleware = function()
-			return function(dispatch, name)
-				return function(...)
+		local replicateMiddleware = function(): ()
+			return function(dispatch: (...any) -> (...any) -> any, name: string): (...any) -> any
+				return function(...: any): any
 					if nextActionIsReplicated then
 						nextActionIsReplicated = false
 						return dispatch(...)
@@ -133,22 +132,24 @@ function ClientData:Init(): ()
 		self.playerProducer:applyMiddleware(replicateMiddleware)
 		self.isPlayerDataLoaded = true
 		self.playerDataLoadedSignal:Fire()
+
+		return
 	end
 
 	-- Load game data
-	local function loadGameData()
+	local function loadGameData(): (() -> ())?
+		-- function body is below
 		local gameData = ReplicatedStorage:WaitForChild("GetGameData"):InvokeServer()
-
 		if not gameData then
 			task.wait(0.5)
 			return loadGameData()
 		end
 
-		local nextActionIsReplicated = false
+		local nextActionIsReplicated: boolean = false
 
-		local replicateMiddleware = function()
-			return function(dispatch, name)
-				return function(...)
+		local replicateMiddleware = function(): ()
+			return function(dispatch: (...any) -> (...any) -> any, name: string): (...any) -> any
+				return function(...: any): (...any) -> any
 					if nextActionIsReplicated then
 						nextActionIsReplicated = false
 						return dispatch(...)
@@ -169,12 +170,14 @@ function ClientData:Init(): ()
 		self.gameProducer:applyMiddleware(replicateMiddleware)
 		self.isGameDataLoaded = true
 		self.gameDataLoadedSignal:Fire()
+
+		return
 	end
 
 	-- Set up remote events
-	local nextActionIsReplicated = false
+	local nextActionIsReplicated: boolean = false
 
-	ReplicatedStorage:WaitForChild("ReplicateStore").OnClientEvent:Connect(function(data)
+	ReplicatedStorage:WaitForChild("ReplicateStore").OnClientEvent:Connect(function(data: { [string]: any }): ()
 		if type(data) ~= "table" then
 			return
 		end
@@ -188,10 +191,10 @@ function ClientData:Init(): ()
 
 		-- Handle action based on naming convention
 		-- Format: producerName_actionName
-		local actionParts = string.split(data.name, "_")
+		local actionParts: { string } = string.split(data.name, "_")
 		if #actionParts == 2 then
-			local producerName = actionParts[1]
-			local actionName = actionParts[2]
+			local producerName: string = actionParts[1]
+			local actionName: string = actionParts[2]
 
 			-- Call the action on the appropriate producer
 			if self.playerProducer[data.name] then
@@ -205,7 +208,7 @@ function ClientData:Init(): ()
 		end
 	end)
 
-	ReplicatedStorage:WaitForChild("ReplicateGameStore").OnClientEvent:Connect(function(data)
+	ReplicatedStorage:WaitForChild("ReplicateGameStore").OnClientEvent:Connect(function(data: { [string]: any }): ()
 		if type(data) ~= "table" then
 			return
 		end

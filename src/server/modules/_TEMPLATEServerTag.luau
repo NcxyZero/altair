@@ -17,7 +17,7 @@ local ServerTagTemplate: Default = {} :: Default
 ServerTagTemplate.type = "tag"
 ServerTagTemplate.tag = "Template"
 
-function ServerTagTemplate.new(instance: Instance)
+function ServerTagTemplate.new(instance: Instance): Default
 	local self = setmetatable(ServerTagTemplate, {})
 	self.instance = instance
 	self.maid = Maid.new()
@@ -26,7 +26,7 @@ function ServerTagTemplate.new(instance: Instance)
 	return self
 end
 
-function ServerTagTemplate:Destroy()
+function ServerTagTemplate:Destroy(): ()
 	self.maid:DoCleaning()
 end
 

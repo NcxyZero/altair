@@ -2,6 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Logger = require(ReplicatedStorage.util.Logger)
 local Maid = require(ReplicatedStorage.package.Maid)
+
 export type Default = {
 	type: string,
 	tag: string,
@@ -17,7 +18,7 @@ local ClientTagTemplate: Default = {} :: Default
 ClientTagTemplate.type = "tag"
 ClientTagTemplate.tag = "Template"
 
-function ClientTagTemplate.new(instance: Instance)
+function ClientTagTemplate.new(instance: Instance): Default
 	local self = setmetatable(ClientTagTemplate, {})
 	self.instance = instance
 	self.maid = Maid.new()
@@ -26,7 +27,7 @@ function ClientTagTemplate.new(instance: Instance)
 	return self
 end
 
-function ClientTagTemplate:Destroy()
+function ClientTagTemplate:Destroy(): ()
 	self.maid:DoCleaning()
 end
 

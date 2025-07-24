@@ -12,7 +12,7 @@ local ControllerTemplate: Default = {} :: Default
 ControllerTemplate.type = "controller"
 -- ControllerTemplate.index = math.random()
 
-function ControllerTemplate:Init()
+function ControllerTemplate:Init(): ()
 	Logger.print("ServerControllerTemplate initalized")
 end
 
