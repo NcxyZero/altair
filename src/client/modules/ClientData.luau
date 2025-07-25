@@ -14,14 +14,15 @@ local settingsProfile = require(ReplicatedStorage.shared.reflex.settingsProfile)
 export type Default = {
 	index: number,
 	type: string,
+	path: { [string]: any }?,
 	playerProducer: any,
 	gameProducer: any,
 	isPlayerDataLoaded: boolean,
 	isGameDataLoaded: boolean,
 	playerDataLoadedSignal: Signal.Signal<()>,
 	gameDataLoadedSignal: Signal.Signal<()>,
-	getPlayerProducerAsync: () -> Promise.TypedPromise<any>,
-	getGameProducerAsync: () -> Promise.TypedPromise<any>,
+	getPlayerProducerAsync: (self: Default) -> Promise.TypedPromise<any>,
+	getGameProducerAsync: (self: Default) -> Promise.TypedPromise<any>,
 	PlayerAdded: (self: Default, player: Player) -> (),
 	Init: (self: Default) -> (),
 }
@@ -34,6 +35,8 @@ local ClientData: Default = {
 	playerDataLoadedSignal = Signal.new(),
 	gameDataLoadedSignal = Signal.new(),
 } :: Default
+
+local nextActionIsReplicated: boolean = false
 
 -- Default state for client-specific data
 local DEFAULT_CLIENT_STATE = {
@@ -58,9 +61,11 @@ end
 -- Async function to get player producer
 function ClientData:getPlayerProducerAsync(): Promise.TypedPromise<any>
 	return Promise.new(function(resolve: (any) -> ()): ()
+		print(self.isPlayerDataLoaded)
 		if not self.isPlayerDataLoaded then
 			self.playerDataLoadedSignal:Wait()
 		end
+		print("done")
 
 		resolve(self.playerProducer)
 	end)
@@ -90,13 +95,13 @@ function ClientData:Init(): ()
 
 	-- Load player data
 	local function loadPlayerData(): ()
+		print("Loading player data...")
 		local playerData = ReplicatedStorage:WaitForChild("GetPlayerData"):InvokeServer()
+		print("Player data loaded:", playerData)
 		if not playerData then
 			task.wait(0.5)
 			return loadPlayerData()
 		end
-
-		local nextActionIsReplicated = false
 
 		local replicateMiddleware = function(): ()
 			return function(dispatch: (...any) -> (...any) -> any, name: string): (...any) -> any
@@ -129,23 +134,24 @@ function ClientData:Init(): ()
 			inventory = inventoryProducer,
 		})
 
+		print("Player producer created")
 		self.playerProducer:applyMiddleware(replicateMiddleware)
+		print("Middleware applied")
 		self.isPlayerDataLoaded = true
+		print("Player data loaded, value: " .. tostring(self.isPlayerDataLoaded))
 		self.playerDataLoadedSignal:Fire()
+		print("Player data loaded signal fired")
 
 		return
 	end
 
 	-- Load game data
 	local function loadGameData(): (() -> ())?
-		-- function body is below
 		local gameData = ReplicatedStorage:WaitForChild("GetGameData"):InvokeServer()
 		if not gameData then
 			task.wait(0.5)
 			return loadGameData()
 		end
-
-		local nextActionIsReplicated: boolean = false
 
 		local replicateMiddleware = function(): ()
 			return function(dispatch: (...any) -> (...any) -> any, name: string): (...any) -> any
@@ -175,8 +181,6 @@ function ClientData:Init(): ()
 	end
 
 	-- Set up remote events
-	local nextActionIsReplicated: boolean = false
-
 	ReplicatedStorage:WaitForChild("ReplicateStore").OnClientEvent:Connect(function(data: { [string]: any }): ()
 		if type(data) ~= "table" then
 			return
@@ -193,8 +197,8 @@ function ClientData:Init(): ()
 		-- Format: producerName_actionName
 		local actionParts: { string } = string.split(data.name, "_")
 		if #actionParts == 2 then
-			local producerName: string = actionParts[1]
-			local actionName: string = actionParts[2]
+			-- local producerName: string = actionParts[1]
+			-- local actionName: string = actionParts[2]
 
 			-- Call the action on the appropriate producer
 			if self.playerProducer[data.name] then
@@ -229,8 +233,8 @@ function ClientData:Init(): ()
 	end)
 
 	-- Start loading data
-	task.spawn(loadPlayerData)
-	task.spawn(loadGameData)
+	loadPlayerData()
+	loadGameData()
 end
 
 return ClientData

@@ -26,13 +26,13 @@ function test:PlayerAdded(player: Player): ()
 
 	-- Add coins one by one and print the result each time
 	print("\nDataTest: Adding coins...")
-	data.producer.addCoins(1)
+	data.producer.secureAddCoins(1)
 	print("DataTest: After adding 1 coin:", data.producer.getState().player.coins)
 
-	data.producer.addCoins(1)
+	data.producer.secureAddCoins(1)
 	print("DataTest: After adding another coin:", data.producer.getState().player.coins)
 
-	data.producer.addCoins(1)
+	data.producer.secureAddCoins(1)
 	print("DataTest: After adding a third coin:", data.producer.getState().player.coins)
 
 	print("\nDataTest: Final state:")

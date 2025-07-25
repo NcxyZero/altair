@@ -51,6 +51,13 @@ function CreateProducer(initialState: State): Producer
 			return state
 		end,
 
+		secureAddCoins = function(state: State, amount: number): State
+			print("Adding coins:", amount)
+			state.coins += amount
+
+			return state
+		end,
+
 		setInventoryItem = function(state: State, itemId: string, amount: number): State
 			state.inventory[itemId] = amount
 
