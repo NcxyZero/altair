@@ -1,0 +1,34 @@
+local ServerScriptService = game:GetService("ServerScriptService")
+
+local ServerData = require(ServerScriptService.server.modules.ServerData)
+
+export type Default = {
+	index: number?,
+	type: string?,
+	path: { any },
+	PlayerAdded: (self: Default, player: Player) -> (),
+	Init: () -> (),
+}
+
+local test: Default = {} :: Default
+test.type = "controller"
+
+function test:PlayerAdded(player: Player): ()
+	local data = ServerData:GetPlayerProfile(player)
+	print(data.producer)
+	print(data.producer.getState())
+	print(data.producer.getState().player.coins)
+	data.producer.addCoins(1)
+	print(data.producer.getState().player.coins)
+	data.producer.addCoins(1)
+	print(data.producer.getState().player.coins)
+	data.producer.addCoins(1)
+	print(data.producer.getState().player.coins)
+	print(data.producer.getState().player.coins)
+end
+
+function test:Init(): ()
+	print("init")
+end
+
+return test

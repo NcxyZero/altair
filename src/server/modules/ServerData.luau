@@ -12,10 +12,24 @@ local inventoryProfile = require(ReplicatedStorage.shared.reflex.inventoryProfil
 local playerProfile = require(ReplicatedStorage.shared.reflex.playerProfile)
 local settingsProfile = require(ReplicatedStorage.shared.reflex.settingsProfile)
 
+export type Data = {
+	game: gameProfile.State,
+	inventory: inventoryProfile.State,
+	player: playerProfile.State,
+	settings: settingsProfile.State,
+}
+
 export type ServerPlayerProfile = {
 	player: Player,
-	profileStore: any,
-	producer: any,
+	profileStore: Reflex.Producer<any, any> & { Data: Data },
+	producer: Reflex.Producer<any, any>
+		& gameProfile.Producer
+		& inventoryProfile.Producer
+		& playerProfile.Producer
+		& settingsProfile.Producer
+		& {
+			getState: () -> Data,
+		},
 	nextActionIsReplicated: boolean,
 }
 
@@ -247,7 +261,7 @@ function ServerData:Init(): ()
 		end
 
 		profile.nextActionIsReplicated = true
-		profile.producer[data.name](unpack(data.arguments))
+		(profile.producer :: any)[data.name](unpack(data.arguments))
 	end)
 
 	ReplicateGameStore.OnServerEvent:Connect(function(_player: Player, data: { name: string, [string]: any }): ()
