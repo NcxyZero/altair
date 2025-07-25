@@ -83,7 +83,7 @@ The project uses a custom lightweight testing framework. Test files follow these
 
 Tests are run using the TestRunner script located at `src/server/TestRunner.server.luau`. When the game starts in Roblox Studio, this script automatically:
 
-1. Finds all test files (`.spec.luau`) in the `ServerScriptService.tests` folder
+1. Finds all test files (`.spec.luau`) in the `ServerScriptService.server.tests` folder
 2. Runs each test and collects results
 3. Outputs a summary of test results to the console
 

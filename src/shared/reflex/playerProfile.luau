@@ -37,32 +37,37 @@ local SAVE_EXCEPTIONS: { string } = {
 }
 
 function CreateProducer(initialState: State): Producer
-	local producer = Reflex.createProducer(initialState, {
-		setCoins = function(state, coins: number)
+	local producer: Producer = Reflex.createProducer(initialState, {
+		setCoins = function(state: State, coins: number): State
 			state.coins = coins
+
 			return state
 		end,
 
-		addCoins = function(state, amount: number)
+		addCoins = function(state: State, amount: number): State
 			state.coins += amount
+
 			return state
 		end,
 
-		setInventoryItem = function(state, itemId: string, amount: number)
+		setInventoryItem = function(state: State, itemId: string, amount: number): State
 			state.inventory[itemId] = amount
+
 			return state
 		end,
 
-		removeInventoryItem = function(state, itemId: string)
+		removeInventoryItem = function(state: State, itemId: string): State
 			state.inventory[itemId] = nil
+
 			return state
 		end,
 
-		setSetting = function(state, key: string, value: any)
+		setSetting = function(state: State, key: string, value: any): State
 			state.settings[key] = value
+
 			return state
 		end,
-	}) :: Producer
+	})
 
 	return producer
 end

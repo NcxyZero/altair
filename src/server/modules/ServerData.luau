@@ -167,7 +167,7 @@ function ServerData:PlayerAdded(player: Player): ()
 end
 
 function ServerData:PlayerRemoving(player: Player): ()
-	local profile = self.profiles[player]
+	local profile: ServerPlayerProfile? = self.profiles[player]
 	if not profile then
 		return
 	end
@@ -182,7 +182,7 @@ function ServerData:PlayerRemoving(player: Player): ()
 	local inventoryState = combinedState.inventory
 
 	-- Combine into a single state for saving
-	for key, value in pairs(playerState) do
+	for key: any, value: any in playerState do
 		if table.find(SAVE_EXCEPTIONS, key) ~= nil then
 			continue
 		end
@@ -206,7 +206,7 @@ function ServerData:Init(): ()
 	-- Initialize game data
 	self.gameProducer = gameProfile.CreateProducer(gameProfile.DEFAULT_STATE)
 
-	local nextActionIsReplicated = false
+	local nextActionIsReplicated: boolean = false
 
 	local replicateMiddleware: Reflex.Middleware = function(): ((...any) -> any, string) -> (...any) -> any
 		return function(dispatch: (...any) -> any, name: string): (...any) -> any
@@ -250,13 +250,13 @@ function ServerData:Init(): ()
 		profile.producer[data.name](unpack(data.arguments))
 	end)
 
-	ReplicateGameStore.OnServerEvent:Connect(function(_player: Player, data: any): ()
+	ReplicateGameStore.OnServerEvent:Connect(function(_player: Player, data: { name: string, [string]: any }): ()
 		if type(data) ~= "table" then
 			return
 		end
 
 		-- Secure actions are not allowed to be replicated
-		local isSecureAction = data.name:find("^secure")
+		local isSecureAction: number? = data.name:find("^secure")
 		if isSecureAction then
 			warn("Player tried to replicate secure reflex action", data.name)
 			return
@@ -267,7 +267,7 @@ function ServerData:Init(): ()
 	end)
 
 	GetPlayerData.OnServerInvoke = function(player: Player): ...any
-		local profile = self:GetPlayerProfile(player)
+		local profile: ServerPlayerProfile? = self:GetPlayerProfile(player)
 		if not profile then
 			return nil
 		end
@@ -296,7 +296,7 @@ function ServerData:Init(): ()
 	end
 
 	-- Connect player removing event
-	Players.PlayerRemoving:Connect(function(player): ()
+	Players.PlayerRemoving:Connect(function(player: Player): ()
 		self:PlayerRemoving(player)
 	end)
 end

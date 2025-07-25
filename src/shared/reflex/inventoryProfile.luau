@@ -36,31 +36,33 @@ local DEFAULT_STATE: State = {
 }
 
 function CreateProducer(initialState: State): Producer
-	local producer = Reflex.createProducer(initialState, {
-		addItem = function(state, itemId: string, item: InventoryItem)
+	local producer: Producer = Reflex.createProducer(initialState, {
+		addItem = function(state: State, itemId: string, item: InventoryItem): State
 			if state.items[itemId] then
 				state.items[itemId].quantity += item.quantity
 			else
 				state.items[itemId] = item
 			end
+
 			return state
 		end,
 
-		removeItem = function(state, itemId: string)
+		removeItem = function(state: State, itemId: string): State
 			if state.items[itemId] then
 				state.items[itemId] = nil
 
 				-- Unequip the item if it was equipped
-				for slot, id in state.equippedItems do
+				for slot: string, id: string in state.equippedItems do
 					if id == itemId then
 						state.equippedItems[slot] = nil
 					end
 				end
 			end
+
 			return state
 		end,
 
-		updateItemQuantity = function(state, itemId: string, quantity: number)
+		updateItemQuantity = function(state: State, itemId: string, quantity: number): State
 			if state.items[itemId] then
 				state.items[itemId].quantity = quantity
 
@@ -76,35 +78,40 @@ function CreateProducer(initialState: State): Producer
 					end
 				end
 			end
+
 			return state
 		end,
 
-		equipItem = function(state, itemId: string, slotName: string)
+		equipItem = function(state: State, itemId: string, slotName: string): State
 			if state.items[itemId] then
 				state.equippedItems[slotName] = itemId
 				state.items[itemId].equipped = true
 			end
+
 			return state
 		end,
 
-		unequipItem = function(state, slotName: string)
-			local itemId = state.equippedItems[slotName]
+		unequipItem = function(state: State, slotName: string): State
+			local itemId: string = state.equippedItems[slotName]
 			if itemId and state.items[itemId] then
 				state.items[itemId].equipped = false
 			end
+
 			state.equippedItems[slotName] = nil
+
 			return state
 		end,
 
-		increaseMaxSlots = function(state, amount: number)
+		increaseMaxSlots = function(state: State, amount: number): State
 			state.maxSlots += amount
+
 			return state
 		end,
 
-		clearInventory = function()
+		clearInventory = function(): State
 			return table.clone(DEFAULT_STATE)
 		end,
-	}) :: Producer
+	})
 
 	return producer
 end
