@@ -45,6 +45,7 @@ function CreateProducer(initialState: State): Producer
 		end,
 
 		addCoins = function(state: State, amount: number): State
+			print("Adding coins:", amount)
 			state.coins += amount
 
 			return state

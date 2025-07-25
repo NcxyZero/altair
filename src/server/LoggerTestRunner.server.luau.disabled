@@ -40,10 +40,10 @@ local function applyLoggerToGameProducer()
 				print("[Server-Reflex-Logger]: Game state changed to " .. tostring(state))
 			end)
 
-			return function(dispatch, name)
-				return function(...)
-					local arguments = table.pack(...)
-					local argStrings = {}
+			return function(dispatch: (...any) -> ...any, name: string): (...any) -> ...any
+				return function(...: any): ...any
+					local arguments: { [number]: any, n: number } = table.pack(...)
+					local argStrings: { string } = {}
 
 					for index = 1, arguments.n do
 						table.insert(argStrings, tostring(arguments[index]))
