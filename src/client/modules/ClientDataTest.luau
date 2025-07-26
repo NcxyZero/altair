@@ -24,13 +24,13 @@ function test:Init(): ()
 	print("DataTest: - Inventory:", producer.getState().inventory)
 
 	print("\nDataTest: Adding coins...")
-	producer.secureAddCoins(1)
+	producer.addCoins(1)
 	print("DataTest: After adding 1 coin:", producer.getState().player.coins)
 
-	producer.secureAddCoins(1)
+	producer.addCoins(1)
 	print("DataTest: After adding another coin:", producer.getState().player.coins)
 
-	producer.secureAddCoins(1)
+	producer.addCoins(1)
 	print("DataTest: After adding a third coin:", producer.getState().player.coins)
 
 	print("\nDataTest: Final state:")
