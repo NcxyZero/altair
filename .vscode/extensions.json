@@ -1,0 +1,15 @@
+{
+	"recommendations": [
+		"redhat.vscode-yaml",
+		"aaron-bond.better-comments",
+		"EditorConfig.EditorConfig",
+		"tamasfe.even-better-toml",
+		"eamodio.gitlens",
+		"JohnnyMorganz.luau-lsp",
+		"DavidAnson.vscode-markdownlint",
+		"peakchen90.open-html-in-browser",
+		"evaera.roblox-api-explorer",
+		"Kampfkarren.selene-vscode",
+		"JohnnyMorganz.stylua",
+	]
+}
