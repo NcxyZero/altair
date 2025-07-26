@@ -29,7 +29,8 @@ profile.svg
 trace.json
 
 # IntelliJ IDEA
-.idea/*
+.idea/
+# .idea/*
 # !.idea/fileTypes.xml
 # !.idea/jsonSchemes.xml
 # !.idea/externalDependencies.xml

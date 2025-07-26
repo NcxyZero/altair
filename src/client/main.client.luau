@@ -290,7 +290,7 @@ RunService.PreRender:Connect(function(delta: number): ()
 	end
 end)
 
-for _index: number, ui in Players.LocalPlayer.PlayerGui:GetChildren() do
+for _index: number, ui: ScreenGui in Players.LocalPlayer.PlayerGui:GetChildren() do
 	if ui:IsA("ScreenGui") and not ui:GetAttribute("SkipResetOnSpawn") then
 		ui.ResetOnSpawn = false
 	end

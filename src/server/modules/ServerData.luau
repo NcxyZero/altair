@@ -89,6 +89,7 @@ function ServerData:WaitForPlayerProfile(player: Player): Promise.TypedPromise<S
 
 		if profile then
 			resolve(profile)
+
 			return
 		end
 
@@ -108,19 +109,22 @@ function ServerData:PlayerAdded(player: Player): ()
 	local profileStore = ProfileStore:LoadProfileAsync(getPlayerKey(player.UserId))
 	if not profileStore then
 		player:Kick("Failed to load your data. Please try again later.")
+
 		return
 	end
 
-	profileStore:AddUserId(player.UserId) -- GDPR compliance
-	profileStore:Reconcile() -- Fill in missing variables from ProfileTemplate
+	profileStore:AddUserId(player.UserId)
+	profileStore:Reconcile()
 
 	profileStore:ListenToRelease(function(): ()
 		self.profiles[player] = nil
+
 		player:Kick("Your data has been loaded on another server.")
 	end)
 
 	if not player:IsDescendantOf(Players) then
 		profileStore:Release()
+
 		return
 	end
 
@@ -177,17 +181,6 @@ function ServerData:PlayerRemoving(player: Player): ()
 	end
 
 	local combinedState = profile.producer:getState()
-	print("PlayerRemoving - Combined state before saving:")
-	print("combinedState:", combinedState)
-	print("combinedState.player:", combinedState.player)
-	print("combinedState.player.coins:", combinedState.player.coins)
-	print("combinedState.settings:", combinedState.settings)
-	print("combinedState.inventory:", combinedState.inventory)
-
-	print("PlayerRemoving - Checking for nested fields in playerState:")
-	print("playerState.settings:", combinedState.player.settings)
-	print("playerState.inventory:", combinedState.player.inventory)
-
 	local saveableData = {}
 
 	local playerState = combinedState.player
@@ -205,12 +198,6 @@ function ServerData:PlayerRemoving(player: Player): ()
 
 	saveableData.settings = combinedState.settings
 	saveableData.inventory = combinedState.inventory
-
-	print("PlayerRemoving - Saveable data structure:")
-	print("saveableData:", saveableData)
-	print("saveableData.coins:", saveableData.coins)
-	print("saveableData.settings:", saveableData.settings)
-	print("saveableData.inventory:", saveableData.inventory)
 
 	profile.profileStore.Data = saveableData
 	profile.profileStore:Release()

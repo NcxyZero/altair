@@ -15,8 +15,8 @@ export type Default = {
 	index: number,
 	type: string,
 	path: { [string]: any }?,
-	playerProducer: any,
-	gameProducer: any,
+	playerProducer: Reflex.Producer<any, any>,
+	gameProducer: Reflex.Producer<any, any>,
 	isPlayerDataLoaded: boolean,
 	isGameDataLoaded: boolean,
 	playerDataLoadedSignal: Signal.Signal<()>,
@@ -38,7 +38,6 @@ local ClientData: Default = {
 
 local nextActionIsReplicated: boolean = false
 
--- Default state for client-specific data
 local DEFAULT_CLIENT_STATE = {
 	localSettings = {
 		musicVolume = 0.5,
@@ -46,10 +45,9 @@ local DEFAULT_CLIENT_STATE = {
 	},
 }
 
--- Create a producer for client-specific data
-local function CreateClientProducer(data: any)
-	local producer = Reflex.createProducer(data, {
-		setLocalSetting = function(state, key: string, value: any)
+local function CreateClientProducer(data: any): Reflex.Producer<any, any>
+	local producer: Reflex.Producer<any, any> = Reflex.createProducer(data, {
+		setLocalSetting = function(state: any, key: string, value: any): any
 			state.localSettings[key] = value
 			return state
 		end,
@@ -58,22 +56,18 @@ local function CreateClientProducer(data: any)
 	return producer
 end
 
--- Async function to get player producer
-function ClientData:getPlayerProducerAsync(): Promise.TypedPromise<any>
-	return Promise.new(function(resolve: (any) -> ()): ()
-		print(self.isPlayerDataLoaded)
+function ClientData:getPlayerProducerAsync(): Promise.TypedPromise<Reflex.Producer<any, any>>
+	return Promise.new(function(resolve: (Reflex.Producer<any, any>) -> ()): ()
 		if not self.isPlayerDataLoaded then
 			self.playerDataLoadedSignal:Wait()
 		end
-		print("done")
 
 		resolve(self.playerProducer)
 	end)
 end
 
--- Async function to get game producer
-function ClientData:getGameProducerAsync(): Promise.TypedPromise<any>
-	return Promise.new(function(resolve: (any) -> ()): ()
+function ClientData:getGameProducerAsync(): Promise.TypedPromise<Reflex.Producer<any, any>>
+	return Promise.new(function(resolve: (Reflex.Producer<any, any>) -> ()): ()
 		if not self.isGameDataLoaded then
 			self.gameDataLoadedSignal:Wait()
 		end
@@ -83,21 +77,16 @@ function ClientData:getGameProducerAsync(): Promise.TypedPromise<any>
 end
 
 function ClientData:PlayerAdded(player: Player): ()
-	-- This is a client module, so we don't need to handle other players
 	if player ~= Players.LocalPlayer then
 		return
 	end
 end
 
 function ClientData:Init(): ()
-	-- Create client-specific producer
 	self.clientProducer = CreateClientProducer(DEFAULT_CLIENT_STATE)
 
-	-- Load player data
 	local function loadPlayerData(): ()
-		print("Loading player data...")
 		local playerData = ReplicatedStorage:WaitForChild("GetPlayerData"):InvokeServer()
-		print("Player data loaded:", playerData)
 		if not playerData then
 			task.wait(0.5)
 			return loadPlayerData()
@@ -121,31 +110,24 @@ function ClientData:Init(): ()
 			end
 		end
 
-		-- Create individual producers
 		local playerProducer = playerProfile.CreateProducer(playerData)
 		local settingsProducer = settingsProfile.CreateProducer(playerData.settings or settingsProfile.DEFAULT_STATE)
 		local inventoryProducer =
 			inventoryProfile.CreateProducer(playerData.inventory or inventoryProfile.DEFAULT_STATE)
 
-		-- Combine producers
 		self.playerProducer = Reflex.combineProducers({
 			player = playerProducer,
 			settings = settingsProducer,
 			inventory = inventoryProducer,
 		})
 
-		print("Player producer created")
 		self.playerProducer:applyMiddleware(replicateMiddleware)
-		print("Middleware applied")
 		self.isPlayerDataLoaded = true
-		print("Player data loaded, value: " .. tostring(self.isPlayerDataLoaded))
 		self.playerDataLoadedSignal:Fire()
-		print("Player data loaded signal fired")
 
 		return
 	end
 
-	-- Load game data
 	local function loadGameData(): (() -> ())?
 		local gameData = ReplicatedStorage:WaitForChild("GetGameData"):InvokeServer()
 		if not gameData then
@@ -171,7 +153,6 @@ function ClientData:Init(): ()
 			end
 		end
 
-		-- Use gameProfile module
 		self.gameProducer = gameProfile.CreateProducer(gameData)
 		self.gameProducer:applyMiddleware(replicateMiddleware)
 		self.isGameDataLoaded = true
@@ -180,7 +161,6 @@ function ClientData:Init(): ()
 		return
 	end
 
-	-- Set up remote events
 	ReplicatedStorage:WaitForChild("ReplicateStore").OnClientEvent:Connect(function(data: { [string]: any }): ()
 		if type(data) ~= "table" then
 			return
@@ -193,21 +173,14 @@ function ClientData:Init(): ()
 			self.playerDataLoadedSignal:Wait()
 		end
 
-		-- Handle action based on naming convention
-		-- Format: producerName_actionName
 		local actionParts: { string } = string.split(data.name, "_")
 		if #actionParts == 2 then
-			-- local producerName: string = actionParts[1]
-			-- local actionName: string = actionParts[2]
-
-			-- Call the action on the appropriate producer
 			if self.playerProducer[data.name] then
 				self.playerProducer[data.name](unpack(data.arguments))
 			else
 				warn("Unknown action:", data.name)
 			end
 		else
-			-- Fallback for actions without producer prefix
 			self.playerProducer[data.name](unpack(data.arguments))
 		end
 	end)
@@ -224,7 +197,6 @@ function ClientData:Init(): ()
 			self.gameDataLoadedSignal:Wait()
 		end
 
-		-- Call the action on the game producer
 		if self.gameProducer[data.name] then
 			self.gameProducer[data.name](unpack(data.arguments))
 		else
@@ -232,7 +204,6 @@ function ClientData:Init(): ()
 		end
 	end)
 
-	-- Start loading data
 	loadPlayerData()
 	loadGameData()
 end

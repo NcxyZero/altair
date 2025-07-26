@@ -2,6 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Logger = require(ReplicatedStorage.util.Logger)
 local Maid = require(ReplicatedStorage.package.Maid)
+
 export type Default = {
 	type: string,
 	tag: string,
