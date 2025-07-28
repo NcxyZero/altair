@@ -10,6 +10,7 @@ shared-packages = "game.ReplicatedStorage.package"
 [dependencies]
 Bridgenet2 = "ncxyzero/bridgenet2-fork@1.1.5"
 CameraShaker = "brittonfischer/camerashaker@0.1.0"
+Cmdr = "evaera/cmdr@1.12.0"
 Fastcast = "solarhorizon/fastcast@13.2.1"
 Maid = "nightcycle/maid@1.1.4"
 ProfileService = "brittonfischer/profileservice@2.1.5"
