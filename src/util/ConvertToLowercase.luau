@@ -11,10 +11,11 @@ return function(input: string, replaceWhitespaceWith: string?): string
 		["Ż"] = "ż",
 	}
 
-	return input
-		:gsub("[%z\1-\127\194-\244][\128-\191]*", function(c: string): string
-			return chars[c] or c
-		end)
-		:lower()
-		:gsub(" ", replaceWhitespaceWith or " ")
+	local function capitalize(letter: string): string
+		local char: string = utf8.char(utf8.codepoint(letter))
+
+		return chars[char] or char:lower()
+	end
+
+	return input:gsub("[%z\1-\127\194-\244][\128-\191]*", capitalize):gsub(" ", replaceWhitespaceWith or " ")
 end

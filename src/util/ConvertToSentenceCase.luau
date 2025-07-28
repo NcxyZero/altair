@@ -12,8 +12,13 @@ return function(input: string, replaceWhitespaceWith: string?): string
 	}
 
 	local function capitalize(word: string): string
-		local first: string = word:sub(1, 1)
-		local rest: string = word:sub(2)
+		local firstCode: number = utf8.codepoint(word, 1)
+		if not firstCode then
+			return word
+		end
+
+		local first: string = utf8.char(firstCode)
+		local rest: string = word:sub(utf8.offset(word, 2) or #word + 1)
 
 		first = chars[first] or first:upper()
 

@@ -1,5 +1,5 @@
 return function(input: string, replaceWhitespaceWith: string?): string
-	local upperChars: { [string]: string } = {
+	local chars: { [string]: string } = {
 		["ą"] = "Ą",
 		["ć"] = "Ć",
 		["ę"] = "Ę",
@@ -11,40 +11,18 @@ return function(input: string, replaceWhitespaceWith: string?): string
 		["ż"] = "Ż",
 	}
 
-	local lowerChars: { [string]: string } = {
-		["Ą"] = "ą",
-		["Ć"] = "ć",
-		["Ę"] = "ę",
-		["Ł"] = "ł",
-		["Ń"] = "ń",
-		["Ó"] = "ó",
-		["Ś"] = "ś",
-		["Ź"] = "ź",
-		["Ż"] = "ż",
-	}
-
 	local function capitalize(word: string): string
-		local first: string = word:sub(1, 1)
-		local rest: string = word:sub(2)
+		local firstCode: number = utf8.codepoint(word, 1)
+		if not firstCode then
+			return word
+		end
 
-		first = upperChars[first] or first:upper()
+		local first: string = utf8.char(firstCode)
+		local rest: string = word:sub(utf8.offset(word, 2) or #word + 1)
+
+		first = chars[first] or first:upper()
 
 		return first .. rest:lower()
-	end
-
-	local words: { string } = {}
-	for word: string in input:gmatch("%S+") do
-		table.insert(words, word)
-	end
-
-	for i: number, word: string in ipairs(words) do
-		if i == 1 then
-			words[i] = word:lower():gsub("[%z\1-\127\194-\244][\128-\191]*", function(c: string): string
-				return lowerChars[c] or c
-			end)
-		else
-			words[i] = capitalize(word)
-		end
 	end
 
 	return input:gsub("(%S+)", capitalize):gsub(" ", replaceWhitespaceWith or " ")
