@@ -1,4 +1,4 @@
-return function(input: string, replaceWhitespaceWith: string?): string
+return function(input: string, lowerRest: boolean?, replaceWhitespaceWith: string?): string
 	local chars: { [string]: string } = {
 		["ą"] = "Ą",
 		["ć"] = "Ć",
@@ -22,7 +22,7 @@ return function(input: string, replaceWhitespaceWith: string?): string
 
 		first = chars[first] or first:upper()
 
-		return first .. rest:lower()
+		return first .. (lowerRest and rest:lower() or rest)
 	end
 
 	return input:gsub("(%S+)", capitalize):gsub(" ", replaceWhitespaceWith or " ")
