@@ -14,7 +14,7 @@ ControllerTemplate.type = "controller"
 -- ControllerTemplate.index = math.random()
 
 function ControllerTemplate:Init(): ()
-	Logger.print("ServerControllerTemplate initalized")
+	Logger.print("ClientControllerTemplate initalized")
 end
 
 return ControllerTemplate
