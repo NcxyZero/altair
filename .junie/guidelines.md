@@ -36,16 +36,41 @@ This document provides essential information for developers working on the proje
 
 ### Project Structure
 
-The project follows a standard Roblox game structure as defined in `default.project.json`:
+#### Defined in default.project.json
 
-- `src/client/first` → ReplicatedFirst
-- `src/client/module` → ReplicatedStorage.client
-- `src/client/init` → StarterPlayer.StarterPlayerScripts
-- `src/client/starterGui` → StarterGui
-- `src/server` → ServerScriptService
+The project structure is defined in `default.project.json` as follows:
+
+- `src/preload` → ReplicatedFirst
 - `src/shared` → ReplicatedStorage.shared
-- `src/locale` → LocalizationService
+- `src/util` → ReplicatedStorage.util
+- `src/server` → ServerScriptService.server
+- `ServerPackages` → ServerScriptService.server_package
+- `src/client` → StarterPlayer.StarterPlayerScripts
 - `Packages` → ReplicatedStorage.package (Wally packages)
+
+#### Actual Project Structure
+
+The actual structure of the project is:
+
+- `src/`
+  - `client/` - Client-side code
+    - `init/` - Initialization scripts
+    - `modules/` - Client modules
+    - `main.client.luau` - Main client entry point
+  - `server/` - Server-side code
+    - `cmdr/` - Command scripts
+    - `config/` - Server configuration
+    - `modules/` - Server modules
+    - `tests/` - Test scripts
+    - `main.server.luau` - Main server entry point
+  - `shared/` - Code shared between client and server
+    - `config/` - Shared configuration
+    - `model/` - Data models
+    - `reflex/` - Reflex state management
+    - `types/` - Type definitions
+  - `util/` - Utility functions
+- `Packages/` - Client and shared Wally packages
+- `ServerPackages/` - Server-only Wally packages
 
 ### Development Workflow
 
