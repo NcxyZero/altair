@@ -12,7 +12,7 @@ export type GameConfig = {
 	},
 }
 
-local gameConfig: GameConfig = table.freeze({
+local gameConfig: GameConfig = {
 	cmdr = {
 		activationKeys = {
 			Enum.KeyCode.F2,
@@ -25,6 +25,6 @@ local gameConfig: GameConfig = table.freeze({
 			rank = 200,
 		},
 	},
-})
+}
 
-return gameConfig
+return table.freeze(gameConfig)
