@@ -6,7 +6,7 @@ function format(int: number): string
 	return ("%02i"):format(int)
 end
 
-return function(seconds: number, displayType: string): string
+return function(seconds: number, displayType: string, customSeparator: string?): string
 	if not seconds or not displayType or not IsValidUTF8(displayType) then
 		error("Seconds and valid type must be provided for displayTime function")
 	end
@@ -41,5 +41,5 @@ return function(seconds: number, displayType: string): string
 		table.insert(toDisplay, 1, format(days))
 	end
 
-	return table.concat(toDisplay, ":")
+	return table.concat(toDisplay, customSeparator or ":")
 end
