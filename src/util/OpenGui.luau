@@ -1,13 +1,19 @@
-local current
+local OpenGui = {}
+OpenGui.current = { exec = nil, id = nil }
 
-return function(show: any, hide: any)
-	if current and typeof(current) == "function" then
-		current()
-	end
+function OpenGui:Handle(id: any, show: any, hide: any)
+	pcall(function()
+		if self.current.exec and typeof(self.current.exec) == "function" then
+			self.current.exec()
+		end
+	end)
 
-	current = hide
+	self.current.id = id
+	self.current.exec = hide
 
 	if typeof(show) == "function" then
 		show()
 	end
 end
+
+return OpenGui
