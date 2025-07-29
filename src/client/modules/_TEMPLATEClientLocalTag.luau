@@ -15,6 +15,7 @@ export type Default = {
 }
 
 local ClientLocalTagTemplate: Default = {} :: Default
+ClientLocalTagTemplate.__index = ClientLocalTagTemplate
 ClientLocalTagTemplate.type = "local_tag"
 ClientLocalTagTemplate.tag = "Local_Template"
 

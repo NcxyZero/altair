@@ -16,6 +16,7 @@ export type Default = {
 
 local ServerTagTemplate: Default = {} :: Default
 ServerTagTemplate.type = "tag"
+ServerTagTemplate.__index = ServerTagTemplate
 ServerTagTemplate.tag = "Template"
 
 function ServerTagTemplate.new(instance: Instance): Default
