@@ -11,7 +11,7 @@ return function(itemsPossibleToDrop: { [string]: { Weight: number } }, luckToCon
 			lowestDropConfigName = index
 		end
 
-		local shouldBeDroped: boolean = math.random(1, math.floor(value.Weight / luck)) == 1
+		local shouldBeDroped: boolean = math.random(1, value.Weight // luck) == 1
 		if shouldBeDroped then
 			table.insert(possibleToDrop, { configName = index, weight = value.Weight })
 		end
