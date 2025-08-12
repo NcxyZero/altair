@@ -18,9 +18,9 @@ The following producer files have been created in the `shared/reflex` directory:
 
 Contains the basic player data such as userId and coins. This is the core player data that doesn't fit into more specific categories.
 
-```lua
+```luau
 -- Example state
-{
+local exampleState = {
   userId = 0,
   coins = 0
 }
@@ -32,11 +32,11 @@ playerProducer:addCoins(50)
 
 ### gameProfile.luau
 
-Contains game-wide data that is shared across all clients, such as server start time and active player count.
+Contains game-wide data shared across all clients, such as server start time and active player count.
 
-```lua
+```luau
 -- Example state
-{
+local exampleState = {
   serverStartTime = os.time(),
   activePlayers = 0
 }
@@ -51,9 +51,9 @@ gameProducer:decrementActivePlayers()
 
 Contains player-specific settings such as music volume, SFX volume, UI scale, etc.
 
-```lua
+```luau
 -- Example state
-{
+local exampleState = {
   musicVolume = 0.5,
   sfxVolume = 0.5,
   uiScale = 1,
@@ -71,9 +71,9 @@ settingsProducer:toggleFPS()
 
 Contains the player's inventory data, including items, equipped items, and inventory slots.
 
-```lua
+```luau
 -- Example state
-{
+local exampleState = {
   items = {
     ["item1"] = {
       id = "item1",
@@ -140,7 +140,7 @@ self.playerProducer = Reflex.combineProducers({
 
 When using a combined producer, the state is structured according to the producer names used in the `combineProducers` function:
 
-```lua
+```luau
 local combinedState = profile.producer:getState()
 
 -- Access player data
@@ -160,7 +160,7 @@ local equippedItems = combinedState.inventory.equippedItems
 
 Actions can be dispatched on the combined producer using the format `producerName_actionName` or directly on the individual producers:
 
-```lua
+```luau
 -- Using the combined producer
 combinedProducer.player_setCoins(100)
 combinedProducer.settings_setMusicVolume(0.8)
@@ -176,7 +176,7 @@ inventoryProducer:addItem("item3", newItem)
 
 When saving data to the datastore, the combined state is extracted and restructured:
 
-```lua
+```luau
 -- Extract data from combined state
 local playerState = combinedState.player
 local settingsState = combinedState.settings

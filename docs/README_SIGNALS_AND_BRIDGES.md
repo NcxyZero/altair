@@ -1,4 +1,4 @@
-# Altair - Network Utilities (`ReplicatedStorage.util`)
+# Altair — Network Utilities (`ReplicatedStorage.util`)
 
 This module group provides reusable networking utilities for the **Altair** project, designed to simplify bridge and signal access across client and server
 
@@ -15,6 +15,7 @@ Returns a cached instance of a `BridgeNet2` bridge (server or client) by name. E
 ### ✅ Usage
 
 ## Signal
+
 ```luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GetSignal = require(ReplicatedStorage.util.GetSignal)
@@ -28,6 +29,7 @@ end)
 ```
 
 ## Bridge Client
+
 ```luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GetBridge = require(ReplicatedStorage.util.GetBridge)
@@ -57,5 +59,4 @@ end)
 
 ### IMPORTANT NOTE
 
-As for now do not use InvokeServerAsync as it may break the game, instead use two :Connect and yield or use roblox remote functions if needed 
-
+As for now do not use `InvokeServerAsync()` as it may break the game, instead use two `Connect()` and yield or use Roblox remote functions if needed

@@ -34,4 +34,4 @@ Unlike the root of `ReplicatedFirst`, files placed inside `src/preload`:
 
 - Preloading UI screens or loading animations.
 - Holding modules/scripts needed early in the client lifecycle.
-- Caching sound or image assets before full game load.
+- Caching sound or image assets before a full game load.

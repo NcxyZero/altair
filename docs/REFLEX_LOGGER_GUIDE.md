@@ -23,7 +23,7 @@ These functions are safe to use in production code as they only execute in Studi
 
 ## Creating a Logger Middleware for Reflex
 
-To log Reflex producer actions and state changes, you can create a custom middleware:
+To log Reflex producer actions and state changes, you can create custom middleware:
 
 ```luau
 local function createLoggerMiddleware()

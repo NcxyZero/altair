@@ -8,6 +8,7 @@ realm = "shared"
 shared-packages = "game.ReplicatedStorage.package"
 
 [dependencies]
+BezierTweens = "max-bacon/bezier-tweens@1.2.1"
 Bridgenet2 = "ncxyzero/bridgenet2-fork@1.1.5"
 CameraShaker = "brittonfischer/camerashaker@0.1.0"
 Cmdr = "evaera/cmdr@1.12.0"
@@ -18,6 +19,7 @@ Promise = "lukadev-0/typed-promise@4.0.2"
 Reflex = "littensy/reflex@4.3.1"
 Signal = "sleitnick/signal@2.0.1"
 SimpleSpline = "ncxyzero/simplespline-wally@1.0.6"
+WindShake = "boatbomber/windshake@2.0.3"
 
 [server-dependencies]
 Lapis = "nezuo/lapis@0.3.1"

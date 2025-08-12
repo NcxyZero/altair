@@ -11,7 +11,7 @@ The `Logger` module provides safe debug-only logging functions designed for use 
 
 ## 🧠 Behavior
 
-All logging functions are disabled outside of Roblox Studio. They will **do nothing in live game sessions** to prevent exposing sensitive debug information.
+All logging functions are disabled outside Roblox Studio. They will **do nothing in live game sessions** to prevent exposing sensitive debug information.
 
 ## 🔐 Usage
 

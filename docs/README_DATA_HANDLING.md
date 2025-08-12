@@ -69,7 +69,7 @@ The `ClientData` module (`src/client/modules/ClientData.luau`) manages client-si
 
 ### Server-Side
 
-```lua
+```luau
 -- Get a player's profile
 local profile = ServerData:GetPlayerProfile(player)
 
@@ -93,7 +93,7 @@ ServerData.gameProducer:setActivePlayers(10)
 
 ### Client-Side
 
-```lua
+```luau
 -- Get player data
 ClientData:getPlayerProducerAsync():andThen(function(producer)
     -- Use player data

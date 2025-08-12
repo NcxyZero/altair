@@ -6,8 +6,8 @@ This document provides essential information for developers working on the proje
 
 ### Prerequisites
 
-- [Roblox Studio](https://www.roblox.com/create) installed
-- Git installed
+- **[Roblox Studio](https://www.roblox.com/create)** installed
+- **Git** installed
 
 ### Initial Setup
 
@@ -18,7 +18,7 @@ This document provides essential information for developers working on the proje
    cd <ProjectName>
    ```
 
-2. Run the initialization script to install Aftman and other required tools:
+2. Run the initialization script to install `Aftman` and other required tools:
 
    ```bash
    # On Windows
@@ -30,13 +30,13 @@ This document provides essential information for developers working on the proje
 
    This script will:
 
-   - Install Aftman (a tool manager for Roblox development)
-   - Use Aftman to install project tools defined in aftman.toml
-   - Update dependencies using Wally
+   - Install `Aftman` (a tool manager for Roblox development)
+   - Use `Aftman` to install project tools defined in aftman.toml
+   - Update dependencies using `Wally`
 
 ### Project Structure
 
-#### Defined in default.project.json
+#### Defined in `default.project.json`
 
 The project structure is defined in `default.project.json` as follows:
 
@@ -44,9 +44,9 @@ The project structure is defined in `default.project.json` as follows:
 - `src/shared` → ReplicatedStorage.shared
 - `src/util` → ReplicatedStorage.util
 - `src/server` → ServerScriptService.server
-- `ServerPackages` → ServerScriptService.server_package
 - `src/client` → StarterPlayer.StarterPlayerScripts
 - `Packages` → ReplicatedStorage.package (Wally packages)
+- `ServerPackages` → ServerScriptService.server_package (Wally server packages)
 
 #### Actual Project Structure
 
@@ -54,14 +54,15 @@ The actual structure of the project is:
 
 - `src/`
   - `client/` - Client-side code
-    - `init/` - Initialization scripts
+    - `clientConfig/` - Client configuration
     - `modules/` - Client modules
+    - `ui/` - User interface components
     - `main.client.luau` - Main client entry point
   - `server/` - Server-side code
     - `cmdr/` - Command scripts
     - `config/` - Server configuration
     - `modules/` - Server modules
-    - `tests/` - Test scripts
+    - `serverConfig/` - Server configuration
     - `main.server.luau` - Main server entry point
   - `shared/` - Code shared between client and server
     - `config/` - Shared configuration
@@ -80,7 +81,7 @@ The actual structure of the project is:
    ./update.sh
    ```
 
-2. **Serve the Project**: To sync your code with Roblox Studio, run:
+2. **Serve the Project**: To sync your code with `Roblox Studio`, run:
 
    ```bash
    ./serve.sh
@@ -92,95 +93,14 @@ The actual structure of the project is:
    ./serve.sh <project-name>
    ```
 
-3. **Open in Roblox Studio**: With the Rojo server running, connect to it from Roblox Studio using the Rojo plugin.
-
-## Testing Information
-
-### Testing Framework
-
-The project uses a custom lightweight testing framework. Test files follow these conventions:
-
-- Test files are placed in the `src/server/tests` directory or its subdirectories
-- Test files are named with a `.spec.luau` suffix (e.g., `MathUtils.spec.luau`)
-- Each test file should return `true` if all tests pass, or `false` if any test fails
-
-### Running Tests
-
-Tests are run using the TestRunner script located at `src/server/TestRunner.server.luau`. When the game starts in Roblox Studio, this script automatically:
-
-1. Finds all test files (`.spec.luau`) in the `ServerScriptService.server.tests` folder
-2. Runs each test and collects results
-3. Outputs a summary of test results to the console
-
-### Writing Tests
-
-Here's an example of how to write a test file:
-
-```luau
---!strict
--- MyModule.spec.luau
--- Test script for MyModule
-
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local MyModule = require(ReplicatedStorage.shared.MyModule)
-
--- Simple test framework
-local function expect<T1, T2>(value: T1): { [string]: (T2) -> (boolean) }
-  return {
-    toBe = function(expected: T2): boolean
-      assert(value == expected, string.format("Expected %s to be %s", tostring(value), tostring(expected)))
-
-      return true
-    end,
-    -- Add more matchers as needed
-  }
-end
-
--- Test cases
-local function testMyFunction(): ()
-  print("Testing MyModule.myFunction")
-  expect(MyModule.myFunction(1, 2)).toBe(3)
-  print("MyModule.myFunction tests passed!")
-end
-
--- Run all tests
-local function runAllTests(): boolean
-  print("Starting MyModule tests...")
-
-  local success, errorMessage = pcall(function(): ()
-    testMyFunction()
-    -- Add more test functions as needed
-  end)
-
-  if success then
-    print("All MyModule tests passed!")
-  else
-    warn("Test failed: " .. errorMessage)
-  end
-
-  return success
-end
-
--- Run the tests
-return runAllTests()
-```
-
-### Adding New Tests
-
-To add new tests:
-
-1. Create a new module in the appropriate location (e.g., `src/shared/NewModule.luau`)
-2. Create a corresponding test file in `src/server/tests` (e.g., `src/server/tests/NewModule.spec.luau`)
-3. Follow the pattern shown above for writing tests
-4. The TestRunner will automatically find and run your new test file
+3. **Open in `Roblox Studio`**: With the `Rojo` server running, connect to it from `Roblox Studio` using the `Rojo` plugin.
 
 ## Additional Development Information
 
 ### Code Style
 
-- The project uses StyLua for code formatting
-- Run StyLua before committing changes:
+- The project uses `StyLua` for code formatting
+- Run `StyLua` before committing changes:
 
   ```bash
   stylua .
@@ -189,15 +109,32 @@ To add new tests:
 - Use type annotations for function parameters and return values
 - Always specify return types for functions, use `()` for functions that return nothing
 - Use `any`, `unknown`, or `never` when appropriate for types that can't be determined precisely
-- Type local variables at declaration (except for game:GetService() and require() calls)
+- Type local variables at declaration (except for `game:GetService()` and `require()` calls)
 - Do not use section title comments in code (e.g., "-- Constants", "-- Private functions")
 - Do not use the `pairs()` function in Luau code; use direct indexing or other iteration methods instead
+- Use direct string methods instead of string library functions (e.g., use `text:split("")` instead of `string.split(text, "")`)
+- Use integer division (`//`) instead of regular division with `math.floor()` (e.g., use `value // 2` instead of `math.floor(value / 2)`)
 - Do not use multiple statements in one line
-- Do not use .Touched() event
-- Do not use ValueBase instances, you can only use ObjectValue as attributes doesn't handle objects, still prefer to not use it
-- Do not use the second argument in Instance.new(), it is deprecated. To set parent do this in new line after assigning other properties. The order of assigning properties is: Name, rest of properties in alphabetical order, Parent
-- Prefer :FindFirstChildWhichIsA() over :FindFirstChildOfClass() unless necessary
-- When declaring new variable and just after there is an "if" checking this variable, do not separate with blank line. Example:
+- Do not use `.Touched()` event
+- Do not use `ValueBase` instances, you can only use `ObjectValue` as attributes doesn't handle objects, still prefer to not use it
+- Do not use the second argument in `Instance.new()`, it is deprecated. To set parent do this in a new line after assigning other properties. The order of assigning properties is: `Name`, rest of properties in alphabetical order, `Parent`
+- Do not use `.Chatted` event, it doesn't work with new Roblox chat. Use `TextChatService` instead
+- Do not create a chat command when the command is not specified to be for chat, then assume you are asked to create the Cmdr command
+- Do not use `SetPrimaryPartCFrame()` as it is deprecated, always use `PivotTo()`, `GetPivot()`, `ScaleTo()` and `GetScale()` instead
+- Use `UDim2.fromScale()` and `UDim2.fromOffset()` instead of `UDim2.new()` when you are not settings both scale and offset
+- Use `Color3.new()` instead of `Color3.fromRGB(0, 0, 0)` as zeros are the default values
+- Use `CFrame.new()` instead of `CFrame.new(0, 0, 0)` as zeros are the default values
+- Use `CFrame.fromAxisAngle()` instead of `CFrame.Angles()` in case of only one axe not being zero
+- Use `Vector2`'s and `Vector3`'s `.xAxis`, `.yAxis`, and `Vector3`'s `.zAxis` in `CFrame.fromAxisAngle()` and in case of only one axe not being zero, example: `Vector2.yAxis * 5`
+- Use `Vector2`'s and `Vector3`'s `.zero` and `.one` instead of `.new()`, `.new(0, 0, 0)` and `.new(1, 1, 1)`
+- Use `Vector2`'s and `Vector3`'s `.one` when all axes are the same (e.g., use `Vector3.one * 5` instead of `Vector3.new(5, 5, 5)`)
+- Always use compound assignments (for example, `%=')
+- Prefer `os.clock()` and `DateTime` library for time
+- Do not add `--!strict` at the top of files, but also do not remove it when already present, and do not describe a file on top
+- Prefer `:FindFirstChildWhichIsA()` over `:FindFirstChildOfClass()` unless necessary
+- When declaring new variable and just after there is an `if` checking this variable, do not separate with blank line.
+
+Example:
 
 ```luau
 local template: Folder = workspace:FindFirstChild("Template")
@@ -206,7 +143,7 @@ if not template then
 end
 ```
 
-- Make blank lines between code blocks; above return keyword if it isn't the first line in block; when you create a new variable and assign its properties if should be together, when you switch to another variable it should be separated by blank line; separate lines where you assign values (including from calls) and not assigning call functions by blank lines. Separate calls on objects and the rest of calls. Example of all in this point:
+- Make blank lines between code blocks and above `return`/`break`/`continue` keywords if it isn't the first line in the block; when you create a new variable and assign its properties, it should be together, when you switch to another variable, it should be separated by blank line; separate lines where you assign values (including from calls) and not assigning call functions by blank lines. Separate calls on objects and the rest of calls. Example of all in this point:
 
 ```luau
 local new: Part = Instance.new("Part") :: any
@@ -246,39 +183,50 @@ table.insert(set, "1")
 table.remove(set)
 ```
 
-- Do not leave unused variables, either add \_ at the beginning of the name or remove it
-- Use Maid package for connections handling. Remember to use :DoCleaning() always when necessary to avoid memory leaks. Prefer :DoCleaning() over :Destroy() for style purposes as both function works the same way
+- Do not leave unused variables, either add `_` at the beginning of the name or remove it
+- Use `Maid` package for connection handling. Remember to use `:DoCleaning()` always when necessary to avoid memory leaks. Prefer `:DoCleaning()` over `:Destroy()` for style purposes as both functions are aliases for the one very same function
 - Follow the code organization pattern:
   1. Service imports at the top
   2. Module imports after services
-  3. Instances (use :WaitForChild()) if present
-  4. Type definitions, including the type for main table to return with the same name, including everything it does/can contains. Main table type needs to be always exported, rest when necessary. Main table type keys order (without empty lines, follow alphabetical order for every category):
-     1. Functions (remember to include self: TypeName as a first argument if function cointains self)
-     2. Tables (specify key type number if table isn't an array, for example there is table[0] = true)
+  3. Instances (use `:WaitForChild()`) if present
+  4. Type definitions, including the type for the main table to return with the same name, including everything it does/can contain. The main table type needs to be always exported, rest when necessary. Main table type keys order (without empty lines, follow alphabetical order for every category):
+     1. Functions (remember to include `self: TypeName` as a first argument if function contains `self`)
+     2. Tables (specify key type number if table isn't an array, for example, there is `table[0] = true`)
      3. Primitive values
      4. Objects (specify descendants used in code if not necessary to add as a new main table entry)
-     5. Maids, Signals, etc.
-  5. Main table to return, example: local Module: Module = {} :: any
+     5. `Maid`s, `Signal`s, etc.
+  5. Main table to return, example: `local Module: Module = {} :: any`
   6. Local variables and constants. In this order:
-     1. Constants with comments, example: local DROP_TIME: number = 5 -- determines drop time
-     2. Constant tables with comments line above
+     1. Constants with comments, example: `local DROP_TIME: number = 5 -- determines drop time`
+     2. Constant tables with the comment line above
      3. Changeable variables with comments
      4. Changeable tables with comments
-     5. Other variables without values set at this moment. If the given variable will always not be nil after setup on startup, do not add ? to the type, otherwise you can.
+     5. Other variables without values are set at this moment. If the given variable always not are nil after setup on startup, do not add `?` to the type, otherwise you can
   7. Functions with proper type annotations
 - Use "controller" terminology instead of "service" for game system modules
+- Controller modules with `Init()` function should be initialized only by `main.client.luau` / `main.server.luau`, not by other modules
+- Do not call module's `Init()` function at the end of the module itself
 
 ### Type Checking
 
-- The project uses luau-lsp for type checking
-- Run luau-lsp to check for type issues:
+- The project uses `luau-lsp` for type checking
+- The `luau-lsp.exe` executable is available in the project root directory
+- **Important**: Do not use `./luau-lsp.exe analyze .` to analyze all files at once as this causes "Failed to build..." errors
+- Instead, analyze files individually:
 
   ```bash
-  luau-lsp analyze .
+  ./luau-lsp.exe analyze path/to/file.luau
   ```
 
-- The project also uses Selene for static analysis
-- Run Selene to check for issues:
+  For example:
+
+  ```bash
+  ./luau-lsp.exe analyze src/client/modules/ClientInventory.luau
+  ./luau-lsp.exe analyze src/server/modules/ServerInventory.luau
+  ```
+
+- The project also uses `Selene` for static analysis
+- Run `Selene` to check for issues:
 
   ```bash
   selene .
@@ -289,25 +237,36 @@ table.remove(set)
   2. Use type assertions when necessary (e.g., `value :: any`)
   3. If all else fails, you may skip typing for that specific case, but document why
 
+### Testing
+
+- **Do not create test files** in the project directory
+- **Do not create debug scripts** in the project directory for testing or debugging purposes
+- Use `luau-lsp.exe` for type checking and validation instead of creating separate test scripts
+- **Important**: When any new file has been created, run `bash update.sh` before analyzing with `luau-lsp.exe` to ensure all dependencies and project structure are properly updated
+- For functionality verification:
+  1. Use the existing type checking tools (`luau-lsp.exe` and `selene`)
+  2. Test functionality directly in `Roblox Studio` during development
+  3. Use the build system to verify compilation success
+
 ### Linting
 
-- The project uses Selene for static analysis
-- Run Selene to check for issues:
+- The project uses `Selene` for static analysis
+- Run `Selene` to check for issues:
 
   ```bash
   selene .
   ```
 
-- For Markdown:
-  1. Fenced code blocks, headings and lists should be surrounded by blank lines
+- For `Markdown`:
+  1. Blank lines should surround fenced code blocks, headings, and lists
   2. No multiple spaces after list markers
-  3. Indent: 2 spaces as in .editorconfig
-  4. Always specify fenced code language, including "text"
-  5. Do not specify fenced code language as "lua", use "luau" instead
+  3. Indent: two spaces as in `.editorconfig`
+  4. Always specify fenced code language, including `text`
+  5. Do not specify fenced code language as `lua`, use `luau` instead
 
 ### Dependencies
 
-- Dependencies are managed using Wally (defined in `wally.toml`)
+- Dependencies are managed using `Wally` (defined in `wally.toml`)
 - To add a new dependency:
   1. Add it to `wally.toml`
   2. Run `./update.sh` to install it
@@ -315,23 +274,30 @@ table.remove(set)
 
 ### State Management
 
-- The project uses Reflex for state management
-- Follow the Reflex patterns for creating stores, actions, and selectors
+- The project uses `Reflex` for state management
+- Follow the `Reflex` patterns for creating stores, actions, and selectors
+- **Producer Action Patterns**: When using combined producers (created with `Reflex.combineProducers`), all actions from any profile are available at the producer root level
+  - **Correct**: `producer.setHotbarItem(slot, itemId)`
+  - **Incorrect**: `producer.inventory_setHotbarItem(slot, itemId)` or `producer.inventory.setHotbarItem(slot, itemId)`
+  - Do not use prefixed action names like `producer.inventory_actionName` - all actions should be called directly on the producer root
+- **Connection Management**: Always use `Maid` for handling GUI connections and other cleanup tasks
+  - Use `self.maid:GiveTask(connection)` instead of manual connection management
+  - Avoid storing individual connections as properties when Maid can handle them directly
 
 ### Networking
 
-- The project uses Bridgenet2 for networking
+- The project uses `Bridgenet2` for networking
 - Follow the established patterns for client-server communication
 
 ### Data Persistence
 
-- The project uses ProfileService for data persistence
+- The project uses `ProfileService` for data persistence
 - Follow the established patterns for saving and loading player data
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Aftman not found**: Make sure to run `init.sh` and ensure that `~/.aftman/bin` is in your PATH
-2. **Wally packages not found**: Run `./update.sh` to install dependencies
-3. **Rojo connection issues**: Make sure the Rojo server is running (`./serve.sh`) and that you have the Rojo plugin installed in Roblox Studio
+1. **`Aftman` not found**: Make sure to run `init.sh` and ensure that `~/.aftman/bin` is in your PATH
+2. **`Wally` packages not found**: Run `./update.sh` to install dependencies
+3. **`Rojo` connection issues**: Make sure the `Rojo` server is running (`./serve.sh`) and that you have the `Rojo` plugin installed in `Roblox Studio`
