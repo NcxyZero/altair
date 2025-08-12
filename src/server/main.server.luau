@@ -2,8 +2,8 @@
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-
-local modules = (script.Parent :: Folder):WaitForChild("modules")
+local ServerScriptService = game:GetService("ServerScriptService")
+local ServerInitConfig = require(ServerScriptService.server.clientConfig.ServerInitConfig)
 
 local path = {}
 path.controller = {}
@@ -12,30 +12,36 @@ path.tag = {}
 local loadFirst = {}
 local load = {}
 
-for _index: number, module: Instance in modules:GetDescendants() do
-	if not module:IsA("ModuleScript") then
+for _, folder in script.Parent:GetChildren() do
+	if table.find(ServerInitConfig, folder.Name) then
 		continue
 	end
 
-	if module.Name:lower():find("template") then
-		continue
-	end
-
-	pcall(function(): ()
-		local required: unknown = require(module)
-		local moduleType: string = required.type or "module"
-		path[moduleType][module.Name] = required
-
-		if moduleType == "controller" then
-			if required.index then
-				loadFirst[required.index] = required
-			else
-				table.insert(load, required)
-			end
+	for _index: number, module: Instance in folder:GetChildren() do
+		if not module:IsA("ModuleScript") then
+			continue
 		end
 
-		path[moduleType][module.Name] = path[moduleType][module.Name] :: required.Default
-	end)
+		if module.Name:lower():find("template") then
+			continue
+		end
+
+		pcall(function(): ()
+			local required: unknown = require(module)
+			local moduleType: string = required.type or "module"
+			path[moduleType][module.Name] = required
+
+			if moduleType == "controller" then
+				if required.index then
+					loadFirst[required.index] = required
+				else
+					table.insert(load, required)
+				end
+			end
+
+			path[moduleType][module.Name] = path[moduleType][module.Name] :: required.Default
+		end)
+	end
 end
 
 local function InitController(required: unknown): ()
