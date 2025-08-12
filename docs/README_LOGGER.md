@@ -5,6 +5,7 @@ The `Logger` module provides safe debug-only logging functions designed for use 
 ---
 
 ## 📦 Location
+
 `ReplicatedStorage.util.Logger`
 
 ---

@@ -1,3 +1,5 @@
+# UIDragDetector
+
 Properties
 ActivatedCursorIcon
 ContentId
@@ -151,7 +153,6 @@ The order of priority for functions added via this method. Higher values take pr
 function: function
 Function for modifying or constraining proposed motion. This function takes in input UDim2 and float of proposed motion and returns a UDim2 and float of modified or unmodified motion. It can optionally return an Enum.UIDragDetectorDragRelativity and Enum.UIDragDetectorDragSpace as the third and fourth return values as output overrides.
 
-
 Returns
 RBXScriptConnection
 Use this connection object to remove the constraint function.
@@ -162,7 +163,6 @@ When no ReferenceUIInstance is set, this function returns the UDim2 position of 
 
 When a ReferenceUIInstance is set, this function returns the UDim2 position of that reference instance.
 
-
 Returns
 UDim2
 UDim2 position of the current drag's reference element.
@@ -172,7 +172,6 @@ number
 When no ReferenceUIInstance is set, this function returns the rotation of the dragged object's immediate parent GuiObject (if one exists), or else the rotation of the dragged object.
 
 When a ReferenceUIInstance is set, this function returns the rotation of that reference instance.
-
 
 Returns
 number
@@ -188,7 +187,6 @@ Parameters
 function: function
 Function for monitoring DragContinue signals. This function receives the signal's screen space input position and returns a UDim2 and float containing the desired motion of the drag in the desired space and relativity. If this function returns nil, the object will not be moved.
 
-
 Returns
 ()
 View all inherited from Instance
@@ -201,14 +199,12 @@ Parameters
 inputPosition: Vector2
 Vector2 representing the current input position.
 
-
 DragEnd
 Fires when a user stops dragging the UI element.
 
 Parameters
 inputPosition: Vector2
 Vector2 representing the current input position.
-
 
 DragStart
 Fires when a user starts dragging the UI element.

@@ -7,9 +7,11 @@ This module group provides reusable networking utilities for the **Altair** proj
 ## 🔌 `GetBridge.lua`
 
 ### 📄 Description
+
 Returns a cached instance of a `BridgeNet2` bridge (server or client) by name. Ensures bridges are reused throughout the game.
 
 ### 📦 Location
+
 `ReplicatedStorage.util.GetBridge`
 
 ### ✅ Usage

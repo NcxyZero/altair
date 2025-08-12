@@ -32,11 +32,11 @@ Controllers and tag classes may implement the following optional methods:
 
 - `Init(self)` — Called once during initialization.
 - `PlayerAdded(self, player: Player)`
-- `CharacterAdded(self, character: Model)` *(for local player only)*
-- `CharacterAppearanceLoaded(self, character: Model)` *(for local player only)*
+- `CharacterAdded(self, character: Model)` _(for local player only)_
+- `CharacterAppearanceLoaded(self, character: Model)` _(for local player only)_
 - `AnyCharacterAdded(self, player: Player, character: Model)`
 - `AnyCharacterAppearanceLoaded(self, player: Player, character: Model)`
-- `Died(self, character: Model)` *(for local player only)*
+- `Died(self, character: Model)` _(for local player only)_
 - `AnyDied(self, player: Player, character: Model)`
 - `Physics(self, deltaTime: number)` — Called every frame on `Heartbeat`.
 - `Stepped(self, deltaTime: number)` — Called every frame on `PreSimulation`.
@@ -80,4 +80,3 @@ All `ScreenGui` instances in `PlayerGui` have `ResetOnSpawn` set to `false` unle
 - Module references are stored in the `path` table based on type.
 
 ---
-

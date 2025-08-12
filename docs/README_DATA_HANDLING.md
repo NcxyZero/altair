@@ -10,6 +10,7 @@ The data handling system consists of two main components:
 2. **ClientData** - Manages client-side data and mirrors server data on the client
 
 The system uses the following libraries:
+
 - **Reflex** for state management
 - **ProfileService** for data persistence
 - **Signal** for event handling
@@ -20,20 +21,20 @@ The system uses the following libraries:
 
 The `ServerData` module (`src/server/modules/ServerData.luau`) manages server-side data. It has the following responsibilities:
 
-### Player Data Management
+### Server-Side Player Data Management
 
 - Loading player data from the datastore when a player joins
 - Saving player data to the datastore when a player leaves
 - Providing access to player data through a producer pattern
 - Replicating player data changes to the client
 
-### Game Data Management
+### Server-Side Game Data Management
 
 - Managing game-wide data (e.g., server start time, active players)
 - Providing access to game data through a producer pattern
 - Replicating game data changes to all clients
 
-### Remote Communication
+### Server-Specific Remote Communication
 
 The module sets up the following remote events and functions for communication with clients:
 
@@ -46,14 +47,14 @@ The module sets up the following remote events and functions for communication w
 
 The `ClientData` module (`src/client/modules/ClientData.luau`) manages client-side data. It has the following responsibilities:
 
-### Player Data Management
+### Client-Side Player Data Management
 
 - Loading player data from the server
 - Mirroring server-side player data
 - Providing access to player data through a producer pattern
 - Replicating player data changes to the server
 
-### Game Data Management
+### Client-Side Game Data Management
 
 - Loading game data from the server
 - Mirroring server-side game data
@@ -136,7 +137,7 @@ ClientData.clientProducer:setLocalSetting("musicVolume", 0.8)
 
 ## Implementation Details
 
-### Server-Side
+### Server-Side Implementation
 
 The `ServerData` module is implemented as a controller in the Altair project's module system. It has the following key components:
 
@@ -149,7 +150,7 @@ The `ServerData` module is implemented as a controller in the Altair project's m
 - `PlayerRemoving` - A function called when a player leaves
 - `Init` - A function called when the module is initialized
 
-### Client-Side
+### Client-Side Implementation
 
 The `ClientData` module is implemented as a controller in the Altair project's module system. It has the following key components:
 

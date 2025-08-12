@@ -30,9 +30,9 @@ This document provides essential information for developers working on the proje
 
    This script will:
 
-   - Install `Aftman` (a tool manager for Roblox development)
-   - Use `Aftman` to install project tools defined in aftman.toml
-   - Update dependencies using `Wally`
+- Install `Aftman` (a tool manager for Roblox development)
+- Use `Aftman` to install project tools defined in aftman.toml
+- Update dependencies using `Wally`
 
 ### Project Structure
 

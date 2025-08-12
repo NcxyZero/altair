@@ -25,46 +25,46 @@ Altair is a Roblox game project that follows a modular architecture with control
 
 1. Clone the repository:
 
-    ```bash
-    git clone <repository-url>
-    cd <project-directory>
-    ```
+   ```bash
+   git clone <repository-url>
+   cd <project-directory>
+   ```
 
 2. Run the initialization script to install Aftman and other required tools:
 
-    ```bash
-    # On Windows
-    ./init.sh
+   ```bash
+   # On Windows
+   ./init.sh
 
-    # On macOS/Linux
-    bash init.sh
-    ```
+   # On macOS/Linux
+   bash init.sh
+   ```
 
    This script will:
 
-  - Install Aftman (a tool manager for Roblox development)
-    - Use Aftman to install project tools defined in aftman.toml
-    - Update dependencies using Wally
+   - Install Aftman (a tool manager for Roblox development)
+     - Use Aftman to install project tools defined in aftman.toml
+     - Update dependencies using Wally
 
 ### Development Workflow
 
 1. **Update Dependencies**: After pulling changes, run the update script to ensure all dependencies are up to date:
 
-    ```bash
-    ./update.sh
-    ```
+   ```bash
+   ./update.sh
+   ```
 
 2. **Serve the Project**: To sync your code with Roblox Studio, run:
 
-    ```bash
-    ./serve.sh
-    ```
+   ```bash
+   ./serve.sh
+   ```
 
    If you have multiple project files, specify which one to serve:
 
-    ```bash
-    ./serve.sh <project-name>
-    ```
+   ```bash
+   ./serve.sh <project-name>
+   ```
 
 3. **Open in Roblox Studio**: With the Rojo server running, connect to it from Roblox Studio using the Rojo plugin.
 

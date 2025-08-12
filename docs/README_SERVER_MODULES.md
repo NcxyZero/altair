@@ -46,6 +46,7 @@ Modules and tag classes may define any of the following optional functions:
 Tags are handled via `CollectionService`.
 
 For each `tag` module:
+
 - Must define `.tag` and `.new(instance)` returning a class.
 - When a tagged instance is added:
   - `new(instance)` is called.
@@ -89,4 +90,3 @@ These allow modules to hook into Roblox's simulation/update loop.
 - Class instances for tagged objects are cached in a `tags` table.
 
 ---
-
