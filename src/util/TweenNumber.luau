@@ -73,7 +73,7 @@ function tweenNumber:ResetToStarting(animatable: boolean)
 	end
 end
 
-function tweenNumber:Stop(animatable: boolean)
+function tweenNumber:Stop(_animatable: boolean)
 	self.Stopped = true
 	TweenService:Create(self.Number, TweenInfo.new(0), { Value = self.Number.Value }):Play()
 end

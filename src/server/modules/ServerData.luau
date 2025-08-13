@@ -261,7 +261,10 @@ function ServerData:Start(): ()
 		end
 
 		profile.nextActionIsReplicated = true
-		(profile.producer :: any)[data.name](unpack(data.arguments))
+
+		do
+			(profile.producer :: any)[data.name](unpack(data.arguments))
+		end
 	end)
 
 	ReplicateGameStore.OnServerEvent:Connect(function(_player: Player, data: { name: string, [string]: any }): ()

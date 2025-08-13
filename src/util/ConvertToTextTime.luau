@@ -1,5 +1,5 @@
 return function(seconds: number): string
-	local hours = totalSeconds // 3600
+	local hours = seconds // 3600
 	local minutes = (seconds % 3600) // 60
 	local secs = math.floor(seconds % 60)
 

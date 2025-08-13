@@ -43,7 +43,7 @@ function WaitForRespond:Wait(id: string, player: Player?)
 			Remote(connection, id, sentId, player, sentFrom)
 		end)
 	else
-		connection = bridge:Connect(function(sentFrom: Player, sentId: string)
+		connection = bridge:Connect(function(_sentFrom: Player, sentId: string)
 			Remote(connection, id, sentId)
 		end)
 	end

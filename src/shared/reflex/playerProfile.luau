@@ -36,7 +36,6 @@ function CreateProducer(initialState: State): Producer
 	local producer: Producer = Reflex.createProducer(initialState, {
 		secureAddCoins = function(oldState: State, amount: number): State
 			local state = table.clone(oldState)
-
 			state.coins += math.abs(amount)
 
 			return state

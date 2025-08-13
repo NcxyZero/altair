@@ -40,7 +40,7 @@ function ConfettiUI:Show(amount: number)
 	local maid = Maid.new()
 	local frames = {}
 
-	for i = 1, amount, 1 do
+	for _index = 1, amount, 1 do
 		task.spawn(function()
 			local frame = Instance.new("Frame")
 			maid:GiveTask(frame)
