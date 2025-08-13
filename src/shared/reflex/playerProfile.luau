@@ -7,7 +7,6 @@ export type Producer = Reflex.Producer<State, Actions>
 export type State = {
 	userId: number,
 	coins: number,
-	inventory: { [string]: number },
 	settings: {
 		musicVolume: number,
 		sfxVolume: number,
@@ -15,17 +14,14 @@ export type State = {
 }
 
 type Actions = {
-	setCoins: (coins: number) -> (),
-	addCoins: (amount: number) -> (),
-	setInventoryItem: (itemId: string, amount: number) -> (),
-	removeInventoryItem: (itemId: string) -> (),
+	secureAddCoins: (amount: number) -> (),
+	secureSpendCoins: (price: number) -> (),
 	setSetting: (key: string, value: any) -> (),
 }
 
 local DEFAULT_STATE: State = {
 	userId = 0,
 	coins = 0,
-	inventory = {},
 	settings = {
 		musicVolume = 0.5,
 		sfxVolume = 0.5,
@@ -38,37 +34,24 @@ local SAVE_EXCEPTIONS: { string } = {
 
 function CreateProducer(initialState: State): Producer
 	local producer: Producer = Reflex.createProducer(initialState, {
-		setCoins = function(state: State, coins: number): State
-			state.coins = coins
+		secureAddCoins = function(oldState: State, amount: number): State
+			local state = table.clone(oldState)
+
+			state.coins += math.abs(amount)
 
 			return state
 		end,
 
-		addCoins = function(state: State, amount: number): State
-			state.coins += amount
+		secureSpendCoins = function(oldState: State, coins: number): State
+			local state = table.clone(oldState)
+			state.coins -= math.abs(coins)
 
 			return state
 		end,
 
-		secureAddCoins = function(state: State, amount: number): State
-			state.coins += amount
-
-			return state
-		end,
-
-		setInventoryItem = function(state: State, itemId: string, amount: number): State
-			state.inventory[itemId] = amount
-
-			return state
-		end,
-
-		removeInventoryItem = function(state: State, itemId: string): State
-			state.inventory[itemId] = nil
-
-			return state
-		end,
-
-		setSetting = function(state: State, key: string, value: any): State
+		setSetting = function(oldState: State, key: string, value: any): State
+			local state = table.clone(oldState)
+			state.settings = table.clone(state.settings)
 			state.settings[key] = value
 
 			return state
