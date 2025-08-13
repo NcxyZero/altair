@@ -10,3 +10,5 @@ local requiredRank: number = game.CreatorType == Enum.CreatorType.User and 0 or 
 
 Cmdr:SetActivationKeys(GameConfig.cmdr.activationKeys)
 Cmdr:SetEnabled(Players.LocalPlayer:GetRankInGroup(requiredGroup) >= requiredRank)
+
+return table.freeze({})

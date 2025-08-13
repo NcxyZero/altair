@@ -1,11 +1,12 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local Logger = require(ReplicatedStorage.util.Logger)
 
 export type Default = {
 	index: number?,
 	type: string?,
-	path: { any },
+	path: InitializerTypes.ServerPath,
 	Init: () -> (),
 }
 

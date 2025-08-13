@@ -40,7 +40,8 @@ end
 return function(registry): ()
 	registry:RegisterHook("BeforeRun", function(context): string?
 		if
-			(context.Group == "Admin" or context.Group == "DefaultAdmin") and not adminPermissionCheck(context.Executor)
+			(context.Group == "Admin" or context.Group == "DefaultAdmin")
+			and not adminPermissionCheck(context.Executor)
 		then
 			return "You don't have permission to run this command"
 		end

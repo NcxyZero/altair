@@ -32,37 +32,48 @@ local DEFAULT_STATE: State = {
 
 function CreateProducer(initialState: State): Producer
 	local producer: Producer = Reflex.createProducer(initialState, {
-		setMusicVolume = function(state: State, volume: number): State
+		setMusicVolume = function(oldState: State, volume: number): State
+			local state = table.clone(oldState)
 			state.musicVolume = math.clamp(volume, 0, 1)
 
 			return state
 		end,
 
-		setSFXVolume = function(state: State, volume: number): State
+		setSFXVolume = function(oldState: State, volume: number): State
+			local state = table.clone(oldState)
+
 			state.sfxVolume = math.clamp(volume, 0, 1)
 
 			return state
 		end,
 
-		setUIScale = function(state: State, scale: number): State
+		setUIScale = function(oldState: State, scale: number): State
+			local state = table.clone(oldState)
+
 			state.uiScale = math.clamp(scale, 0.5, 2)
 
 			return state
 		end,
 
-		setGraphicsQuality = function(state: State, quality: number): State
+		setGraphicsQuality = function(oldState: State, quality: number): State
+			local state = table.clone(oldState)
+
 			state.graphicsQuality = math.clamp(quality, 1, 10)
 
 			return state
 		end,
 
-		toggleFPS = function(state: State): State
+		toggleFPS = function(oldState: State): State
+			local state = table.clone(oldState)
+
 			state.showFPS = not state.showFPS
 
 			return state
 		end,
 
-		setShowFPS = function(state: State, show: boolean): State
+		setShowFPS = function(oldState: State, show: boolean): State
+			local state = table.clone(oldState)
+
 			state.showFPS = show
 
 			return state

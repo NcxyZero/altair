@@ -1,9 +1,12 @@
 --!nocheck
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
-local ServerInitConfig = require(ServerScriptService.server.clientConfig.ServerInitConfig)
+
+local Logger = require(ReplicatedStorage.util.Logger)
+local ServerInitConfig = require(ServerScriptService.server.serverConfig.ServerInitConfig)
 
 local path = {}
 path.controller = {}
@@ -11,13 +14,18 @@ path.module = {}
 path.tag = {}
 local loadFirst = {}
 local load = {}
+local tags = {}
 
-for _, folder in script.Parent:GetChildren() do
+for _index: number, folder: Folder in script.Parent:GetChildren() do
 	if table.find(ServerInitConfig, folder.Name) then
 		continue
 	end
 
-	for _index: number, module: Instance in folder:GetChildren() do
+	if not folder:IsA("Folder") then
+		continue
+	end
+
+	for _index: number, module: ModuleScript in folder:GetDescendants() do
 		if not module:IsA("ModuleScript") then
 			continue
 		end
@@ -26,21 +34,36 @@ for _, folder in script.Parent:GetChildren() do
 			continue
 		end
 
-		pcall(function(): ()
-			local required: unknown = require(module)
-			local moduleType: string = required.type or "module"
-			path[moduleType][module.Name] = required
-
-			if moduleType == "controller" then
-				if required.index then
-					loadFirst[required.index] = required
-				else
-					table.insert(load, required)
-				end
-			end
-
-			path[moduleType][module.Name] = path[moduleType][module.Name] :: required.Default
+		local success: boolean, required: unknown = xpcall(function(): ()
+			return require(module)
+		end, function(err: string): string
+			return debug.traceback(err)
 		end)
+
+		if not success then
+			Logger.warn(`Failed to load module {module:GetFullName()}: {required}`)
+			continue
+		end
+
+		if typeof(required) ~= "table" then
+			continue
+		end
+
+		local moduleType: string = required.type or "module"
+
+		if moduleType == "controller" then
+			if required.index then
+				loadFirst[required.index] = required
+			else
+				table.insert(load, required)
+			end
+		end
+
+		if moduleType == "tag" then
+			tags[module.Name] = required
+		else
+			path[moduleType][module.Name] = required
+		end
 	end
 end
 
@@ -51,7 +74,15 @@ local function InitController(required: unknown): ()
 	local PlayerAdded: ((unknown?, Player) -> unknown?)? = required.PlayerAdded
 
 	if Init then
-		Init(required)
+		local success: boolean, err: unknown = xpcall(function(): ()
+			Init(required)
+		end, function(err2: string): string
+			return debug.traceback(err2)
+		end)
+
+		if not success then
+			Logger.warn(`Failed to initialize controller {required.type or "unknown"}: {err}`)
+		end
 	end
 
 	if PlayerAdded then
@@ -60,8 +91,6 @@ local function InitController(required: unknown): ()
 		end
 	end
 end
-
-local tags = {}
 
 local function InitTag(required: unknown): ()
 	local tag: string = required.tag
@@ -77,101 +106,147 @@ local function InitTag(required: unknown): ()
 	local PlayerAdded: ((unknown, Player) -> unknown)? = required.PlayerAdded
 
 	CollectionService:GetInstanceAddedSignal(tag):Connect(function(instance: Instance): ()
-		local class: unknown = new(instance)
-		tags[instance] = class
+		local class: unknown = new(instance, path)
 
-		if PlayerAdded then
-			for _index: number, player: Player in Players:GetPlayers() do
-				PlayerAdded(required, player)
+		if class then
+			class.path = path
+			path.tag[instance] = class
+
+			if PlayerAdded then
+				for _index: number, player: Player in Players:GetPlayers() do
+					task.spawn(function(): ()
+						PlayerAdded(required, player)
+					end)
+				end
 			end
 		end
 	end)
 
 	CollectionService:GetInstanceRemovedSignal(tag):Connect(function(instance: Instance): ()
-		if tags[instance] and tags[instance].Destroy then
-			tags[instance]:Destroy(instance)
-			tags[instance] = nil
+		if path.tag[instance] and path.tag[instance].Destroy then
+			path.tag[instance]:Destroy(instance)
+			path.tag[instance] = nil
 		end
 	end)
 
 	for _index: number, instance: Instance in CollectionService:GetTagged(tag) do
-		local class: unknown = new(instance)
-		tags[instance] = class
+		task.spawn(function(): ()
+			local class: unknown = new(instance, path)
 
-		if PlayerAdded then
-			for _index: number, player: Player in Players:GetPlayers() do
-				PlayerAdded(required, player)
+			if class then
+				class.path = path
+				path.tag[instance] = class
+
+				if PlayerAdded then
+					for _index: number, player: Player in Players:GetPlayers() do
+						task.spawn(function(): ()
+							PlayerAdded(required, player)
+						end)
+					end
+				end
 			end
-		end
+		end)
 	end
 end
 
 for _index: number, required: unknown in loadFirst do
-	InitController(required)
+	local success: boolean, err: unknown = xpcall(function(): ()
+		InitController(required)
+	end, function(err2: string): string
+		return debug.traceback(err2)
+	end)
+
+	if not success then
+		Logger.warn(`Failed to initialize priority controller {required.type or "unknown"}: {err}`)
+	end
 end
 
 for _index: number, required: unknown in load do
-	InitController(required)
+	local success: boolean, err: unknown = xpcall(function(): ()
+		InitController(required)
+	end, function(err2: string): string
+		return debug.traceback(err2)
+	end)
+
+	if not success then
+		Logger.warn(`Failed to initialize controller {required.type or "unknown"}: {err}`)
+	end
 end
 
-for _index: number, required: unknown in path.tag do
+for _index: number, required: unknown in tags do
 	task.spawn(InitTag, required)
 end
 
 Players.PlayerAdded:Connect(function(player: Player): ()
 	for _index: number, class: unknown in path.controller do
-		if class.PlayerAdded then
-			class:PlayerAdded(player)
-		end
+		task.spawn(function(): ()
+			if class.PlayerAdded then
+				class:PlayerAdded(player)
+			end
+		end)
 	end
 
-	for _index: number, class: unknown in tags do
-		if class.PlayerAdded then
-			class:PlayerAdded(player)
-		end
+	for _index: number, class: unknown in path.tag do
+		task.spawn(function(): ()
+			if class.PlayerAdded then
+				class:PlayerAdded(player)
+			end
+		end)
 	end
 
 	player.CharacterAdded:Connect(function(character: Model): ()
 		for _index: number, class: unknown in path.controller do
-			if class.CharacterAdded then
-				class:CharacterAdded(player, character)
-			end
+			task.spawn(function(): ()
+				if class.CharacterAdded then
+					class:CharacterAdded(player, character)
+				end
+			end)
 		end
 
-		for _index: number, class: unknown in tags do
-			if class.CharacterAdded then
-				class:CharacterAdded(player, character)
-			end
+		for _index: number, class: unknown in path.tag do
+			task.spawn(function(): ()
+				if class.CharacterAdded then
+					class:CharacterAdded(player, character)
+				end
+			end)
 		end
 
 		local humanoid: Humanoid = character:WaitForChild("Humanoid")
 
 		humanoid.Died:Connect(function(): ()
 			for _index: number, class: unknown in path.controller do
-				if class.Died then
-					class:Died(player, character)
-				end
+				task.spawn(function(): ()
+					if class.Died then
+						class:Died(player, character)
+					end
+				end)
 			end
 
-			for _index: number, class: unknown in tags do
-				if class.Died then
-					class:Died(player, character)
-				end
+			for _index: number, class: unknown in path.tag do
+				task.spawn(function(): ()
+					if class.Died then
+						class:Died(player, character)
+					end
+				end)
 			end
 		end)
 	end)
 
 	player.CharacterAppearanceLoaded:Connect(function(character: Model): ()
 		for _index: number, class: unknown in path.controller do
-			if class.CharacterAppearanceLoaded then
-				class:CharacterAppearanceLoaded(player, character)
-			end
+			task.spawn(function(): ()
+				if class.CharacterAppearanceLoaded then
+					class:CharacterAppearanceLoaded(player, character)
+				end
+			end)
 		end
 
-		for _index: number, class: unknown in tags do
-			if class.CharacterAppearanceLoaded then
-				class:CharacterAppearanceLoaded(player, character)
-			end
+		for _index: number, class: unknown in path.tag do
+			task.spawn(function(): ()
+				if class.CharacterAppearanceLoaded then
+					class:CharacterAppearanceLoaded(player, character)
+				end
+			end)
 		end
 	end)
 end)
@@ -185,7 +260,7 @@ RunService.Heartbeat:Connect(function(delta: number): ()
 		end)
 	end
 
-	for _index: number, class: unknown in tags do
+	for _index: number, class: unknown in path.tag do
 		task.defer(function(): ()
 			if class.Physics then
 				class:Physics(delta)
@@ -203,7 +278,7 @@ RunService.PreSimulation:Connect(function(delta: number): ()
 		end)
 	end
 
-	for _index: number, class: unknown in tags do
+	for _index: number, class: unknown in path.tag do
 		task.defer(function(): ()
 			if class.Stepped then
 				class:Stepped(delta)
@@ -221,7 +296,7 @@ RunService.PreRender:Connect(function(delta: number): ()
 		end)
 	end
 
-	for _index: number, class: unknown in tags do
+	for _index: number, class: unknown in path.tag do
 		task.defer(function(): ()
 			if class.Render then
 				class:Render(delta)

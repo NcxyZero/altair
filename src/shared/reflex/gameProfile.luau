@@ -22,19 +22,25 @@ local DEFAULT_STATE: State = {
 
 function CreateProducer(initialState: State): Producer
 	local producer: Producer = Reflex.createProducer(initialState, {
-		setActivePlayers = function(state: State, count: number): State
+		setActivePlayers = function(oldState: State, count: number): State
+			local state = table.clone(oldState)
+
 			state.activePlayers = count
 
 			return state
 		end,
 
-		incrementActivePlayers = function(state: State): State
+		incrementActivePlayers = function(oldState: State): State
+			local state = table.clone(oldState)
+
 			state.activePlayers += 1
 
 			return state
 		end,
 
-		decrementActivePlayers = function(state: State): State
+		decrementActivePlayers = function(oldState: State): State
+			local state = table.clone(oldState)
+
 			state.activePlayers = math.max(0, state.activePlayers - 1)
 
 			return state

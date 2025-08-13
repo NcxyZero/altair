@@ -1,24 +1,35 @@
 --!nocheck
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
+
 local ClientInitConfig = require(StarterPlayer.StarterPlayerScripts.clientConfig.ClientInitConfig)
+local Logger = require(ReplicatedStorage.util.Logger)
 
 local path = {}
 path.controller = {}
 path.module = {}
 path.local_tag = {}
 path.tag = {}
+
+local moduleTags = {}
+local moduleTagsLocal = {}
+local tags = {}
 local loadFirst = {}
 local load = {}
 
-for _, folder in script.Parent:GetChildren() do
+for _index: number, folder: Folder in script.Parent:GetChildren() do
 	if table.find(ClientInitConfig, folder.Name) then
 		continue
 	end
 
-	for _index: number, module: Instance in folder:GetDescendants() do
+	if not folder:IsA("Folder") then
+		continue
+	end
+
+	for _index: number, module: ModuleScript in folder:GetDescendants() do
 		if not module:IsA("ModuleScript") then
 			continue
 		end
@@ -27,19 +38,38 @@ for _, folder in script.Parent:GetChildren() do
 			continue
 		end
 
-		pcall(function(): ()
-			local required: unknown = require(module)
-			local moduleType: string = required.type or "module"
-			path[moduleType][module.Name] = required
-
-			if moduleType == "controller" then
-				if required.index then
-					loadFirst[required.index] = required
-				else
-					table.insert(load, required)
-				end
-			end
+		local success: boolean, required: unknown = xpcall(function(): ()
+			return require(module)
+		end, function(err: string): string
+			return debug.traceback(err)
 		end)
+
+		if not success then
+			Logger.warn(`Failed to load module {module:GetFullName()}: {required}`)
+			continue
+		end
+
+		if typeof(required) ~= "table" then
+			continue
+		end
+
+		local moduleType: string = required.type or "module"
+
+		if moduleType == "controller" then
+			if required.index then
+				loadFirst[required.index] = required
+			else
+				table.insert(load, required)
+			end
+		end
+
+		if moduleType == "tag" then
+			moduleTags[module.Name] = required
+		elseif moduleType == "local_tag" then
+			moduleTagsLocal[module.Name] = required
+		else
+			path[moduleType][module.Name] = required
+		end
 	end
 end
 
@@ -48,26 +78,40 @@ local function InitController(required: unknown): ()
 
 	local Init: ((unknown?) -> unknown?)? = required.Init
 	if Init then
-		Init(required)
+		local success: boolean, err: unknown = xpcall(function(): ()
+			Init(required)
+		end, function(err2: string): string
+			return debug.traceback(err2)
+		end)
+
+		if not success then
+			Logger.warn(`Failed to initialize controller {required.type or "unknown"}: {err}`)
+		end
 	end
 end
-
-local tags = {}
 
 local function InitTag(required: unknown): ()
 	local tag: string = required.tag
 	if not tag then
+		Logger.warn("Tag not specified for required module:", required)
 		return
 	end
 
 	local new: ((Instance) -> unknown)? = required.new
 	if not new then
+		Logger.warn("New function not specified for tag module:", required)
 		return
 	end
 
 	CollectionService:GetInstanceAddedSignal(tag):Connect(function(instance: Instance): ()
-		local class: unknown = new(instance)
-		tags[instance] = class
+		local class: unknown = new(instance, path)
+
+		if class then
+			class.path = path
+			tags[instance] = class
+
+			path.tag[instance] = class
+		end
 	end)
 
 	CollectionService:GetInstanceRemovedSignal(tag):Connect(function(instance: Instance): ()
@@ -75,22 +119,34 @@ local function InitTag(required: unknown): ()
 			tags[instance]:Destroy(instance)
 			tags[instance] = nil
 		end
+
+		path.tag[instance] = nil
 	end)
 
 	for _index: number, instance: Instance in CollectionService:GetTagged(tag) do
-		local class: unknown = new(instance)
-		tags[instance] = class
+		task.spawn(function(): ()
+			local class: unknown = new(instance, path)
+
+			if class then
+				class.path = path
+				tags[instance] = class
+
+				path.tag[instance] = class
+			end
+		end)
 	end
 end
 
 local function InitLocalTag(required: unknown): ()
 	local tag: string = required.tag
 	if not tag then
+		Logger.warn("Tag not specified for local tag module:", required)
 		return
 	end
 
 	local new: ((Instance) -> unknown)? = required.new
 	if not new then
+		Logger.warn("New function not specified for local tag module:", required)
 		return
 	end
 
@@ -101,8 +157,13 @@ local function InitLocalTag(required: unknown): ()
 			end
 		end
 
-		local class: unknown = new(instance)
-		tags[instance] = class
+		local class: unknown = new(instance, path)
+
+		if class then
+			class.path = path
+			tags[instance] = class
+			path.local_tag[instance] = class
+		end
 	end)
 
 	CollectionService:GetInstanceRemovedSignal(tag):Connect(function(instance: Instance): ()
@@ -113,57 +174,88 @@ local function InitLocalTag(required: unknown): ()
 	end)
 
 	for _index: number, instance: Instance in CollectionService:GetTagged(tag) do
-		if not Players.LocalPlayer:IsAncestorOf(instance) then
-			if not Players.LocalPlayer.Character or not Players.LocalPlayer.Character:IsAncestorOf(instance) then
-				continue
+		task.spawn(function(): ()
+			if not Players.LocalPlayer:IsAncestorOf(instance) then
+				if not Players.LocalPlayer.Character or not Players.LocalPlayer.Character:IsAncestorOf(instance) then
+					return
+				end
 			end
-		end
 
-		local class: unknown = new(instance)
-		tags[instance] = class
+			local class: unknown = new(instance, path)
+
+			if class then
+				class.path = path
+				tags[instance] = class
+				path.local_tag[instance] = class
+			end
+		end)
 	end
 end
 
 for _index: number, required: unknown in loadFirst do
-	InitController(required)
+	local success: boolean, err: unknown = xpcall(function(): ()
+		InitController(required)
+	end, function(err2: string): string
+		return debug.traceback(err2)
+	end)
+
+	if not success then
+		Logger.warn(`Failed to initialize priority controller {required.type or "unknown"}: {err}`)
+	end
 end
 
 for _index: number, required: unknown in load do
-	InitController(required)
+	local success: boolean, err: unknown = xpcall(function(): ()
+		InitController(required)
+	end, function(err2: string): string
+		return debug.traceback(err2)
+	end)
+
+	if not success then
+		Logger.warn(`Failed to initialize controller {required.type or "unknown"}: {err}`)
+	end
 end
 
-for _index: number, required: unknown in path.tag do
+for _index: number, required: unknown in moduleTags do
 	task.spawn(InitTag, required)
 end
 
-for _index: number, required: unknown in path.local_tag do
+for _index: number, required: unknown in moduleTagsLocal do
 	task.spawn(InitLocalTag, required)
 end
 
 Players.PlayerAdded:Connect(function(player: Player): ()
 	for _index: number, class: unknown in path.controller do
-		if class.PlayerAdded then
-			class:PlayerAdded(player)
-		end
+		task.spawn(function(): ()
+			if class.PlayerAdded then
+				class:PlayerAdded(player)
+			end
+		end)
 	end
 
 	for _index: number, class: unknown in tags do
-		if class.PlayerAdded then
-			class:PlayerAdded(player)
-		end
+		task.spawn(function(): ()
+			if class.PlayerAdded then
+				class:PlayerAdded(player)
+			end
+		end)
 	end
 
 	player.CharacterAdded:Connect(function(character: Model): ()
 		for _index: number, class: unknown in path.controller do
-			if class.AnyCharacterAdded then
-				class:AnyCharacterAdded(player, character)
-			end
+			task.spawn(function(): ()
+				if class.AnyCharacterAdded then
+					class:AnyCharacterAdded(player, character)
+				end
+			end)
 		end
 
 		for _index: number, class: unknown in tags do
-			if class.AnyCharacterAdded then
-				class:AnyCharacterAdded(player, character)
-			end
+			task.spawn(function(): ()
+				if class.AnyCharacterAdded then
+					class:AnyCharacterAdded(player, character)
+				end
+			end)
 		end
 
 		local humanoid: Humanoid = character:WaitForChild("Humanoid")
@@ -176,69 +268,87 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 			end
 
 			for _index: number, class: unknown in tags do
-				if class.AnyDied then
-					class:AnyDied(player, character)
-				end
+				task.spawn(function(): ()
+					if class.AnyDied then
+						class:AnyDied(player, character)
+					end
+				end)
 			end
 		end)
 	end)
 
 	player.CharacterAppearanceLoaded:Connect(function(character: Model): ()
 		for _index: number, class: unknown in path.controller do
-			if class.AnyCharacterAppearanceLoaded then
-				class:AnyCharacterAppearanceLoaded(player, character)
-			end
+			task.spawn(function(): ()
+				if class.AnyCharacterAppearanceLoaded then
+					class:AnyCharacterAppearanceLoaded(player, character)
+				end
+			end)
 		end
 
 		for _index: number, class: unknown in tags do
-			if class.AnyCharacterAppearanceLoaded then
-				class:AnyCharacterAppearanceLoaded(player, character)
-			end
+			task.spawn(function(): ()
+				if class.AnyCharacterAppearanceLoaded then
+					class:AnyCharacterAppearanceLoaded(player, character)
+				end
+			end)
 		end
 	end)
 end)
 
 Players.LocalPlayer.CharacterAdded:Connect(function(character: Model): ()
 	for _index: number, class: unknown in path.controller do
-		if class.CharacterAdded then
-			class:CharacterAdded(character)
-		end
+		task.spawn(function(): ()
+			if class.CharacterAdded then
+				class:CharacterAdded(character)
+			end
+		end)
 	end
 
 	for _index: number, class: unknown in tags do
-		if class.CharacterAdded then
-			class:CharacterAdded(character)
-		end
+		task.spawn(function(): ()
+			if class.CharacterAdded then
+				class:CharacterAdded(character)
+			end
+		end)
 	end
 
 	local humanoid: Humanoid = character:WaitForChild("Humanoid")
 
 	humanoid.Died:Connect(function(): ()
 		for _index: number, class: unknown in path.controller do
-			if class.Died then
-				class:Died(character)
-			end
+			task.spawn(function(): ()
+				if class.Died then
+					class:Died(character)
+				end
+			end)
 		end
 
 		for _index: number, class: unknown in tags do
-			if class.Died then
-				class:Died(character)
-			end
+			task.spawn(function(): ()
+				if class.Died then
+					class:Died(character)
+				end
+			end)
 		end
 	end)
 end)
 
 Players.LocalPlayer.CharacterAppearanceLoaded:Connect(function(character: Model): ()
 	for _index: number, class: unknown in path.controller do
-		if class.CharacterAdded then
-			class:CharacterAppearanceLoaded(character)
-		end
+		task.spawn(function(): ()
+			if class.CharacterAdded then
+				class:CharacterAppearanceLoaded(character)
+			end
+		end)
 	end
 
 	for _index: number, class: unknown in tags do
-		if class.CharacterAdded then
-			class:CharacterAppearanceLoaded(character)
-		end
+		task.spawn(function(): ()
+			if class.CharacterAdded then
+				class:CharacterAppearanceLoaded(character)
+			end
+		end)
 	end
 end)
 

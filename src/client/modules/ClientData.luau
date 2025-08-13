@@ -24,7 +24,7 @@ export type Default = {
 	getPlayerProducerAsync: (self: Default) -> Promise.TypedPromise<any>,
 	getGameProducerAsync: (self: Default) -> Promise.TypedPromise<any>,
 	PlayerAdded: (self: Default, player: Player) -> (),
-	Init: (self: Default) -> (),
+	Start: (self: Default) -> (),
 }
 
 local ClientData: Default = {
@@ -48,8 +48,11 @@ local DEFAULT_CLIENT_STATE = {
 local function CreateClientProducer(data: any): Reflex.Producer<any, any>
 	local producer: Reflex.Producer<any, any> = Reflex.createProducer(data, {
 		setLocalSetting = function(state: any, key: string, value: any): any
-			state.localSettings[key] = value
-			return state
+			local nextState = table.clone(state)
+			nextState.localSettings = table.clone(state.localSettings)
+			nextState.localSettings[key] = value
+
+			return nextState
 		end,
 	})
 
@@ -82,7 +85,7 @@ function ClientData:PlayerAdded(player: Player): ()
 	end
 end
 
-function ClientData:Init(): ()
+function ClientData:Start(): ()
 	self.clientProducer = CreateClientProducer(DEFAULT_CLIENT_STATE)
 
 	local function loadPlayerData(): ()
@@ -207,5 +210,7 @@ function ClientData:Init(): ()
 	loadPlayerData()
 	loadGameData()
 end
+
+ClientData:Start()
 
 return ClientData
