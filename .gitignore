@@ -43,4 +43,4 @@ trace.json
 # !.idea/inspectionProfiles/
 
 # Luau LSP
-luau-lsp.exe
+# luau-lsp.exe
