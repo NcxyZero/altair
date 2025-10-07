@@ -12,7 +12,7 @@ export type Default = {
 	maid: Maid.Maid,
 	__index: Default,
 	new: (instance: Instance, path: InitializerTypes.ClientPath) -> Default,
-	Destroy: () -> (),
+	Destroy: (self: Default) -> (),
 }
 
 local ClientTagTemplate: Default = {} :: Default
