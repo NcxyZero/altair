@@ -14,9 +14,9 @@ export type State = {
 }
 
 type Actions = {
-	secureAddCoins: (amount: number) -> (),
-	secureSpendCoins: (price: number) -> (),
-	setSetting: (key: string, value: any) -> (),
+	secureAddCoins: (oldState: State, amount: number) -> State,
+	secureSpendCoins: (oldState: State, price: number) -> State,
+	setSetting: (oldState: State, key: string, value: any) -> State,
 }
 
 local DEFAULT_STATE: State = {
@@ -33,29 +33,32 @@ local SAVE_EXCEPTIONS: { string } = {
 }
 
 function CreateProducer(initialState: State): Producer
-	local producer: Producer = Reflex.createProducer(initialState, {
-		secureAddCoins = function(oldState: State, amount: number): State
-			local state = table.clone(oldState)
-			state.coins += math.abs(amount)
+	local producer: Producer = Reflex.createProducer(
+		initialState,
+		{
+			secureAddCoins = function(oldState: State, amount: number): State
+				local state = table.clone(oldState)
+				state.coins += math.abs(amount)
 
-			return state
-		end,
+				return state
+			end,
 
-		secureSpendCoins = function(oldState: State, coins: number): State
-			local state = table.clone(oldState)
-			state.coins -= math.abs(coins)
+			secureSpendCoins = function(oldState: State, coins: number): State
+				local state = table.clone(oldState)
+				state.coins -= math.abs(coins)
 
-			return state
-		end,
+				return state
+			end,
 
-		setSetting = function(oldState: State, key: string, value: any): State
-			local state = table.clone(oldState)
-			state.settings = table.clone(state.settings)
-			state.settings[key] = value
+			setSetting = function(oldState: State, key: string, value: any): State
+				local state = table.clone(oldState)
+				state.settings = table.clone(state.settings)
+				state.settings[key] = value
 
-			return state
-		end,
-	})
+				return state
+			end,
+		} :: Actions
+	)
 
 	return producer
 end

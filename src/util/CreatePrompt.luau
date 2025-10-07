@@ -5,7 +5,6 @@ type promptData = {
 	MaxActivationDistance: number?,
 	ObjectText: string?,
 	RequiresLineOfSight: boolean?,
-
 	Triggered: () -> (),
 }
 

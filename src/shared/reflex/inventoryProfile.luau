@@ -20,13 +20,13 @@ export type State = {
 }
 
 type Actions = {
-	secureAddItem: (itemId: string, item: InventoryItem) -> (),
-	secureRemoveItem: (itemId: string) -> (),
-	secureUpdateItemQuantity: (itemId: string, quantity: number) -> (),
-	equipItem: (itemId: string, slotName: string) -> (),
-	unequipItem: (slotName: string) -> (),
-	secureIncreaseMaxSlots: (amount: number) -> (),
-	clearInventory: () -> (),
+	secureAddItem: (oldState: State, itemId: string, item: InventoryItem) -> State,
+	secureRemoveItem: (oldState: State, itemId: string) -> State,
+	secureUpdateItemQuantity: (oldState: State, itemId: string, quantity: number) -> State,
+	equipItem: (oldState: State, itemId: string, slotName: string) -> State,
+	unequipItem: (oldState: State, slotName: string) -> State,
+	secureIncreaseMaxSlots: (oldState: State, amount: number) -> State,
+	clearInventory: (oldState: State) -> State,
 }
 
 local DEFAULT_STATE: State = {
@@ -36,99 +36,102 @@ local DEFAULT_STATE: State = {
 }
 
 function CreateProducer(initialState: State): Producer
-	local producer: Producer = Reflex.createProducer(initialState, {
-		secureAddItem = function(oldState: State, itemId: string, item: InventoryItem): State
-			local state: State = table.clone(oldState)
-			state.items = table.clone(oldState.items)
-
-			if oldState.items[itemId] then
-				local existingItem = table.clone(oldState.items[itemId])
-				existingItem.quantity += item.quantity
-				state.items[itemId] = existingItem
-			else
-				state.items[itemId] = item
-			end
-
-			return state
-		end,
-
-		secureRemoveItem = function(oldState: State, itemId: string): State
-			if oldState.items[itemId] then
+	local producer: Producer = Reflex.createProducer(
+		initialState,
+		{
+			secureAddItem = function(oldState: State, itemId: string, item: InventoryItem): State
 				local state: State = table.clone(oldState)
 				state.items = table.clone(oldState.items)
-				state.equippedItems = table.clone(oldState.equippedItems)
 
-				state.items[itemId] = nil
-
-				for slot: string, id: string in oldState.equippedItems do
-					if id == itemId then
-						state.equippedItems[slot] = nil
-					end
+				if oldState.items[itemId] then
+					local existingItem = table.clone(oldState.items[itemId])
+					existingItem.quantity += item.quantity
+					state.items[itemId] = existingItem
+				else
+					state.items[itemId] = item
 				end
 
 				return state
-			end
+			end,
 
-			return oldState
-		end,
+			secureRemoveItem = function(oldState: State, itemId: string): State
+				if oldState.items[itemId] then
+					local state: State = table.clone(oldState)
+					state.items = table.clone(oldState.items)
+					state.equippedItems = table.clone(oldState.equippedItems)
 
-		secureUpdateItemQuantity = function(oldState: State, itemId: string, quantity: number): State
-			if oldState.items[itemId] then
-				local state: State = table.clone(oldState)
-				state.items = table.clone(oldState.items)
-
-				if quantity <= 0 then
 					state.items[itemId] = nil
 
-					state.equippedItems = table.clone(oldState.equippedItems)
-					for slot, id in oldState.equippedItems do
+					for slot: string, id: string in oldState.equippedItems do
 						if id == itemId then
 							state.equippedItems[slot] = nil
 						end
 					end
-				else
-					local updatedItem = table.clone(oldState.items[itemId])
-					updatedItem.quantity = quantity
-					state.items[itemId] = updatedItem
+
+					return state
+				end
+
+				return oldState
+			end,
+
+			secureUpdateItemQuantity = function(oldState: State, itemId: string, quantity: number): State
+				if oldState.items[itemId] then
+					local state: State = table.clone(oldState)
+					state.items = table.clone(oldState.items)
+
+					if quantity <= 0 then
+						state.items[itemId] = nil
+
+						state.equippedItems = table.clone(oldState.equippedItems)
+						for slot, id in oldState.equippedItems do
+							if id == itemId then
+								state.equippedItems[slot] = nil
+							end
+						end
+					else
+						local updatedItem = table.clone(oldState.items[itemId])
+						updatedItem.quantity = quantity
+						state.items[itemId] = updatedItem
+					end
+
+					return state
+				end
+
+				return oldState
+			end,
+
+			equipItem = function(state: State, itemId: string, slotName: string): State
+				if state.items[itemId] then
+					state.equippedItems[slotName] = itemId
+					state.items[itemId].equipped = true
 				end
 
 				return state
-			end
+			end,
 
-			return oldState
-		end,
+			unequipItem = function(state: State, slotName: string): State
+				local itemId: string = state.equippedItems[slotName]
+				if itemId and state.items[itemId] then
+					state.items[itemId].equipped = false
+				end
 
-		equipItem = function(state: State, itemId: string, slotName: string): State
-			if state.items[itemId] then
-				state.equippedItems[slotName] = itemId
-				state.items[itemId].equipped = true
-			end
+				state.equippedItems[slotName] = nil
 
-			return state
-		end,
+				return state
+			end,
 
-		unequipItem = function(state: State, slotName: string): State
-			local itemId: string = state.equippedItems[slotName]
-			if itemId and state.items[itemId] then
-				state.items[itemId].equipped = false
-			end
+			secureIncreaseMaxSlots = function(oldState: State, amount: number): State
+				local state: State = table.clone(oldState)
+				state.maxSlots += amount
 
-			state.equippedItems[slotName] = nil
+				return state
+			end,
 
-			return state
-		end,
-
-		secureIncreaseMaxSlots = function(oldState: State, amount: number): State
-			local state: State = table.clone(oldState)
-			state.maxSlots += amount
-
-			return state
-		end,
-
-		clearInventory = function(): State
-			return table.clone(DEFAULT_STATE)
-		end,
-	})
+			clearInventory = function(_oldState: State): State
+				return table.clone(DEFAULT_STATE)
+			end,
+		} :: Actions
+	)
 
 	return producer
 end
