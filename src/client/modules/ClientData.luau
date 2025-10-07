@@ -15,6 +15,7 @@ export type Default = {
 	index: number,
 	type: string,
 	path: { [string]: any }?,
+	clientProducer: Reflex.Producer<any, any>,
 	playerProducer: Reflex.Producer<any, any>,
 	gameProducer: Reflex.Producer<any, any>,
 	isPlayerDataLoaded: boolean,

@@ -25,7 +25,7 @@ TemplateUI.type = "local_tag"
 TemplateUI.tag = "TemplateUI"
 
 function TemplateUI.new(instance: Shop): Default
-	local self = setmetatable(TemplateUI, {})
+	local self = setmetatable({}, TemplateUI)
 	self.instance = instance
 
 	self.maid = Maid.new()

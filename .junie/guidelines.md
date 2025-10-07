@@ -206,6 +206,23 @@ table.remove(set)
 - Use "controller" terminology instead of "service" for game system modules
 - Controller modules with `Init()` function should be initialized only by `main.client.luau` / `main.server.luau`, not by other modules
 - Do not call module's `Init()` function at the end of the module itself
+- Do not use abbreviations in variable names — use full, descriptive names for readability (e.g., use `player` instead of `plr`, `callback` instead of `cb`, `connection` instead of `conn`)
+- Prefer using `and`/`or` logical operators instead of `if-else` statements when appropriate for cleaner, more readable code
+
+Example of preferred logical operators:
+
+```luau
+-- Preferred: using 'and' for conditional execution
+local success: boolean = validate() and process() and save()
+
+-- Preferred: using 'or' for default values
+local playerName: string = player.Name or "Unknown"
+
+-- Preferred: using 'and' for conditional assignment
+local result: string? = isValid and computeResult() or nil
+
+-- Instead of verbose if-else statements, use logical operators when appropriate
+```
 
 ### Type Checking
 

@@ -21,7 +21,7 @@ ServerTagTemplate.type = "tag"
 ServerTagTemplate.tag = "Template"
 
 function ServerTagTemplate.new(instance: Instance, path: InitializerTypes.ServerPath): Default
-	local self = setmetatable(ServerTagTemplate, {})
+	local self = setmetatable({}, ServerTagTemplate)
 	self.path = path
 	self.instance = instance
 	self.maid = Maid.new()

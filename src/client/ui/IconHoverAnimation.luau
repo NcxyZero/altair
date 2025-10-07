@@ -22,11 +22,12 @@ end
 export type IconHoverAnimation = {
 	type: string,
 	tag: string,
+	icons: { GuiObject }?,
+	iconOriginalSizes: { UDim2 }?,
+	iconOriginalScales: { number }?,
 	instance: GuiObject,
 	maid: Maid.Maid,
 	valueMaid: Maid.Maid,
-	icon: GuiObject?,
-	iconOriginalSize: UDim2?,
 
 	__index: IconHoverAnimation,
 	new: (instance: GuiObject) -> IconHoverAnimation,
@@ -46,8 +47,28 @@ function IconHoverAnimation.new(instance: GuiObject): IconHoverAnimation
 	self.instance = instance
 	self.maid = Maid.new()
 	self.valueMaid = Maid.new()
-	self.icon = nil
-	self.iconOriginalSize = nil
+	self.icons = {}
+	self.iconOriginalSizes = {}
+	self.iconOriginalScales = {}
+
+	local function addIcon(icon: GuiObject): ()
+		local icons: { GuiObject } = self.icons :: { GuiObject }
+		for index = 1, #icons do
+			if icons[index] == icon then
+				return
+			end
+		end
+
+		table.insert(icons, icon)
+		table.insert(self.iconOriginalSizes :: { UDim2 }, icon.Size)
+
+		local uiScale: UIScale? = icon:FindFirstChild("UIScale") :: UIScale
+		local baseScale: number = 0
+		if uiScale then
+			baseScale = uiScale.Scale
+		end
+		table.insert(self.iconOriginalScales :: { number }, baseScale)
+	end
 
 	local iconObjectValue: ObjectValue? = nil
 	for _index: number, child: Instance in instance:GetChildren() do
@@ -57,12 +78,28 @@ function IconHoverAnimation.new(instance: GuiObject): IconHoverAnimation
 		end
 	end
 
-	if not iconObjectValue or not iconObjectValue.Value then
-		return self
+	if iconObjectValue and iconObjectValue.Value and iconObjectValue.Value:IsA("GuiObject") then
+		addIcon(iconObjectValue.Value :: GuiObject)
 	end
 
-	self.icon = iconObjectValue.Value :: GuiObject
-	self.iconOriginalSize = self.icon.Size
+	for _index: number, child: Instance in instance:GetChildren() do
+		if child.Name == "Icon" and child:IsA("GuiObject") then
+			addIcon(child :: GuiObject)
+			break
+		end
+	end
+
+	local parent: Instance? = instance.Parent
+	if parent then
+		local sibling: Instance? = parent:FindFirstChild(instance.Name .. "Icon")
+		if sibling and sibling:IsA("GuiObject") then
+			addIcon(sibling :: GuiObject)
+		end
+	end
+
+	if (self.icons :: { GuiObject })[1] == nil then
+		return self
+	end
 
 	self.maid:GiveTask(instance.MouseEnter:Connect(function(): ()
 		self:MouseEnter()
@@ -72,55 +109,117 @@ function IconHoverAnimation.new(instance: GuiObject): IconHoverAnimation
 		self:MouseLeave()
 	end))
 
-	self.valueMaid:GiveTask(iconObjectValue:GetPropertyChangedSignal("Value"):Connect(function(): ()
-		self:VerifyChange()
-	end))
+	if iconObjectValue then
+		self.valueMaid:GiveTask(iconObjectValue:GetPropertyChangedSignal("Value"):Connect(function(): ()
+			self:VerifyChange()
+		end))
+	end
 
 	return self
 end
 
 function IconHoverAnimation:MouseEnter(): ()
-	if not self.icon or not self.iconOriginalSize then
+	local icons: { GuiObject } = self.icons or {}
+	local originals: { UDim2 } = self.iconOriginalSizes or {}
+	local originalScales: { number } = self.iconOriginalScales or {}
+	if icons[1] == nil then
 		return
 	end
 
 	objectValue.Value = self.instance
 
-	local endSize: UDim2 = UDim2.fromScale(
-		self.iconOriginalSize.X.Scale * ICON_HOVER_SIZE_MULTIPLIER,
-		self.iconOriginalSize.Y.Scale * ICON_HOVER_SIZE_MULTIPLIER
-	)
-
-	AnchorPointAdjustments:AdjustPosition(self.icon, Vector2.one / 2)
-
-	local sizeTween: Tween =
-		TweenService:Create(self.icon, TweenInfo.new(0.1, Enum.EasingStyle.Linear), { Size = endSize })
-	sizeTween:Play()
+	for index = 1, #icons do
+		local icon: GuiObject = icons[index]
+		local baseScale: number = originalScales[index] or 0
+		if baseScale > 0 then
+			local uiScale: UIScale? = icon:FindFirstChild("UIScale") :: UIScale
+			if uiScale then
+				local target: number = baseScale * ICON_HOVER_SIZE_MULTIPLIER
+				local tween: Tween = TweenService:Create(
+					uiScale :: UIScale,
+					TweenInfo.new(0.1, Enum.EasingStyle.Linear),
+					{ Scale = target }
+				)
+				tween:Play()
+			else
+				local original: UDim2 = originals[index]
+				local endSize: UDim2 = UDim2.fromScale(
+					original.X.Scale * ICON_HOVER_SIZE_MULTIPLIER,
+					original.Y.Scale * ICON_HOVER_SIZE_MULTIPLIER
+				)
+				AnchorPointAdjustments:AdjustPosition(icon, Vector2.one / 2)
+				local sizeTween: Tween =
+					TweenService:Create(icon, TweenInfo.new(0.1, Enum.EasingStyle.Linear), { Size = endSize })
+				sizeTween:Play()
+			end
+		else
+			local original: UDim2 = originals[index]
+			local endSize: UDim2 = UDim2.fromScale(
+				original.X.Scale * ICON_HOVER_SIZE_MULTIPLIER,
+				original.Y.Scale * ICON_HOVER_SIZE_MULTIPLIER
+			)
+			AnchorPointAdjustments:AdjustPosition(icon, Vector2.one / 2)
+			local sizeTween: Tween =
+				TweenService:Create(icon, TweenInfo.new(0.1, Enum.EasingStyle.Linear), { Size = endSize })
+			sizeTween:Play()
+		end
+	end
 
 	task.spawn(function(): ()
-		for index = -1, 1, 1 do
+		for step = -1, 1, 1 do
 			task.wait(0.05)
 
-			local rotationTween: Tween =
-				TweenService:Create(self.icon, TweenInfo.new(0.1), { Rotation = index * ICON_ROTATION_MULTIPLIER })
-			rotationTween:Play()
+			for index = 1, #icons do
+				local icon: GuiObject = icons[index]
+				local rotationTween: Tween =
+					TweenService:Create(icon, TweenInfo.new(0.1), { Rotation = step * ICON_ROTATION_MULTIPLIER })
+				rotationTween:Play()
+			end
 		end
 
 		task.wait(0.1)
 
-		local finalRotationTween: Tween = TweenService:Create(self.icon, TweenInfo.new(0.1), { Rotation = 0 })
-		finalRotationTween:Play()
+		for index = 1, #icons do
+			local icon: GuiObject = icons[index]
+			local finalRotationTween: Tween = TweenService:Create(icon, TweenInfo.new(0.1), { Rotation = 0 })
+			finalRotationTween:Play()
+		end
 	end)
 end
 
 function IconHoverAnimation:MouseLeave(): ()
-	if not self.icon or not self.iconOriginalSize then
+	local icons: { GuiObject } = self.icons or {}
+	local originals: { UDim2 } = self.iconOriginalSizes or {}
+	local originalScales: { number } = self.iconOriginalScales or {}
+	if icons[1] == nil then
 		return
 	end
 
-	local sizeTween: Tween =
-		TweenService:Create(self.icon, TweenInfo.new(0.1, Enum.EasingStyle.Linear), { Size = self.iconOriginalSize })
-	sizeTween:Play()
+	for index = 1, #icons do
+		local icon: GuiObject = icons[index]
+		local baseScale: number = originalScales[index] or 0
+		if baseScale > 0 then
+			local uiScale: UIScale? = icon:FindFirstChild("UIScale") :: UIScale
+			if uiScale then
+				local tween: Tween = TweenService:Create(
+					uiScale :: UIScale,
+					TweenInfo.new(0.1, Enum.EasingStyle.Linear),
+					{ Scale = baseScale }
+				)
+				tween:Play()
+			else
+				local original: UDim2 = originals[index]
+				local sizeTween: Tween =
+					TweenService:Create(icon, TweenInfo.new(0.1, Enum.EasingStyle.Linear), { Size = original })
+				sizeTween:Play()
+			end
+		else
+			local original: UDim2 = originals[index]
+			local sizeTween: Tween =
+				TweenService:Create(icon, TweenInfo.new(0.1, Enum.EasingStyle.Linear), { Size = original })
+			sizeTween:Play()
+		end
+	end
 end
 
 function IconHoverAnimation:VerifyChange(): ()

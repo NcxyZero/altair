@@ -12,7 +12,6 @@ export type ButtonAnimation = {
 	tag: string,
 	instance: GuiButton,
 	maid: Maid.Maid,
-	uiScale: UIScale,
 
 	__index: ButtonAnimation,
 	new: (instance: GuiButton) -> ButtonAnimation,
@@ -29,14 +28,40 @@ function ButtonAnimation.new(instance: GuiButton): ButtonAnimation
 	self.instance = instance
 	self.maid = Maid.new()
 
-	local uiScale: UIScale = Instance.new("UIScale")
-	uiScale.Scale = 1
-	uiScale.Parent = instance
-	self.uiScale = uiScale
-
+	local originalScalesByElement: { [GuiObject]: number } = {}
 	local function Animate(scale: number): ()
-		local tween: Tween = TweenService:Create(uiScale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = scale })
-		tween:Play()
+		local collection: { GuiObject } = { instance }
+		local parent: Instance? = instance.Parent
+		local shadow: GuiObject? = (
+			instance:FindFirstChild(instance.Name .. "Shadow")
+			or instance:FindFirstChild(instance.Name .. "Background")
+			or (parent and parent:FindFirstChild(instance.Name .. "Shadow"))
+			or (parent and parent:FindFirstChild(instance.Name .. "Background"))
+		) :: GuiObject
+		if shadow and shadow:IsA("GuiObject") and not shadow:HasTag(TAG_NAME) then
+			table.insert(collection, shadow)
+		end
+
+		for _index: number, element: GuiObject in collection do
+			local uiScale: UIScale? = element:FindFirstChild("UIScale") :: UIScale
+			if not uiScale then
+				local newUiScale: UIScale = Instance.new("UIScale")
+				newUiScale.Scale = 1
+				newUiScale.Parent = element
+				uiScale = newUiScale
+			end
+
+			local base: number = originalScalesByElement[element]
+			if not base then
+				base = (uiScale :: UIScale).Scale
+				originalScalesByElement[element] = base
+			end
+
+			local target: number = base * scale
+			local tween: Tween =
+				TweenService:Create(uiScale :: UIScale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = target })
+			tween:Play()
+		end
 	end
 
 	local function InputEnded(): ()
@@ -48,7 +73,6 @@ function ButtonAnimation.new(instance: GuiButton): ButtonAnimation
 		SFX.new(SFX.Sounds.InterfacePress, 0.4, false)
 	end
 
-	-- Connect mouse events
 	self.maid:GiveTask(instance.MouseButton1Down:Connect(InputBegan))
 	self.maid:GiveTask(instance.MouseButton1Up:Connect(InputEnded))
 	self.maid:GiveTask(instance.MouseLeave:Connect(InputEnded))

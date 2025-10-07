@@ -7,7 +7,7 @@ export type Default = {
 	index: number?,
 	type: string?,
 	path: { any },
-	Init: () -> (),
+	Init: (self: Default) -> (),
 }
 
 local ServerCmdr: Default = {} :: Default

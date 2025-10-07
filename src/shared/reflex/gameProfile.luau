@@ -7,17 +7,20 @@ export type Producer = Reflex.Producer<State, Actions>
 export type State = {
 	serverStartTime: number,
 	activePlayers: number,
+	focus: Player?,
 }
 
 type Actions = {
 	setActivePlayers: (count: number) -> (),
 	incrementActivePlayers: () -> (),
 	decrementActivePlayers: () -> (),
+	secureFocusOn: (player: Player?) -> (),
 }
 
 local DEFAULT_STATE: State = {
 	serverStartTime = os.time(),
 	activePlayers = 0,
+	focus = nil,
 }
 
 function CreateProducer(initialState: State): Producer
@@ -42,6 +45,13 @@ function CreateProducer(initialState: State): Producer
 			local state = table.clone(oldState)
 
 			state.activePlayers = math.max(0, state.activePlayers - 1)
+
+			return state
+		end,
+
+		secureFocusOn = function(oldState: State, player: Player?)
+			local state = table.clone(oldState)
+			state.focus = player
 
 			return state
 		end,

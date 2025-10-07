@@ -7,7 +7,7 @@ export type Default = {
 	index: number?,
 	type: string?,
 	path: InitializerTypes.ServerPath,
-	Init: () -> (),
+	Init: (self: Default) -> (),
 }
 
 local ControllerTemplate: Default = {} :: Default

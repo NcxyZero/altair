@@ -4,6 +4,13 @@ export type GameConfig = {
 		cacheRefreshTime: number,
 		role: string,
 	},
+	core: {
+		playerCollisionsDisable: boolean,
+		resetButtonDisable: boolean,
+	},
+	game: {
+		--
+	},
 	roles: {
 		[string]: {
 			rank: number,
@@ -20,6 +27,11 @@ local gameConfig: GameConfig = {
 		cacheRefreshTime = 30,
 		role = "admin",
 	},
+	core = {
+		playerCollisionsDisable = true,
+		resetButtonDisable = true,
+	},
+	game = {},
 	roles = {
 		admin = {
 			rank = 200,

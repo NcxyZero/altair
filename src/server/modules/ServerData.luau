@@ -131,7 +131,7 @@ function ServerData:PlayerAdded(player: Player): ()
 		return
 	end
 
-	local data = profileStore.Data
+	local data = playerProfile.DEFAULT_STATE
 	data.userId = player.UserId
 
 	local playerProducer = playerProfile.CreateProducer(data)

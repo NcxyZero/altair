@@ -15,23 +15,23 @@ export type Default = {
 	Destroy: () -> (),
 }
 
-local ClientLocalTagTemplate: Default = {} :: Default
-ClientLocalTagTemplate.__index = ClientLocalTagTemplate
-ClientLocalTagTemplate.type = "local_tag"
-ClientLocalTagTemplate.tag = "Local_Template"
+local ClientTagTemplate: Default = {} :: Default
+ClientTagTemplate.__index = ClientTagTemplate
+ClientTagTemplate.type = "tag"
+ClientTagTemplate.tag = "Template"
 
-function ClientLocalTagTemplate.new(instance: Instance, path: InitializerTypes.ClientPath): Default
-	local self = setmetatable(ClientLocalTagTemplate, {})
-	self.path = path
+function ClientTagTemplate.new(instance: Instance, path: InitializerTypes.ClientPath): Default
+	local self = setmetatable({}, ClientTagTemplate)
 	self.instance = instance
+	self.path = path
 	self.maid = Maid.new()
-	Logger.print("ClientLocalTagTemplate initalized instance: " .. instance.Name)
+	Logger.print("ClientTagTemplate initalized instance: " .. instance.Name)
 
 	return self
 end
 
-function ClientLocalTagTemplate:Destroy(): ()
+function ClientTagTemplate:Destroy(): ()
 	self.maid:DoCleaning()
 end
 
-return ClientLocalTagTemplate
+return ClientTagTemplate

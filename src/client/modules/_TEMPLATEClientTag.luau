@@ -21,7 +21,7 @@ ClientTagTemplate.type = "tag"
 ClientTagTemplate.tag = "Template"
 
 function ClientTagTemplate.new(instance: Instance, path: InitializerTypes.ClientPath): Default
-	local self = setmetatable(ClientTagTemplate, {})
+	local self = setmetatable({}, ClientTagTemplate)
 	self.instance = instance
 	self.path = path
 	self.maid = Maid.new()

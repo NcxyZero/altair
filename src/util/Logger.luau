@@ -30,11 +30,8 @@ local function getSourceInfo(): string
 				end
 
 				if filename and filename ~= "" and not filename:match("Logger") then
-					if line > 0 then
-						return string.format("[%s:%d] ", filename, line)
-					else
-						return string.format("[%s] ", filename)
-					end
+					local condition: boolean = line > 0
+					(condition and "[%s:%d] " or "[%s] "):format(filename, condition and line or nil)
 				end
 			end
 		end
@@ -42,52 +39,52 @@ local function getSourceInfo(): string
 
 	local success, info = pcall(debug.info, 3, "s")
 	if success and info and type(info) == "string" and info ~= "" then
-		local filename = info:match("[^/\\]*$") or info
+		local filename: string = info:match("[^/\\]*$") or info
 		if filename ~= "" and not filename:match("Logger") then
-			return string.format("[%s] ", filename)
+			return ("[%s] "):format(filename)
 		end
 	end
 
 	return "[Unknown] "
 end
 
-Logger.warn = function(message: string): ()
+Logger.warn = function(...: string): ()
 	if not RunService:IsStudio() then
 		return
 	end
 
 	local sourceInfo: string = getSourceInfo()
-	warn(sourceInfo .. message)
+	warn(sourceInfo .. table.concat({ ... }, ", "))
 end
 
-Logger.print = function(message: string): ()
+Logger.print = function(...: string): ()
 	if not RunService:IsStudio() then
 		return
 	end
 
 	local sourceInfo: string = getSourceInfo()
-	print(sourceInfo .. message)
+	print(sourceInfo .. table.concat({ ... }, ", "))
 end
 
-Logger.error = function(message: string): ()
+Logger.error = function(...: string): ()
 	if not RunService:IsStudio() then
 		return
 	end
 
 	local sourceInfo: string = getSourceInfo()
-	error(sourceInfo .. message)
+	error(sourceInfo .. table.concat({ ... }, ", "))
 end
 
-Logger.assert = function(value: boolean?, message: string): ()
+Logger.assert = function(value: boolean?, ...: string): ()
 	if not RunService:IsStudio() then
 		return
 	end
 
 	if not value then
 		local sourceInfo: string = getSourceInfo()
-		assert(value, sourceInfo .. message)
+		assert(value, sourceInfo .. table.concat({ ... }, ", "))
 	else
-		assert(value, message)
+		assert(value, table.concat({ ... }, ", "))
 	end
 end
 
