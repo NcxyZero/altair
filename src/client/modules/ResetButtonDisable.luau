@@ -1,4 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
 
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
 
@@ -7,7 +8,7 @@ ResetButtonDisable.type = "controller"
 
 function ResetButtonDisable:Init(): ()
 	pcall(function(): ()
-		game:GetService("StarterGui"):SetCore("ResetButtonCallback", GameConfig.core.resetButtonDisable)
+		StarterGui:SetCore("ResetButtonCallback", GameConfig.core.resetButtonDisable)
 	end)
 end
 

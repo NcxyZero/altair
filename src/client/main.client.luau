@@ -90,6 +90,21 @@ local function InitController(required: unknown): ()
 	end
 end
 
+local function StartController(required: unknown): ()
+	local Start: ((unknown?) -> unknown?)? = required.Start
+	if Start then
+		local success: boolean, err: unknown = xpcall(function(): ()
+			Start(required)
+		end, function(err2: string): string
+			return debug.traceback(err2)
+		end)
+
+		if not success then
+			Logger.warn(`Failed to start controller {required.type or "unknown"}: {err}`)
+		end
+	end
+end
+
 local function InitTag(required: unknown): ()
 	local tag: string = required.tag
 	if not tag then
@@ -222,6 +237,30 @@ end
 
 for _index: number, required: unknown in moduleTagsLocal do
 	task.spawn(InitLocalTag, required)
+end
+
+for _index: number, required: unknown in loadFirst do
+	local success: boolean, err: unknown = xpcall(function(): ()
+		StartController(required)
+	end, function(err2: string): string
+		return debug.traceback(err2)
+	end)
+
+	if not success then
+		Logger.warn(`Failed to start priority controller {required.type or "unknown"}: {err}`)
+	end
+end
+
+for _index: number, required: unknown in load do
+	local success: boolean, err: unknown = xpcall(function(): ()
+		StartController(required)
+	end, function(err2: string): string
+		return debug.traceback(err2)
+	end)
+
+	if not success then
+		Logger.warn(`Failed to start controller {required.type or "unknown"}: {err}`)
+	end
 end
 
 Players.PlayerAdded:Connect(function(player: Player): ()

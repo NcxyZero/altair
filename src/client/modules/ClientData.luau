@@ -1,29 +1,47 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
+local ProfileTypes = require(ReplicatedStorage.shared.reflex.ProfileTypes)
 local Promise = require(ReplicatedStorage.package.Promise)
 local Reflex = require(ReplicatedStorage.package.Reflex)
 local Signal = require(ReplicatedStorage.package.Signal)
-
--- Import profile producers
 local gameProfile = require(ReplicatedStorage.shared.reflex.gameProfile)
-local inventoryProfile = require(ReplicatedStorage.shared.reflex.inventoryProfile)
-local playerProfile = require(ReplicatedStorage.shared.reflex.playerProfile)
-local settingsProfile = require(ReplicatedStorage.shared.reflex.settingsProfile)
+
+local sharedFolder: Folder = ReplicatedStorage:WaitForChild("shared") :: Folder
+local reflexFolder: Folder = sharedFolder:WaitForChild("reflex") :: Folder
+
+type ProfileTypes = typeof(ProfileTypes)
+
+local function getProfileModules(): { [string]: any }
+	local modules: { [string]: any } = {}
+
+	for _index: number, child: Instance in reflexFolder:GetChildren() do
+		if child:IsA("ModuleScript") then
+			local name: string = child.Name
+			if name ~= "gameProfile" and name:match("Profile$") then
+				local key: string = name:gsub("Profile$", "")
+				modules[key] = require(child) :: any
+			end
+		end
+	end
+
+	return modules
+end
 
 export type Default = {
 	index: number,
 	type: string,
-	path: { [string]: any }?,
+	path: InitializerTypes.ClientPath,
 	clientProducer: Reflex.Producer<any, any>,
-	playerProducer: Reflex.Producer<any, any>,
-	gameProducer: Reflex.Producer<any, any>,
+	playerProducer: ProfileTypes.PlayerProducer,
+	gameProducer: gameProfile.Producer,
 	isPlayerDataLoaded: boolean,
 	isGameDataLoaded: boolean,
 	playerDataLoadedSignal: Signal.Signal<()>,
 	gameDataLoadedSignal: Signal.Signal<()>,
-	getPlayerProducerAsync: (self: Default) -> Promise.TypedPromise<any>,
-	getGameProducerAsync: (self: Default) -> Promise.TypedPromise<any>,
+	getPlayerProducerAsync: (self: Default) -> Promise.TypedPromise<ProfileTypes.PlayerProducer>,
+	getGameProducerAsync: (self: Default) -> Promise.TypedPromise<gameProfile.Producer>,
 	PlayerAdded: (self: Default, player: Player) -> (),
 	Start: (self: Default) -> (),
 }
@@ -60,8 +78,8 @@ local function CreateClientProducer(data: any): Reflex.Producer<any, any>
 	return producer
 end
 
-function ClientData:getPlayerProducerAsync(): Promise.TypedPromise<Reflex.Producer<any, any>>
-	return Promise.new(function(resolve: (Reflex.Producer<any, any>) -> ()): ()
+function ClientData:getPlayerProducerAsync(): Promise.TypedPromise<ProfileTypes.PlayerProducer>
+	return Promise.new(function(resolve: (ProfileTypes.PlayerProducer) -> ()): ()
 		if not self.isPlayerDataLoaded then
 			self.playerDataLoadedSignal:Wait()
 		end
@@ -70,8 +88,8 @@ function ClientData:getPlayerProducerAsync(): Promise.TypedPromise<Reflex.Produc
 	end)
 end
 
-function ClientData:getGameProducerAsync(): Promise.TypedPromise<Reflex.Producer<any, any>>
-	return Promise.new(function(resolve: (Reflex.Producer<any, any>) -> ()): ()
+function ClientData:getGameProducerAsync(): Promise.TypedPromise<gameProfile.Producer>
+	return Promise.new(function(resolve: (gameProfile.Producer) -> ()): ()
 		if not self.isGameDataLoaded then
 			self.gameDataLoadedSignal:Wait()
 		end
@@ -114,16 +132,17 @@ function ClientData:Start(): ()
 			end
 		end
 
-		local playerProducer = playerProfile.CreateProducer(playerData)
-		local settingsProducer = settingsProfile.CreateProducer(playerData.settings or settingsProfile.DEFAULT_STATE)
-		local inventoryProducer =
-			inventoryProfile.CreateProducer(playerData.inventory or inventoryProfile.DEFAULT_STATE)
+		local modules = getProfileModules()
+		local producers = {}
 
-		self.playerProducer = Reflex.combineProducers({
-			player = playerProducer,
-			settings = settingsProducer,
-			inventory = inventoryProducer,
-		})
+		for key: string, state: any in playerData do
+			local module = modules[key]
+			if module then
+				producers[key] = module.CreateProducer(state or module.DEFAULT_STATE)
+			end
+		end
+
+		self.playerProducer = Reflex.combineProducers(producers) :: ProfileTypes.PlayerProducer
 
 		self.playerProducer:applyMiddleware(replicateMiddleware)
 		self.isPlayerDataLoaded = true

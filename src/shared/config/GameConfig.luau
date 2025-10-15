@@ -5,6 +5,9 @@ export type GameConfig = {
 		role: string,
 	},
 	core: {
+		cacheErrorMaxRetries: number,
+		cacheErrorTimeout: number,
+		cacheTimeout: number,
 		playerCollisionsDisable: boolean,
 		resetButtonDisable: boolean,
 	},
@@ -28,6 +31,9 @@ local gameConfig: GameConfig = {
 		role = "admin",
 	},
 	core = {
+		cacheErrorMaxRetries = 5,
+		cacheErrorTimeout = 1.5,
+		cacheTimeout = 15,
 		playerCollisionsDisable = true,
 		resetButtonDisable = true,
 	},

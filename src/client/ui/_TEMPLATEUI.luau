@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local Maid = require(ReplicatedStorage.package.Maid)
 local OpenGui = require(ReplicatedStorage.util.OpenGui)
 
@@ -11,7 +12,7 @@ type Shop = ScreenGui & {
 export type Default = {
 	type: string,
 	tag: string,
-	path: { any },
+	path: InitializerTypes.ClientPath,
 	instance: Shop,
 	maid: Maid.Maid,
 	__index: Default,

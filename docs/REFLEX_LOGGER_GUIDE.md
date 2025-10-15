@@ -29,7 +29,7 @@ To log Reflex producer actions and state changes, you can create custom middlewa
 local function createLoggerMiddleware()
     return function(producer)
         -- Log initial state when middleware is mounted
-        Logger.print("[Reflex-Logger]: Mounted with state " .. tostring(producer:getState()))
+        Logger.print("[Reflex-Logger]: Mounted with state " .. tostring(producer.getState()))
 
         -- Subscribe to state changes
         producer:subscribe(function(state)

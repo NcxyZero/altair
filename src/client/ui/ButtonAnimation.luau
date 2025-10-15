@@ -77,7 +77,7 @@ function ButtonAnimation.new(instance: GuiButton): ButtonAnimation
 	self.maid:GiveTask(instance.MouseButton1Up:Connect(InputEnded))
 	self.maid:GiveTask(instance.MouseLeave:Connect(InputEnded))
 	self.maid:GiveTask(instance.MouseEnter:Connect(function(): ()
-		SFX.new(SFX.Sounds.InterfaceClick, 0.4, false)
+		--SFX.new(SFX.Sounds.InterfaceClick, 0.4, false)
 	end))
 
 	return self

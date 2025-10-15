@@ -1,31 +1,26 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local ConvertCurrency = require(ReplicatedStorage.util.ConvertCurrency)
 local Reflex = require(ReplicatedStorage.package.Reflex)
 
 export type Producer = Reflex.Producer<State, Actions>
 
 export type State = {
 	userId: number,
-	coins: number,
-	settings: {
-		musicVolume: number,
-		sfxVolume: number,
-	},
+	money: string,
+	rebirth: number,
 }
 
 type Actions = {
-	secureAddCoins: (oldState: State, amount: number) -> State,
-	secureSpendCoins: (oldState: State, price: number) -> State,
-	setSetting: (oldState: State, key: string, value: any) -> State,
+	secureAddMoney: (amount: number | string) -> State,
+	secureSpendMoney: (amount: number | string) -> State,
+	secureAddRebirth: (addMultipleAmount: number?) -> State,
 }
 
 local DEFAULT_STATE: State = {
 	userId = 0,
-	coins = 0,
-	settings = {
-		musicVolume = 0.5,
-		sfxVolume = 0.5,
-	},
+	money = "",
+	rebirth = 0,
 }
 
 local SAVE_EXCEPTIONS: { string } = {
@@ -33,32 +28,40 @@ local SAVE_EXCEPTIONS: { string } = {
 }
 
 function CreateProducer(initialState: State): Producer
-	local producer: Producer = Reflex.createProducer(
-		initialState,
-		{
-			secureAddCoins = function(oldState: State, amount: number): State
-				local state = table.clone(oldState)
-				state.coins += math.abs(amount)
+	local producer: Producer = Reflex.createProducer(initialState, {
+		secureAddMoney = function(oldState: State, amount: number | string): State
+			if type(amount) == "string" then
+				amount = tonumber(amount) :: number
+			end
 
-				return state
-			end,
+			local state = table.clone(oldState)
+			local convertedValue: string =
+				ConvertCurrency.NumberToString(ConvertCurrency.StringToNumber(state.money) + math.abs(amount :: number))
+			state.money = convertedValue
 
-			secureSpendCoins = function(oldState: State, coins: number): State
-				local state = table.clone(oldState)
-				state.coins -= math.abs(coins)
+			return state
+		end,
 
-				return state
-			end,
+		secureSpendMoney = function(oldState: State, amount: number | string): State
+			if type(amount) == "string" then
+				amount = tonumber(amount) :: number
+			end
 
-			setSetting = function(oldState: State, key: string, value: any): State
-				local state = table.clone(oldState)
-				state.settings = table.clone(state.settings)
-				state.settings[key] = value
+			local state = table.clone(oldState)
+			local convertedValue: string =
+				ConvertCurrency.NumberToString(ConvertCurrency.StringToNumber(state.money) - math.abs(amount :: number))
+			state.money = convertedValue
 
-				return state
-			end,
-		} :: Actions
-	)
+			return state
+		end,
+
+		secureAddRebirth = function(oldState: State, addMultipleAmount: number?): State
+			local state = table.clone(oldState)
+			state.rebirth += addMultipleAmount or 1
+
+			return state
+		end,
+	})
 
 	return producer
 end

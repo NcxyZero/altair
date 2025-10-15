@@ -1,37 +1,44 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local gameProfile = require(ReplicatedStorage.shared.reflex.gameProfile)
-local inventoryProfile = require(ReplicatedStorage.shared.reflex.inventoryProfile)
-local playerProfile = require(ReplicatedStorage.shared.reflex.playerProfile)
-local settingsProfile = require(ReplicatedStorage.shared.reflex.settingsProfile)
-
 local IsValidUTF8 = require(ReplicatedStorage.util.IsValidUTF8)
 local Logger = require(ReplicatedStorage.util.Logger)
 local MergeDictionaries = require(ReplicatedStorage.util.MergeDictionaries)
 local ProfileService = require(ReplicatedStorage.package.ProfileService)
+local ProfileTypes = require(ReplicatedStorage.shared.reflex.ProfileTypes)
 local Promise = require(ReplicatedStorage.package.Promise)
 local Reflex = require(ReplicatedStorage.package.Reflex)
 local Signal = require(ReplicatedStorage.package.Signal)
+local gameProfile = require(ReplicatedStorage.shared.reflex.gameProfile)
+local playerProfile = require(ReplicatedStorage.shared.reflex.playerProfile)
 
-export type Data = {
-	game: gameProfile.State,
-	inventory: inventoryProfile.State,
-	player: playerProfile.State,
-	settings: settingsProfile.State,
-}
+local sharedFolder: Folder = ReplicatedStorage:WaitForChild("shared") :: Folder
+local reflexFolder: Folder = sharedFolder:WaitForChild("reflex") :: Folder
+
+type ProfileTypes = typeof(ProfileTypes)
+
+local function getProfileModules(): { [string]: any }
+	local modules: { [string]: any } = {}
+
+	for _index: number, child: Instance in reflexFolder:GetChildren() do
+		if child:IsA("ModuleScript") then
+			local name: string = child.Name
+			if name ~= "gameProfile" and name:match("Profile$") then
+				local key: string = name:gsub("Profile$", "")
+				modules[key] = require(child) :: any
+			end
+		end
+	end
+
+	return modules
+end
+
+export type Data = ProfileTypes.PlayerState
 
 export type ServerPlayerProfile = {
 	player: Player,
 	profileStore: Reflex.Producer<any, any> & { Data: Data },
-	producer: Reflex.Producer<any, any>
-		& gameProfile.Producer
-		& inventoryProfile.Producer
-		& playerProfile.Producer
-		& settingsProfile.Producer
-		& {
-			getState: () -> Data,
-		},
+	producer: ProfileTypes.PlayerProducer,
 	nextActionIsReplicated: boolean,
 }
 
@@ -108,7 +115,26 @@ function ServerData:WaitForPlayerProfile(player: Player): Promise.TypedPromise<S
 end
 
 function ServerData:PlayerAdded(player: Player): ()
-	local ProfileStore = ProfileService.GetProfileStore(DATASTORE_KEY, playerProfile.DEFAULT_STATE)
+	local profileModules = getProfileModules()
+
+	local defaultTemplate = {}
+	for key: string, module: any in profileModules do
+		if key == "game" then
+			continue
+		end
+
+		if key == "player" then
+			defaultTemplate.player = playerProfile.DEFAULT_STATE
+		else
+			defaultTemplate[key] = module.DEFAULT_STATE
+		end
+	end
+
+	if defaultTemplate.player == nil then
+		defaultTemplate.player = playerProfile.DEFAULT_STATE
+	end
+
+	local ProfileStore = ProfileService.GetProfileStore(DATASTORE_KEY, defaultTemplate)
 	local profileStore = ProfileStore:LoadProfileAsync(getPlayerKey(player.UserId))
 	if not profileStore then
 		player:Kick("Failed to load your data. Please try again later.")
@@ -131,27 +157,32 @@ function ServerData:PlayerAdded(player: Player): ()
 		return
 	end
 
-	local data = playerProfile.DEFAULT_STATE
-	data.userId = player.UserId
+	local data = profileStore.Data
 
-	local playerProducer = playerProfile.CreateProducer(data)
-	local settingsProducer = settingsProfile.CreateProducer(data.settings or settingsProfile.DEFAULT_STATE)
+	local producers = {}
 
-	local inventoryData
-	if data.inventory then
-		inventoryData = MergeDictionaries(inventoryProfile.DEFAULT_STATE, data.inventory)
-		Logger.print(`Loading saved inventory data for {player.Name}`)
-	else
-		inventoryData = inventoryProfile.DEFAULT_STATE
-		Logger.print(`Creating new inventory data for {player.Name} with empty hotbar`)
+	local playerData = data.player or {}
+	playerData.userId = player.UserId
+
+	producers.player = playerProfile.CreateProducer(MergeDictionaries(playerProfile.DEFAULT_STATE, playerData))
+
+	for key: string, module: any in profileModules do
+		if key == "player" or key == "game" then
+			continue
+		end
+
+		local initialState
+		if data[key] then
+			initialState = MergeDictionaries(module.DEFAULT_STATE, data[key])
+		else
+			initialState = module.DEFAULT_STATE
+		end
+
+		producers[key] = module.CreateProducer(initialState)
 	end
-	local inventoryProducer = inventoryProfile.CreateProducer(inventoryData)
 
-	local combinedProducer = Reflex.combineProducers({
-		player = playerProducer,
-		settings = settingsProducer,
-		inventory = inventoryProducer,
-	})
+	local combinedProducer: ProfileTypes.PlayerProducer =
+		Reflex.combineProducers(producers) :: ProfileTypes.PlayerProducer
 
 	local profile: ServerPlayerProfile = {
 		player = player,
@@ -193,10 +224,11 @@ function ServerData:PlayerRemoving(player: Player): ()
 		return
 	end
 
-	local combinedState = profile.producer:getState()
-	local saveableData = {}
+	local combinedState = profile.producer.getState()
+	local dataToSave = {}
 
 	local playerState = combinedState.player
+	local saveableData = {}
 	for key, value in playerState do
 		if table.find(SAVE_EXCEPTIONS, key) ~= nil then
 			continue
@@ -209,10 +241,17 @@ function ServerData:PlayerRemoving(player: Player): ()
 		saveableData[key] = value
 	end
 
-	saveableData.settings = combinedState.settings
-	saveableData.inventory = combinedState.inventory
+	dataToSave.player = saveableData
 
-	profile.profileStore.Data = saveableData
+	for key: string, value: any in combinedState do
+		if key == "player" then
+			continue
+		end
+
+		dataToSave[key] = value
+	end
+
+	profile.profileStore.Data = dataToSave :: any
 	profile.profileStore:Release()
 	self.profiles[player] = nil
 
@@ -285,22 +324,18 @@ function ServerData:Start(): ()
 	GetPlayerData.OnServerInvoke = function(player: Player): ...any
 		local profile: ServerPlayerProfile? = self:GetPlayerProfile(player)
 		if not profile then
-			Logger.print(`GetPlayerData: No profile found for {player.Name}`)
+			Logger.warn(`GetPlayerData: No profile found for {player.Name}`)
+
 			return nil
 		end
 
-		local combinedState = profile.producer:getState()
+		local combinedState = profile.producer.getState()
 
-		local clientData = table.clone(combinedState.player)
-		clientData.inventory = combinedState.inventory
-		clientData.settings = combinedState.settings
-		clientData.userId = combinedState.player.userId
-
-		return clientData
+		return combinedState
 	end
 
 	GetGameData.OnServerInvoke = function(): ...any
-		return self.gameProducer:getState()
+		return self.gameProducer.getState()
 	end
 
 	Players.PlayerRemoving:Connect(function(player: Player): ()
@@ -312,6 +347,10 @@ function ServerData:Start(): ()
 			self:PlayerAdded(player)
 		end)
 	end
+
+	task.delay(5, function(): ()
+		print(self:WaitForPlayerProfile(game:GetService("Players"):GetPlayers()[1]):expect().producer.getState())
+	end)
 end
 
 ServerData:Start()

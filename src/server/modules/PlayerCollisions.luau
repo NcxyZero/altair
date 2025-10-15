@@ -13,11 +13,11 @@ local function addToPlayerCollision(part: BasePart): ()
 	end
 
 	pcall(function(): ()
-		PhysicsService:RegisterCollisionGroup("Player")
+		PhysicsService:CreateCollisionGroup("Player")
 		PhysicsService:CollisionGroupSetCollidable("Player", "Player", false)
 	end)
 
-	part.CollisionGroup = "Player"
+	PhysicsService:SetPartCollisionGroup(part, "Player")
 end
 
 local function setupCharacter(character: Model): ()

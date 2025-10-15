@@ -2,11 +2,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Cmdr = require(ReplicatedStorage.package.Cmdr)
+local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 
 export type Default = {
 	index: number?,
 	type: string?,
-	path: { any },
+	path: InitializerTypes.ClientPath,
 	Init: (self: Default) -> (),
 }
 

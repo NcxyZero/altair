@@ -11,10 +11,10 @@ export type State = {
 }
 
 type Actions = {
-	setActivePlayers: (oldState: State, count: number) -> State,
-	incrementActivePlayers: (oldState: State) -> State,
-	decrementActivePlayers: (oldState: State) -> State,
-	secureFocusOn: (oldState: State, player: Player?) -> State,
+	setActivePlayers: (count: number) -> State,
+	incrementActivePlayers: () -> State,
+	decrementActivePlayers: () -> State,
+	secureFocusOn: (player: Player?) -> State,
 }
 
 local DEFAULT_STATE: State = {
@@ -24,41 +24,38 @@ local DEFAULT_STATE: State = {
 }
 
 function CreateProducer(initialState: State): Producer
-	local producer: Producer = Reflex.createProducer(
-		initialState,
-		{
-			setActivePlayers = function(oldState: State, count: number): State
-				local state = table.clone(oldState)
+	local producer: Producer = Reflex.createProducer(initialState, {
+		setActivePlayers = function(oldState: State, count: number): State
+			local state = table.clone(oldState)
 
-				state.activePlayers = count
+			state.activePlayers = count
 
-				return state
-			end,
+			return state
+		end,
 
-			incrementActivePlayers = function(oldState: State): State
-				local state = table.clone(oldState)
+		incrementActivePlayers = function(oldState: State): State
+			local state = table.clone(oldState)
 
-				state.activePlayers += 1
+			state.activePlayers += 1
 
-				return state
-			end,
+			return state
+		end,
 
-			decrementActivePlayers = function(oldState: State): State
-				local state = table.clone(oldState)
+		decrementActivePlayers = function(oldState: State): State
+			local state = table.clone(oldState)
 
-				state.activePlayers = math.max(0, state.activePlayers - 1)
+			state.activePlayers = math.max(0, state.activePlayers - 1)
 
-				return state
-			end,
+			return state
+		end,
 
-			secureFocusOn = function(oldState: State, player: Player?): State
-				local state = table.clone(oldState)
-				state.focus = player
+		secureFocusOn = function(oldState: State, player: Player?): State
+			local state = table.clone(oldState)
+			state.focus = player
 
-				return state
-			end,
-		} :: Actions
-	)
+			return state
+		end,
+	})
 
 	return producer
 end
