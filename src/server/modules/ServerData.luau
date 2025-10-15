@@ -348,9 +348,10 @@ function ServerData:Start(): ()
 		end)
 	end
 
-	task.delay(5, function(): ()
-		print(self:WaitForPlayerProfile(game:GetService("Players"):GetPlayers()[1]):expect().producer.getState())
-	end)
+	--! FOR SOLO TEST !--
+	-- task.delay(5, function(): ()
+	-- 	print(self:WaitForPlayerProfile(game:GetService("Players"):GetPlayers()[1]):expect().producer.getState())
+	-- end)
 end
 
 ServerData:Start()
