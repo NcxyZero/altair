@@ -1,7 +1,9 @@
-# Kiedy chcesz zrobić pulla mając niescommitowane zmiany
+#!/bin/bash
+
+# When you want to pull with uncommitted changes
 git pull --rebase --autostash
 
-# Jeśli chcesz po prostu mieć stan jak na repo użyj:
+# If you just want to match the repo state, use:
 # git reset --hard HEAD^
 # git rebase --abort
 # git stash drop

@@ -1,5 +1,6 @@
 #!/bin/bash
-# Rebase jest fajny, ale nie jak musisz robić go 2 razy przy transferze commitów między branchami
+
+# Rebase is nice, but not when you have to do it twice when transferring commits between branches
 if [ $# -eq 1 ]; then
     git merge $1 --no-ff --no-edit
     exit 0

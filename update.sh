@@ -1,4 +1,5 @@
 #!/bin/bash
+
 echo "Starting update..."
 rm wally.lock
 wally install
