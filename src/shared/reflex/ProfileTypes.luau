@@ -20,6 +20,6 @@ export type PlayerProducer =
 	& typeof(monetizationProfile.CreateProducer(monetizationProfile.DEFAULT_STATE))
 	& typeof(playerProfile.CreateProducer(playerProfile.DEFAULT_STATE))
 	& typeof(settingsProfile.CreateProducer(settingsProfile.DEFAULT_STATE))
-	& { getState: () -> PlayerState }
+	& { getState: (self: unknown) -> PlayerState }
 
 return table.freeze({})

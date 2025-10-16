@@ -57,9 +57,9 @@ done
         printf "  & typeof(%s.CreateProducer(%s.DEFAULT_STATE))\n" "$mod" "$mod"
       fi
     done
-    echo "  & { getState: () -> PlayerState }"
+    echo "  & { getState: (self: unknown) -> PlayerState }"
   else
-    printf "export type PlayerProducer = { getState: () -> PlayerState }\n"
+    printf "export type PlayerProducer = { getState: (self: unknown) -> PlayerState }\n"
   fi
 
   printf "\nreturn table.freeze({})\n"
