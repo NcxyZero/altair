@@ -53,7 +53,7 @@ export type Default = {
 	WaitForPlayerProfile: (self: Default, player: Player) -> Promise.TypedPromise<ServerPlayerProfile>,
 	PlayerAdded: (self: Default, player: Player) -> (),
 	PlayerRemoving: (self: Default, player: Player) -> (),
-	Start: (self: Default) -> (),
+	Init: (self: Default) -> (),
 }
 
 local ServerData: Default = {} :: Default
@@ -258,7 +258,7 @@ function ServerData:PlayerRemoving(player: Player): ()
 	self.gameProducer:decrementActivePlayers()
 end
 
-function ServerData:Start(): ()
+function ServerData:Init(): ()
 	self.gameProducer = gameProfile.CreateProducer(gameProfile.DEFAULT_STATE)
 
 	local nextActionIsReplicated: boolean = false
@@ -290,7 +290,7 @@ function ServerData:Start(): ()
 
 		local isSecureAction: number? = data.name:find("^secure")
 		if isSecureAction then
-			warn("Player tried to replicate secure reflex action", data.name)
+			Logger.warn("Player tried to replicate secure reflex action", data.name)
 			return
 		end
 
@@ -313,7 +313,7 @@ function ServerData:Start(): ()
 
 		local isSecureAction: number? = data.name:find("^secure")
 		if isSecureAction then
-			warn("Player tried to replicate secure reflex action", data.name)
+			Logger.warn("Player tried to replicate secure reflex action", data.name)
 			return
 		end
 
@@ -322,7 +322,7 @@ function ServerData:Start(): ()
 	end)
 
 	GetPlayerData.OnServerInvoke = function(player: Player): ...any
-		local profile: ServerPlayerProfile? = self:GetPlayerProfile(player)
+		local profile: ServerPlayerProfile? = table.pack(self:WaitForPlayerProfile(player):timeout(5, false):await())[2]
 		if not profile then
 			Logger.warn(`GetPlayerData: No profile found for {player.Name}`)
 
@@ -353,7 +353,5 @@ function ServerData:Start(): ()
 	-- 	print(self:WaitForPlayerProfile(game:GetService("Players"):GetPlayers()[1]):expect().producer.getState())
 	-- end)
 end
-
-ServerData:Start()
 
 return ServerData

@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
+local Logger = require(ReplicatedStorage.util.Logger)
 local ProfileTypes = require(ReplicatedStorage.shared.reflex.ProfileTypes)
 local Promise = require(ReplicatedStorage.package.Promise)
 local Reflex = require(ReplicatedStorage.package.Reflex)
@@ -43,7 +44,7 @@ export type Default = {
 	getPlayerProducerAsync: (self: Default) -> Promise.TypedPromise<ProfileTypes.PlayerProducer>,
 	getGameProducerAsync: (self: Default) -> Promise.TypedPromise<gameProfile.Producer>,
 	PlayerAdded: (self: Default, player: Player) -> (),
-	Start: (self: Default) -> (),
+	Init: (self: Default) -> (),
 }
 
 local ClientData: Default = {
@@ -104,7 +105,7 @@ function ClientData:PlayerAdded(player: Player): ()
 	end
 end
 
-function ClientData:Start(): ()
+function ClientData:Init(): ()
 	self.clientProducer = CreateClientProducer(DEFAULT_CLIENT_STATE)
 
 	local function loadPlayerData(): ()
@@ -154,7 +155,7 @@ function ClientData:Start(): ()
 	local function loadGameData(): (() -> ())?
 		local gameData = ReplicatedStorage:WaitForChild("GetGameData"):InvokeServer()
 		if not gameData then
-			task.wait(0.5)
+			task.wait(0.2)
 			return loadGameData()
 		end
 
@@ -192,7 +193,7 @@ function ClientData:Start(): ()
 		nextActionIsReplicated = true
 
 		if not self.isPlayerDataLoaded then
-			warn("Queued store action before player data loaded")
+			Logger.print("Queued store action before player data loaded:", data.name)
 			self.playerDataLoadedSignal:Wait()
 		end
 
@@ -201,7 +202,7 @@ function ClientData:Start(): ()
 			if self.playerProducer[data.name] then
 				self.playerProducer[data.name](unpack(data.arguments))
 			else
-				warn("Unknown action:", data.name)
+				Logger.warn("Unknown action:", data.name)
 			end
 		else
 			self.playerProducer[data.name](unpack(data.arguments))
@@ -216,21 +217,19 @@ function ClientData:Start(): ()
 		nextActionIsReplicated = true
 
 		if not self.isGameDataLoaded then
-			warn("Queued game store action before game data loaded")
+			Logger.print("Queued game store action before game data loaded:", data.name)
 			self.gameDataLoadedSignal:Wait()
 		end
 
 		if self.gameProducer[data.name] then
 			self.gameProducer[data.name](unpack(data.arguments))
 		else
-			warn("Unknown game action:", data.name)
+			Logger.warn("Unknown game action:", data.name)
 		end
 	end)
 
 	loadPlayerData()
 	loadGameData()
 end
-
-ClientData:Start()
 
 return ClientData

@@ -1,7 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local StarterPlayer = game:GetService("StarterPlayer")
 
-local ClientData = require(StarterPlayer.StarterPlayerScripts.modules.ClientData)
 local ConvertCurrency = require(ReplicatedStorage.util.ConvertCurrency)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local Maid = require(ReplicatedStorage.package.Maid)
@@ -28,13 +26,15 @@ function MoneyCounter.new(instance: TextLabel, path: InitializerTypes.ClientPath
 	self.path = path
 
 	self.maid = Maid.new()
-	self.maid:GiveTask(ClientData.playerProducer:subscribe(function(state): string
-		return state.player.money
-	end, function(money: string): ()
-		instance.Text = `${ConvertCurrency.SuffixFormat(ConvertCurrency.StringToNumber(money))}`
-	end))
+	self.maid:GiveTask(
+		self.path.controller.ClientData:getPlayerProducerAsync():expect():subscribe(function(state): string
+			return state.player.money
+		end, function(money: string): ()
+			instance.Text = `${ConvertCurrency.SuffixFormat(ConvertCurrency.StringToNumber(money))}`
+		end)
+	)
 
-	ClientData:getPlayerProducerAsync():andThen(function(producer): ()
+	self.path.controller.ClientData:getPlayerProducerAsync():andThen(function(producer): ()
 		instance.Text =
 			`${ConvertCurrency.SuffixFormat(ConvertCurrency.StringToNumber(producer.getState().player.money))}`
 	end)
