@@ -1,7 +1,9 @@
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local CacheManager = require(ServerScriptService.server.modules.CacheManager)
+local isServer: boolean = RunService:IsServer()
+
+local CacheManager = isServer and require(ServerScriptService.server.modules.CacheManager) or nil
 
 export type Conditions = {
 	CheckCondition: (
@@ -11,8 +13,6 @@ export type Conditions = {
 		value: any
 	) -> boolean & (self: Conditions, conditionType: string, value: any) -> boolean,
 }
-
-local isServer: boolean = RunService:IsServer()
 
 local Conditions = {
 	passes = function(producer, name: string, player: Player?): boolean
