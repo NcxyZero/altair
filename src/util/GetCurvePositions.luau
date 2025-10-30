@@ -42,9 +42,9 @@ local function GetCurvePositions(
 		ITEM_DISTANCE_FROM_CAMERA = 1
 	end
 
-	local screenHorizontal = SCREEN_HORIZONTAL_USAGE_SCALE or 0.85
-	local itemDistanceFromCamera = ITEM_DISTANCE_FROM_CAMERA or 1
-	local curveFlatness = CURVE_FLATNESS_FACTOR or 1.25
+	local screenHorizontal: number = SCREEN_HORIZONTAL_USAGE_SCALE or 0.85
+	local itemDistanceFromCamera: number = ITEM_DISTANCE_FROM_CAMERA or 1
+	local curveFlatness: number = CURVE_FLATNESS_FACTOR or 1.25
 	local camera: Camera = workspace.CurrentCamera
 	local cameraViewportSize: Vector2 = camera.ViewportSize
 	local aspectRatio: number = cameraViewportSize.X / cameraViewportSize.Y
@@ -52,8 +52,8 @@ local function GetCurvePositions(
 	local heightAtDistance: number = GetHeightAtDistance(camera.FieldOfView, itemDistanceFromCamera)
 
 	local widthAtDistance: number = heightAtDistance * aspectRatio
-	local TotalWidth = widthAtDistance * (SCREEN_HORIZONTAL_USAGE_SCALE or 0.85)
-	local Margin = (1 - screenHorizontal) / 2 * widthAtDistance
+	local TotalWidth: number = widthAtDistance * (SCREEN_HORIZONTAL_USAGE_SCALE or 0.85)
+	local Margin: number = (1 - screenHorizontal) / 2 * widthAtDistance
 
 	local positions: { { Vector3 } } = {}
 	local items: { number } = {}

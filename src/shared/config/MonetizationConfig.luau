@@ -9,9 +9,11 @@ export type GamePassSet = {
 	[string]: number,
 }
 
+export type MonetizationProduct = DevProductSet | GamePassSet
+
 export type MonetizationConfig = {
 	passes: GamePassSet,
-	[string]: DevProductSet | GamePassSet,
+	[string]: MonetizationProduct,
 }
 
 local MonetizationConfig: MonetizationConfig = {

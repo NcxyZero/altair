@@ -44,3 +44,6 @@ trace.json
 
 # Luau LSP
 # luau-lsp.exe
+
+# luau-lsp Roblox std
+roblox.yml

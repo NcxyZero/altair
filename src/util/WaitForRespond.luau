@@ -2,12 +2,19 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local GetBridge = require(ReplicatedStorage.util.GetBridge)
+
 local bridge = GetBridge("WaitForRespond")
 
 local WaitForRespond = {}
 local waiting = {}
 
-local function Remote(connection, id, sentId, player, sentFrom)
+local function Remote(
+	connection: RBXScriptConnection,
+	id: string,
+	sentId: string,
+	player: Player?,
+	sentFrom: Player?
+): ()
 	if RunService:IsServer() and player ~= sentFrom then
 		return
 	end
@@ -16,11 +23,10 @@ local function Remote(connection, id, sentId, player, sentFrom)
 		return
 	end
 
-	local playerId = player and player.Name .. player.UserId
-	local saltedId = id .. playerId
+	local playerId: string = player and player.Name .. player.UserId
+	local saltedId: string = id .. playerId
 
-	local found = table.find(waiting, saltedId)
-
+	local found: number? = table.find(waiting, saltedId)
 	if found then
 		table.remove(waiting, found)
 	end
@@ -28,7 +34,7 @@ local function Remote(connection, id, sentId, player, sentFrom)
 	connection:Disconnect()
 end
 
-function WaitForRespond:Respond(id: string, player: Player?)
+function WaitForRespond:Respond(id: string, player: Player?): ()
 	if RunService:IsServer() then
 		bridge:Fire(player, id)
 	else
@@ -36,25 +42,26 @@ function WaitForRespond:Respond(id: string, player: Player?)
 	end
 end
 
-function WaitForRespond:Wait(id: string, player: Player?)
-	local connection
+function WaitForRespond:Wait(id: string, player: Player): ()
+	local connection: RBXScriptConnection
 	if RunService:IsServer() then
-		connection = bridge:Connect(function(sentFrom: Player, sentId: string)
+		connection = bridge:Connect(function(sentFrom: Player, sentId: string): ()
 			Remote(connection, id, sentId, player, sentFrom)
 		end)
 	else
-		connection = bridge:Connect(function(_sentFrom: Player, sentId: string)
+		connection = bridge:Connect(function(_sentFrom: Player, sentId: string): ()
 			Remote(connection, id, sentId)
 		end)
 	end
 
-	local playerId = player and player.Name .. player.UserId
-	local saltedId = id .. playerId
+	local playerId: string = player.Name .. player.UserId
+	local saltedId: string = id .. playerId
+
 	table.insert(waiting, saltedId)
 
-	repeat
+	while not table.find(waiting, saltedId) do
 		task.wait()
-	until not table.find(waiting, saltedId)
+	end
 
 	WaitForRespond:Respond(id, player)
 end
