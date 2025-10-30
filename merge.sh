@@ -5,6 +5,6 @@ if [ $# -eq 1 ]; then
     git merge $1 --no-ff --no-edit
     exit 0
 else
-    echo "Podaj branch do zmergowania."
+    echo "Enter the branch name to merge"
     exit 1
 fi

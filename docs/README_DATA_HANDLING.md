@@ -77,7 +77,7 @@ local profile = ServerData:GetPlayerProfile(player)
 -- Wait for a player's profile to be loaded
 ServerData:WaitForPlayerProfile(player):andThen(function(profile)
     -- Use profile
-    local coins = profile.producer.getState().coins
+    local coins = profile.producer:getState().coins
     print("Player has", coins, "coins")
 
     -- Modify profile data
@@ -85,7 +85,7 @@ ServerData:WaitForPlayerProfile(player):andThen(function(profile)
 end)
 
 -- Access game data
-local activePlayers = ServerData.gameProducer.getState().activePlayers
+local activePlayers = ServerData.gameProducer:getState().activePlayers
 print("Active players:", activePlayers)
 
 -- Modify game data
@@ -98,7 +98,7 @@ ServerData.gameProducer:setActivePlayers(10)
 -- Get player data
 ClientData:getPlayerProducerAsync():andThen(function(producer)
     -- Use player data
-    local coins = producer.getState().coins
+    local coins = producer:getState().coins
     print("I have", coins, "coins")
 
     -- Modify player data
@@ -108,12 +108,12 @@ end)
 -- Get game data
 ClientData:getGameProducerAsync():andThen(function(producer)
     -- Use game data
-    local activePlayers = producer.getState().activePlayers
+    local activePlayers = producer:getState().activePlayers
     print("Active players:", activePlayers)
 end)
 
 -- Access client-specific data
-local musicVolume = ClientData.clientProducer.getState().localSettings.musicVolume
+local musicVolume = ClientData.clientProducer:getState().localSettings.musicVolume
 print("Music volume:", musicVolume)
 
 -- Modify client-specific data

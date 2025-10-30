@@ -36,7 +36,7 @@ function MoneyCounter.new(instance: TextLabel, path: InitializerTypes.ClientPath
 
 	self.path.controller.ClientData:getPlayerProducerAsync():andThen(function(producer): ()
 		instance.Text =
-			`${ConvertCurrency.SuffixFormat(ConvertCurrency.StringToNumber(producer.getState().player.money))}`
+			`${ConvertCurrency.SuffixFormat(ConvertCurrency.StringToNumber(producer:getState().player.money))}`
 	end)
 
 	return self

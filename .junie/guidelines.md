@@ -106,8 +106,7 @@ The actual structure of the project is:
   stylua .
   ```
 
-- Use type annotations for function parameters and return values
-- Always specify return types for functions, use `()` for functions that return nothing
+- Use type annotations for function parameters and return values, for example: `local function foo(bar: string): boolean`, use `()` for functions that return nothing
 - Use `any`, `unknown`, or `never` when appropriate for types that can't be determined precisely
 - Type local variables at declaration (except for `game:GetService()` and `require()` calls)
 - Do not use section title comments in code (e.g., "-- Constants", "-- Private functions")
@@ -121,14 +120,14 @@ The actual structure of the project is:
 - Do not use `.Chatted` event, it doesn't work with new Roblox chat. Use `TextChatService` instead
 - Do not create a chat command when the command is not specified to be for chat, then assume you are asked to create the Cmdr command
 - Do not use `SetPrimaryPartCFrame()` as it is deprecated, always use `PivotTo()`, `GetPivot()`, `ScaleTo()` and `GetScale()` instead
-- Use `UDim2.fromScale()` and `UDim2.fromOffset()` instead of `UDim2.new()` when you are not settings both scale and offset
+- Use `UDim2.fromScale()` and `UDim2.fromOffset()` instead of `UDim2.new()` when you are not setting both scale and offset
 - Use `Color3.new()` instead of `Color3.fromRGB(0, 0, 0)` as zeros are the default values
 - Use `CFrame.new()` instead of `CFrame.new(0, 0, 0)` as zeros are the default values
 - Use `CFrame.fromAxisAngle()` instead of `CFrame.Angles()` in case of only one axe not being zero
 - Use `Vector2`'s and `Vector3`'s `.xAxis`, `.yAxis`, and `Vector3`'s `.zAxis` in `CFrame.fromAxisAngle()` and in case of only one axe not being zero, example: `Vector2.yAxis * 5`
 - Use `Vector2`'s and `Vector3`'s `.zero` and `.one` instead of `.new()`, `.new(0, 0, 0)` and `.new(1, 1, 1)`
 - Use `Vector2`'s and `Vector3`'s `.one` when all axes are the same (e.g., use `Vector3.one * 5` instead of `Vector3.new(5, 5, 5)`)
-- Always use compound assignments (for example, `%=')
+- Always use compound assignments (for example, `%=, ..=, //=')
 - Prefer `os.clock()` and `DateTime` library for time
 - Do not add `--!strict` at the top of files, but also do not remove it when already present, and do not describe a file on top
 - Prefer `:FindFirstChildWhichIsA()` over `:FindFirstChildOfClass()` unless necessary

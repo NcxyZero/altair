@@ -224,7 +224,7 @@ function ServerData:PlayerRemoving(player: Player): ()
 		return
 	end
 
-	local combinedState = profile.producer.getState()
+	local combinedState = profile.producer:getState()
 	local dataToSave = {}
 
 	local playerState = combinedState.player
@@ -329,13 +329,13 @@ function ServerData:Init(): ()
 			return nil
 		end
 
-		local combinedState = profile.producer.getState()
+		local combinedState = profile.producer:getState()
 
 		return combinedState
 	end
 
 	GetGameData.OnServerInvoke = function(): ...any
-		return self.gameProducer.getState()
+		return self.gameProducer:getState()
 	end
 
 	Players.PlayerRemoving:Connect(function(player: Player): ()
@@ -350,7 +350,7 @@ function ServerData:Init(): ()
 
 	--! FOR SOLO TEST !--
 	-- task.delay(5, function(): ()
-	-- 	print(self:WaitForPlayerProfile(game:GetService("Players"):GetPlayers()[1]):expect().producer.getState())
+	-- 	print(self:WaitForPlayerProfile(game:GetService("Players"):GetPlayers()[1]):expect().producer:getState())
 	-- end)
 end
 

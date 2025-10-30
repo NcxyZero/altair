@@ -9,7 +9,7 @@
 		"scope": "luau,lua",
 		"prefix": "state-async",
 		"body": [
-			"ClientPlayerData.getServerProducerAsync():expect().getState()"
+			"ClientPlayerData.getServerProducerAsync():expect():getState()"
 		],
 		"description": "Wait for data and get the state"
 	},
@@ -28,7 +28,7 @@
 	"client get server state": {
 		"scope": "luau,lua",
 		"prefix": "state",
-		"body": ["ClientPlayerData.serverProfile.getState()"],
+		"body": ["ClientPlayerData.serverProfile:getState()"],
 		"description": "Get local player state"
 	},
 	"client get server producer": {

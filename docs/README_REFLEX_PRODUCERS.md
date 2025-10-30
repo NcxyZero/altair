@@ -141,7 +141,7 @@ self.playerProducer = Reflex.combineProducers({
 When using a combined producer, the state is structured according to the producer names used in the `combineProducers` function:
 
 ```luau
-local combinedState = profile.producer.getState()
+local combinedState = profile.producer:getState()
 
 -- Access player data
 local userId = combinedState.player.userId

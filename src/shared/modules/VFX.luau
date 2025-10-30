@@ -1,4 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
 local CalculateTargetMass = require(ReplicatedStorage.util.CalculateTargetMass)
 
 local VFX = {}
@@ -9,13 +11,14 @@ function VFX:ImpactBasePartFromPosition(
 	HowMany: number,
 	ClearFunction: ((BasePart) -> ())?,
 	randomPartSize: boolean?
-)
+): { BasePart }
 	local CreatedModels: { BasePart } = {}
-	for _index = 1, HowMany do
-		local RandomX = math.random(-30, 30)
-		local RandomZ = math.random(-30, 30)
 
-		local MovabelPart = basePart:Clone()
+	for _index: number = 1, HowMany do
+		local RandomX: number = math.random(-30, 30)
+		local RandomZ: number = math.random(-30, 30)
+
+		local MovabelPart: BasePart = basePart:Clone()
 		MovabelPart.CollisionGroup = "NPC"
 		MovabelPart.Size = randomPartSize
 				and basePart.Size * Vector3.new(
@@ -24,6 +27,7 @@ function VFX:ImpactBasePartFromPosition(
 					math.random(10, 30) / 10
 				)
 			or basePart.Size
+
 		CalculateTargetMass.SetPartMass(MovabelPart, 3)
 
 		MovabelPart.CFrame = CFrame.new(position) * CFrame.new(0, 1, 0)
@@ -31,6 +35,7 @@ function VFX:ImpactBasePartFromPosition(
 		table.insert(CreatedModels, MovabelPart)
 
 		MovabelPart:ApplyImpulse(Vector3.new(RandomX, math.random(60, 80), RandomZ))
+
 		if ClearFunction then
 			task.spawn(function(): ()
 				ClearFunction(MovabelPart)
@@ -46,14 +51,15 @@ function VFX:ShakeModel(model: Model, roughness: number, duration: number): ()
 	local elapsed: number = 0
 	local heartbeatConn: RBXScriptConnection
 
-	heartbeatConn = game:GetService("RunService").Heartbeat:Connect(function(dt: number): ()
+	heartbeatConn = RunService.Heartbeat:Connect(function(dt: number): ()
 		elapsed += dt
 		if elapsed > duration then
 			heartbeatConn:Disconnect()
 			model:PivotTo(originalCFrame)
 			return
 		end
-		local offset = Vector3.new(
+
+		local offset: Vector3 = Vector3.new(
 			(math.random() - 0.5) * 2 * roughness,
 			(math.random() - 0.5) * 2 * roughness,
 			(math.random() - 0.5) * 2 * roughness

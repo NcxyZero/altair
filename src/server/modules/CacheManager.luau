@@ -67,7 +67,7 @@ CacheManager.checkers = {
 		local data = CacheManager.path.controller.ServerData
 			:WaitForPlayerProfile(player)
 			:expect().producer
-			.getState().monetization[conditionType][name]
+			:getState().monetization[conditionType][name]
 		if data == true then
 			return data
 		end

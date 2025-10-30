@@ -1,7 +1,8 @@
 #!/bin/bash
 
+set -e
 echo "Starting update..."
-rm wally.lock
+rm -f wally.lock
 wally install
 rojo sourcemap default.project.json --output sourcemap.json
 wally-package-types --sourcemap sourcemap.json Packages/

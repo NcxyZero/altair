@@ -16,11 +16,11 @@ export type Conditions = {
 
 local Conditions = {
 	passes = function(producer, name: string, player: Player?): boolean
-		return producer.getState().monetization.passes[name]
+		return producer:getState().monetization.passes[name]
 			or (isServer and player and CacheManager:CheckCondition(player, "monetization", "passes", name))
 	end,
 	rebirth = function(producer, required: number): boolean
-		return producer.getState().player.rebirth >= required
+		return producer:getState().player.rebirth >= required
 	end,
 }
 

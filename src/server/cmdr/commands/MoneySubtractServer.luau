@@ -16,7 +16,7 @@ return function(_context, players: { Player }, amount: number): string
 		table.insert(
 			playersBalance,
 			`{player.Name}'s balance: ${ConvertCurrency.SuffixFormat(
-				ConvertCurrency.StringToNumber(profile.producer.getState().player.money)
+				ConvertCurrency.StringToNumber(profile.producer:getState().player.money)
 			)}`
 		)
 	end
