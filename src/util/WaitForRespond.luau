@@ -59,7 +59,7 @@ function WaitForRespond:Wait(id: string, player: Player): ()
 
 	table.insert(waiting, saltedId)
 
-	while not table.find(waiting, saltedId) do
+	while table.find(waiting, saltedId) do
 		task.wait()
 	end
 
