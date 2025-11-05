@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local ClientData = require(ReplicatedStorage.client.modules.ClientData)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
 local gameProfile = require(ReplicatedStorage.shared.reflex.gameProfile)
@@ -15,7 +16,7 @@ local FocusController: Default = {} :: Default
 FocusController.type = "controller"
 
 function FocusController:Init(): ()
-	self.path.controller.ClientData.gameProducer:subscribe(function(state: gameProfile.State): Player?
+	ClientData.gameProducer:subscribe(function(state: gameProfile.State): Player?
 		return state.focus
 	end, function(focus: Player?): ()
 		local humanoid: Humanoid = (focus and focus.Character)

@@ -1,5 +1,4 @@
 {
-	// autoformatter
 	"cSpell.diagnosticLevel": "Hint",
 	"cSpell.enabled": false,
 	"editor.formatOnPaste": true,
@@ -7,8 +6,8 @@
 	"explorer.compactFolders": false,
 	"files.eol": "\n",
 	"files.insertFinalNewline": true,
-	"git.autoStash": true, // przywróć ostatni stash: git stash apply
-	"git.rebaseWhenSync": true, // anuluj: git rebase --abort
+	"git.autoStash": true, // return last stash: git stash apply
+	"git.rebaseWhenSync": true, // cancel: git rebase --abort
 	"[jsonc]": {
 		"editor.defaultFormatter": "vscode.json-language-features",
 		"editor.quickSuggestions": {
@@ -32,7 +31,6 @@
 		"editor.wordWrap": "bounded",
 		"editor.wordWrapColumn": 120
 	},
-	// hide useless folders
 	"files.exclude": {
 		"Packages": true,
 		"ServerPackages": true,
@@ -60,7 +58,7 @@
 	"luau-lsp.completion.imports.enabled": true,
 	"luau-lsp.sourcemap.rojoProjectFile": "default.project.json",
 	"stylua.targetReleaseVersion": "latest",
-	// ustawienia dla roblox lsp. Nie zostaly weryfikowane
+	// roblox lsp settings - not verified!
 	"robloxLsp.completion.alwaysShowMethods": true,
 	"robloxLsp.completion.callParenthesess": true,
 	"robloxLsp.completion.endAutocompletion": true,

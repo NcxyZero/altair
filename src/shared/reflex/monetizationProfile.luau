@@ -1,5 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
+local Logger = require(ReplicatedStorage.util.Logger)
 local MonetizationConfig = require(ReplicatedStorage.shared.config.MonetizationConfig)
 local Reflex = require(ReplicatedStorage.package.Reflex)
 
@@ -45,7 +47,14 @@ function CreateProducer(initialState: State): Producer
 
 		secureAddOffer = function(oldState: State, name: string): State
 			local state = table.clone(oldState)
-			state.offers[name] = true
+
+			if state.offers[name] or GameConfig.core.monetizationOfferCreationAllowed then
+				state.offers[name] = true
+			else
+				Logger.error(
+					`Attempt to create a monetization offer despite the game config entry disallowing it (the offer is missing in MonetizationConfig). Offer name: "{name}".`
+				)
+			end
 
 			return state
 		end,

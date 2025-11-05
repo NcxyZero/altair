@@ -4,7 +4,7 @@ This module group provides reusable networking utilities for the **Altair** proj
 
 ---
 
-## 🔌 `GetBridge.lua`
+## 🔌 `GetBridge.luau`
 
 ### 📄 Description
 

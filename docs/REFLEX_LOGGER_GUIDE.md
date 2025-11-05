@@ -13,9 +13,10 @@ The Logger utility (`ReplicatedStorage.util.Logger`) provides simple logging fun
 ```luau
 local Logger = require(ReplicatedStorage.util.Logger)
 
-Logger.print("Example message")  -- Prints a message
-Logger.warn("Warning message")   -- Prints a warning
-Logger.error("Error message")    -- Throws an error
+Logger.print("Example message")             -- Prints a message
+Logger.warn("Warning message")              -- Prints a warning
+Logger.error("Error message")               -- Throws an error without stack (TestService:Error())
+Logger.errorStack("Stacked error message")  -- Throws stacked error with info level 0
 Logger.assert(condition, "Message if condition is false")  -- Asserts a condition
 ```
 
@@ -80,7 +81,7 @@ To apply the logger middleware to a client-side producer:
 local ClientData = require(script.Parent.Parent.modules.ClientData)
 
 -- Wait for player data to load
-ClientData:getPlayerProducerAsync():andThen(function(producer)
+ClientData:GetPlayerProducerAsync():andThen(function(producer)
     -- Apply the logger middleware
     producer:applyMiddleware(createLoggerMiddleware())
 

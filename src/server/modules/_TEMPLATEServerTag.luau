@@ -18,7 +18,7 @@ export type Default = {
 local ServerTagTemplate: Default = {} :: Default
 ServerTagTemplate.__index = ServerTagTemplate
 ServerTagTemplate.type = "tag"
-ServerTagTemplate.tag = "Template"
+ServerTagTemplate.tag = script.Name
 
 function ServerTagTemplate.new(instance: Instance, path: InitializerTypes.ServerPath): Default
 	local self = setmetatable({}, ServerTagTemplate)

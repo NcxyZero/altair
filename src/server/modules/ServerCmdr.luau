@@ -7,7 +7,7 @@ local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes
 export type Default = {
 	index: number?,
 	type: string?,
-	path: InitializerTypes.ClientPath,
+	path: InitializerTypes.ServerPath,
 	Init: (self: Default) -> (),
 }
 

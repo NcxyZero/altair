@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local ClientData = require(ReplicatedStorage.client.modules.ClientData)
 local ConvertCurrency = require(ReplicatedStorage.util.ConvertCurrency)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local Maid = require(ReplicatedStorage.package.Maid)
@@ -10,6 +11,8 @@ export type Default = {
 	path: InitializerTypes.ClientPath,
 	instance: TextLabel,
 	maid: Maid.Maid,
+	closeButtonsMaid: Maid.Maid?,
+	closeButtons: { GuiObject }?,
 	__index: Default,
 	new: (instance: TextLabel, path: InitializerTypes.ClientPath) -> Default,
 	Destroy: (self: Default) -> (),
@@ -26,15 +29,13 @@ function MoneyCounter.new(instance: TextLabel, path: InitializerTypes.ClientPath
 	self.path = path
 
 	self.maid = Maid.new()
-	self.maid:GiveTask(
-		self.path.controller.ClientData:getPlayerProducerAsync():expect():subscribe(function(state): string
-			return state.player.money
-		end, function(money: string): ()
-			instance.Text = `${ConvertCurrency.SuffixFormat(ConvertCurrency.StringToNumber(money))}`
-		end)
-	)
+	self.maid:GiveTask(ClientData:GetPlayerProducerAsync():expect():subscribe(function(state): string
+		return state.player.money
+	end, function(money: string): ()
+		instance.Text = `${ConvertCurrency.SuffixFormat(ConvertCurrency.StringToNumber(money))}`
+	end))
 
-	self.path.controller.ClientData:getPlayerProducerAsync():andThen(function(producer): ()
+	ClientData:GetPlayerProducerAsync():andThen(function(producer): ()
 		instance.Text =
 			`${ConvertCurrency.SuffixFormat(ConvertCurrency.StringToNumber(producer:getState().player.money))}`
 	end)

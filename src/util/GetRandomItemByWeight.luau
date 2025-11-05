@@ -1,4 +1,4 @@
-return function(itemsPossibleToDrop: { [string]: { Weight: number, [any]: any } }, luckToConsider: number?): string
+return function(itemsPossibleToDrop: { [string]: { Weight: number } }, luckToConsider: number?): string
 	local luck: number = luckToConsider or 1
 
 	local lowestWeight: number = -1

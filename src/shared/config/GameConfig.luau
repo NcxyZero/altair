@@ -8,8 +8,21 @@ export type GameConfig = {
 		cacheErrorMaxRetries: number,
 		cacheErrorTimeout: number,
 		cacheTimeout: number,
-		playerCollisionsDisable: boolean,
-		resetButtonDisable: boolean,
+		monetizationOfferCreationAllowed: boolean,
+		playerCollisionsDisabled: boolean,
+		raycastDetectionTimeout: number,
+		resetButtonDisabled: boolean,
+	},
+	data: {
+		datastoreKey: string,
+		playerKeyPattern: string,
+		playerProfileInvokeTimeout: number,
+	},
+	debug: {
+		loggerShowInGame: boolean,
+		loggerShowInStudio: boolean,
+		onScreenOutputMaxLines: number, --tbd
+		onScreenOutputMinRole: string, --tbd
 	},
 	game: {
 		--
@@ -34,10 +47,25 @@ local gameConfig: GameConfig = {
 		cacheErrorMaxRetries = 5,
 		cacheErrorTimeout = 1.5,
 		cacheTimeout = 15,
-		playerCollisionsDisable = true,
-		resetButtonDisable = true,
+		monetizationOfferCreationAllowed = false,
+		playerCollisionsDisabled = true,
+		raycastDetectionTimeout = 0.1,
+		resetButtonDisabled = false,
 	},
-	game = {},
+	data = {
+		datastoreKey = "DEV1",
+		playerKeyPattern = "%d",
+		playerProfileInvokeTimeout = 30,
+	},
+	debug = {
+		loggerShowInGame = false,
+		loggerShowInStudio = true,
+		onScreenOutputMaxLines = 5, --tbd
+		onScreenOutputMinRole = "admin", --tbd
+	},
+	game = {
+		--
+	},
 	roles = {
 		admin = {
 			rank = 200,

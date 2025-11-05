@@ -1,14 +1,14 @@
-local ConfettiUI = {}
-ConfettiUI.__index = ConfettiUI
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Maid = require(ReplicatedStorage.package.Maid)
 local SFX = require(ReplicatedStorage.util.SFX)
-local LocalPlayer = Players.LocalPlayer
 
-local RotationSpeed = 20
+local RotationSpeed: number = 20
+
+local ConfettiUI = {}
+ConfettiUI.__index = ConfettiUI
 
 local function Curve(t, direction, currentX, currentY, startX, startY, delta, finished)
 	if -math.sin(math.pi * t) < 0 and not finished then
@@ -26,7 +26,7 @@ function ConfettiUI:Show(amount: number)
 	ui.DisplayOrder = -10
 	ui.Name = "Confetti"
 	ui.Enabled = false
-	ui.Parent = LocalPlayer.PlayerGui
+	ui.Parent = Players.LocalPlayer.PlayerGui
 
 	local colors = {
 		Color3.fromRGB(251, 255, 2),

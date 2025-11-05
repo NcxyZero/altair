@@ -1,7 +1,7 @@
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
+local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
 local Logger = require(ReplicatedStorage.util.Logger)
 local ProfileTypes = require(ReplicatedStorage.shared.reflex.ProfileTypes)
 local Promise = require(ReplicatedStorage.package.Promise)
@@ -41,8 +41,8 @@ export type Default = {
 	isGameDataLoaded: boolean,
 	playerDataLoadedSignal: Signal.Signal<()>,
 	gameDataLoadedSignal: Signal.Signal<()>,
-	getPlayerProducerAsync: (self: Default) -> Promise.TypedPromise<ProfileTypes.PlayerProducer>,
-	getGameProducerAsync: (self: Default) -> Promise.TypedPromise<gameProfile.Producer>,
+	GetPlayerProducerAsync: (self: Default) -> Promise.TypedPromise<ProfileTypes.PlayerProducer>,
+	GetGameProducerAsync: (self: Default) -> Promise.TypedPromise<gameProfile.Producer>,
 	PlayerAdded: (self: Default, player: Player) -> (),
 	Init: (self: Default) -> (),
 }
@@ -79,7 +79,7 @@ local function CreateClientProducer(data: any): Reflex.Producer<any, any>
 	return producer
 end
 
-function ClientData:getPlayerProducerAsync(): Promise.TypedPromise<ProfileTypes.PlayerProducer>
+function ClientData:GetPlayerProducerAsync(): Promise.TypedPromise<ProfileTypes.PlayerProducer>
 	return Promise.new(function(resolve: (ProfileTypes.PlayerProducer) -> ()): ()
 		if not self.isPlayerDataLoaded then
 			self.playerDataLoadedSignal:Wait()
@@ -89,7 +89,7 @@ function ClientData:getPlayerProducerAsync(): Promise.TypedPromise<ProfileTypes.
 	end)
 end
 
-function ClientData:getGameProducerAsync(): Promise.TypedPromise<gameProfile.Producer>
+function ClientData:GetGameProducerAsync(): Promise.TypedPromise<gameProfile.Producer>
 	return Promise.new(function(resolve: (gameProfile.Producer) -> ()): ()
 		if not self.isGameDataLoaded then
 			self.gameDataLoadedSignal:Wait()
@@ -100,7 +100,7 @@ function ClientData:getGameProducerAsync(): Promise.TypedPromise<gameProfile.Pro
 end
 
 function ClientData:PlayerAdded(player: Player): ()
-	if player ~= Players.LocalPlayer then
+	if player ~= LocalPlayer then
 		return
 	end
 end

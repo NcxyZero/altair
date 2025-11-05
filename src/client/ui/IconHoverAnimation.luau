@@ -1,11 +1,10 @@
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
-local AnchorPointAdjustments = require(ReplicatedStorage.util.AnchorPointAdjustments)
-local Maid = require(ReplicatedStorage.package.Maid)
+--local AnchorPointAdjustments = require(ReplicatedStorage.util.AnchorPointAdjustments)
 
-local LocalPlayer: Player & { [unknown]: ObjectValue } = Players.LocalPlayer
+local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
+local Maid = require(ReplicatedStorage.package.Maid)
 
 local ICON_HOVER_SIZE_MULTIPLIER: number = 1.05
 local ICON_ROTATION_MULTIPLIER: number = 15
@@ -16,7 +15,7 @@ if not objectValue then
 	local newObjectValue: ObjectValue = Instance.new("ObjectValue")
 	newObjectValue.Name = TAG_NAME
 	newObjectValue.Parent = LocalPlayer
-	objectValue = newObjectValue -- dlaczego tak? typy..
+	objectValue = newObjectValue
 end
 
 export type IconHoverAnimation = {
@@ -51,6 +50,8 @@ function IconHoverAnimation.new(instance: GuiObject): IconHoverAnimation
 	self.iconOriginalSizes = {}
 	self.iconOriginalScales = {}
 
+	local name: string = (instance:GetAttribute("IconName") :: string) or "Icon"
+
 	local function addIcon(icon: GuiObject): ()
 		local icons: { GuiObject } = self.icons :: { GuiObject }
 		for index = 1, #icons do
@@ -72,7 +73,7 @@ function IconHoverAnimation.new(instance: GuiObject): IconHoverAnimation
 
 	local iconObjectValue: ObjectValue? = nil
 	for _index: number, child: Instance in instance:GetChildren() do
-		if child.Name == "Icon" and child:IsA("ObjectValue") then
+		if child.Name == name and child:IsA("ObjectValue") then
 			iconObjectValue = child
 			break
 		end
@@ -83,7 +84,7 @@ function IconHoverAnimation.new(instance: GuiObject): IconHoverAnimation
 	end
 
 	for _index: number, child: Instance in instance:GetChildren() do
-		if child.Name == "Icon" and child:IsA("GuiObject") then
+		if child.Name == name and child:IsA("GuiObject") then
 			addIcon(child :: GuiObject)
 			break
 		end
@@ -91,7 +92,7 @@ function IconHoverAnimation.new(instance: GuiObject): IconHoverAnimation
 
 	local parent: Instance? = instance.Parent
 	if parent then
-		local sibling: Instance? = parent:FindFirstChild(instance.Name .. "Icon")
+		local sibling: Instance? = parent:FindFirstChild(instance.Name .. name)
 		if sibling and sibling:IsA("GuiObject") then
 			addIcon(sibling :: GuiObject)
 		end
@@ -147,7 +148,7 @@ function IconHoverAnimation:MouseEnter(): ()
 					original.X.Scale * ICON_HOVER_SIZE_MULTIPLIER,
 					original.Y.Scale * ICON_HOVER_SIZE_MULTIPLIER
 				)
-				AnchorPointAdjustments:AdjustPosition(icon, Vector2.one / 2)
+				--AnchorPointAdjustments:AdjustPosition(icon, Vector2.one / 2)
 				local sizeTween: Tween =
 					TweenService:Create(icon, TweenInfo.new(0.1, Enum.EasingStyle.Linear), { Size = endSize })
 				sizeTween:Play()
@@ -158,7 +159,7 @@ function IconHoverAnimation:MouseEnter(): ()
 				original.X.Scale * ICON_HOVER_SIZE_MULTIPLIER,
 				original.Y.Scale * ICON_HOVER_SIZE_MULTIPLIER
 			)
-			AnchorPointAdjustments:AdjustPosition(icon, Vector2.one / 2)
+			--AnchorPointAdjustments:AdjustPosition(icon, Vector2.one / 2)
 			local sizeTween: Tween =
 				TweenService:Create(icon, TweenInfo.new(0.1, Enum.EasingStyle.Linear), { Size = endSize })
 			sizeTween:Play()

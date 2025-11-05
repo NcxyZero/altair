@@ -9,14 +9,14 @@ return function(_context, players: { Player }, amount: number): string
 	local playersBalance: { string } = {}
 
 	for _index: number, player: Player in players do
-		local profile = ServerData:WaitForPlayerProfile(player):expect()
-		profile.producer.secureSpendMoney(amount)
+		local producer = ServerData:GetPlayerProducerAsync(player):expect()
+		producer.secureSpendMoney(amount)
 
 		table.insert(playersToLog, player.Name)
 		table.insert(
 			playersBalance,
 			`{player.Name}'s balance: ${ConvertCurrency.SuffixFormat(
-				ConvertCurrency.StringToNumber(profile.producer:getState().player.money)
+				ConvertCurrency.StringToNumber(producer:getState().player.money)
 			)}`
 		)
 	end

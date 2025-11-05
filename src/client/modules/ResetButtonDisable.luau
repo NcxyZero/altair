@@ -8,7 +8,7 @@ ResetButtonDisable.type = "controller"
 
 function ResetButtonDisable:Init(): ()
 	pcall(function(): ()
-		StarterGui:SetCore("ResetButtonCallback", GameConfig.core.resetButtonDisable)
+		StarterGui:SetCore("ResetButtonCallback", GameConfig.core.resetButtonDisabled)
 	end)
 end
 

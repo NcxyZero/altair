@@ -79,7 +79,7 @@ The project structure is defined in `default.project.json` as follows:
 - `src/util` → ReplicatedStorage.util
 - `src/server` → ServerScriptService.server
 - `ServerPackages` → ServerScriptService.server_package
-- `src/client` → StarterPlayer.StarterPlayerScripts
+- `src/client` → ReplicatedStorage.client
 - `Packages` → ReplicatedStorage.package (Wally packages)
 
 ### Actual Project Structure

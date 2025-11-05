@@ -5,18 +5,32 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local GetBridge = require(ReplicatedStorage.util.GetBridge)
 local Logger = require(ReplicatedStorage.util.Logger)
 local ServerInitConfig = require(ServerScriptService.server.serverConfig.ServerInitConfig)
+
+local replicateToServer = Instance.new("RemoteFunction")
+replicateToServer.Name = "_GetBridgeFunction"
+replicateToServer.Parent = ReplicatedStorage
+
+replicateToServer.OnServerInvoke = function(_player: Player, name: string): ()
+	GetBridge(name) -- error handling for client if server doesn't have bridge
+end
 
 local path = {}
 path.controller = {}
 path.module = {}
 path.tag = {}
+path.other = {}
+
 local loadFirst = {}
 local load = {}
 local tags = {}
 
-for _index: number, folder: Folder in script.Parent:GetChildren() do
+local folders: { Folder } = script.Parent:GetChildren()
+table.insert(folders, ReplicatedStorage.shared.modules)
+
+for _index: number, folder: Folder in folders do
 	if table.find(ServerInitConfig, folder.Name) then
 		continue
 	end
@@ -64,6 +78,10 @@ for _index: number, folder: Folder in script.Parent:GetChildren() do
 		else
 			path[moduleType][module.Name] = required
 		end
+
+		if moduleType == "other" then
+			required.path = path
+		end
 	end
 end
 
@@ -110,57 +128,65 @@ end
 local function InitTag(required: unknown): ()
 	local tag: string = required.tag
 	if not tag then
+		Logger.warn("Tag not specified for required module:", required)
 		return
 	end
 
 	local new: ((Instance) -> unknown)? = required.new
 	if not new then
+		Logger.warn("New function not specified for tag module:", required)
 		return
 	end
 
 	local PlayerAdded: ((unknown, Player) -> unknown)? = required.PlayerAdded
 
-	CollectionService:GetInstanceAddedSignal(tag):Connect(function(instance: Instance): ()
+	required.tagclasses = {}
+
+	local function addInstance(instance: Instance): ()
 		local class: unknown = new(instance, path)
+		if not class then
+			return
+		end
 
-		if class then
-			class.path = path
-			path.tag[instance] = class
+		class.path = path
+		tags[instance] = class
+		path.tag[instance] = class
 
-			if PlayerAdded then
-				for _index: number, player: Player in Players:GetPlayers() do
-					task.spawn(function(): ()
-						PlayerAdded(required, player)
-					end)
-				end
+		if not required.tagclass then
+			required.tagclass = class
+		end
+
+		table.insert(required.tagclasses, class)
+
+		if PlayerAdded then
+			for _index: number, player: Player in Players:GetPlayers() do
+				task.spawn(PlayerAdded, required, player)
 			end
 		end
-	end)
+	end
 
-	CollectionService:GetInstanceRemovedSignal(tag):Connect(function(instance: Instance): ()
-		if path.tag[instance] and path.tag[instance].Destroy then
-			path.tag[instance]:Destroy(instance)
-			path.tag[instance] = nil
+	local function removeInstance(instance: Instance): ()
+		local class: unknown = tags[instance]
+
+		table.remove(required.tagclasses, table.find(required.tagclasses, class))
+
+		if required.tagclass == class then
+			required.tagclass = select(2, next(required.tagclasses))
 		end
-	end)
+
+		if class and class.Destroy then
+			class:Destroy(instance)
+			class = nil
+		end
+
+		path.tag[instance] = nil
+	end
+
+	CollectionService:GetInstanceAddedSignal(tag):Connect(addInstance)
+	CollectionService:GetInstanceRemovedSignal(tag):Connect(removeInstance)
 
 	for _index: number, instance: Instance in CollectionService:GetTagged(tag) do
-		task.spawn(function(): ()
-			local class: unknown = new(instance, path)
-
-			if class then
-				class.path = path
-				path.tag[instance] = class
-
-				if PlayerAdded then
-					for _index: number, player: Player in Players:GetPlayers() do
-						task.spawn(function(): ()
-							PlayerAdded(required, player)
-						end)
-					end
-				end
-			end
-		end)
+		task.spawn(addInstance, instance)
 	end
 end
 
@@ -215,6 +241,24 @@ for _index: number, required: unknown in load do
 		Logger.warn(`Failed to start controller {required.type or "unknown"}: {err}`)
 	end
 end
+
+Players.PlayerRemoving:Connect(function(player: Player): ()
+	for _index: number, class: unknown in path.controller do
+		task.spawn(function(): ()
+			if class.PlayerRemoving then
+				class:PlayerRemoving(player)
+			end
+		end)
+	end
+
+	for _index: number, class: unknown in path.tag do
+		task.spawn(function(): ()
+			if class.PlayerRemoving then
+				class:PlayerRemoving(player)
+			end
+		end)
+	end
+end)
 
 Players.PlayerAdded:Connect(function(player: Player): ()
 	for _index: number, class: unknown in path.controller do

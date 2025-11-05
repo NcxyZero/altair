@@ -2,7 +2,6 @@ local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
-local Logger = require(ReplicatedStorage.util.Logger)
 
 local PlayerCollisions = {}
 PlayerCollisions.type = "controller"
@@ -35,11 +34,11 @@ local function setupCharacter(character: Model): ()
 end
 
 function PlayerCollisions:Init(): ()
-	Logger.print("PlayerCollisions initialized")
+	--
 end
 
 function PlayerCollisions:PlayerAdded(player: Player): ()
-	if not GameConfig.core.playerCollisionsDisable then
+	if not GameConfig.core.playerCollisionsDisabled then
 		return
 	end
 

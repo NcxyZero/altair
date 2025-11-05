@@ -74,9 +74,9 @@ function formatValue.NumberToString(int: number): string
 	Iterator = 1
 
 	local MyString: string = ""
-	for _index: number, v: number in PowerList do
-		MyString ..= string.char((int // v) + 33)
-		int -= (int // v) * v
+	for _index: number, value: number in PowerList do
+		MyString ..= string.char((int // value) + 33)
+		int -= (int // value) * value
 	end
 
 	return MyString

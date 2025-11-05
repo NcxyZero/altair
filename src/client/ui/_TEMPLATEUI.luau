@@ -2,53 +2,40 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local Maid = require(ReplicatedStorage.package.Maid)
-local OpenGui = require(ReplicatedStorage.util.OpenGui)
-
-type Shop = ScreenGui & {
-	Frame: Frame,
-	Toggle: TextButton,
-}
 
 export type Default = {
 	type: string,
 	tag: string,
 	path: InitializerTypes.ClientPath,
-	instance: Shop,
+	instance: Instance & any,
 	maid: Maid.Maid,
+	closeButtonsMaid: Maid.Maid?,
+	closeButtons: { GuiObject }?,
 	__index: Default,
-	new: (instance: Shop) -> Default,
+	new: (instance: Instance & any) -> Default,
 	Destroy: (self: Default) -> (),
 }
 
 local TemplateUI: Default = {} :: Default
 TemplateUI.__index = TemplateUI
 TemplateUI.type = "local_tag"
-TemplateUI.tag = "TemplateUI"
+TemplateUI.tag = script.Name
+--TemplateUI.closeButtons = {}
 
-function TemplateUI.new(instance: Shop): Default
+function TemplateUI.new(instance: Instance & any): Default
 	local self = setmetatable({}, TemplateUI)
 	self.instance = instance
-
-	self.maid = Maid.new()
-
-	self.maid:GiveTask(instance.Toggle.Activated:Connect(function(): ()
-		if OpenGui.current.id == instance then
-			OpenGui:Handle()
-			return
-		end
-
-		OpenGui:Handle(instance, function(): ()
-			instance.Frame.Visible = true
-		end, function(): ()
-			instance.Frame.Visible = false
-		end)
-	end))
+	--table.insert(self.closeButtons, instance.CloseButton)
 
 	return self
 end
 
 function TemplateUI:Destroy(): ()
 	self.maid:DoCleaning()
+
+	if self.closeButtonsMaid then
+		self.closeButtonsMaid:DoCleaning()
+	end
 end
 
 return TemplateUI

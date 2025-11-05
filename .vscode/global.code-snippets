@@ -31,7 +31,12 @@
 	"game:IsLoaded() / game.Loaded:Wait()": {
 		"scope": "luau,lua",
 		"prefix": "loaded",
-		"body": ["if not game:IsLoaded() then", "\tgame.Loaded:Wait()", "end", ""],
+		"body": [
+			"if not game:IsLoaded() then",
+			"\tgame.Loaded:Wait()",
+			"end",
+			""
+		],
 		"description": "Wait for game to load if not already"
 	},
 	"repeat task.wait() until": {

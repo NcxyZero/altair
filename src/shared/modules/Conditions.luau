@@ -1,18 +1,23 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local isServer: boolean = RunService:IsServer()
+local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 
+local isServer: boolean = RunService:IsServer()
 local CacheManager = isServer and require(ServerScriptService.server.modules.CacheManager) or nil
 
-export type Conditions = {
-	CheckCondition: (
-		self: Conditions,
-		player: Player,
-		conditionType: string,
-		value: any
-	) -> boolean & (self: Conditions, conditionType: string, value: any) -> boolean,
+export type ConditionsServer = {
+	path: InitializerTypes.ServerPath,
+	CheckCondition: (self: Conditions, player: Player, conditionType: string, value: any) -> boolean,
 }
+
+export type ConditionsClient = {
+	path: InitializerTypes.ClientPath,
+	CheckCondition: (self: Conditions, conditionType: string, value: any) -> boolean,
+}
+
+export type Conditions = ConditionsServer & ConditionsClient
 
 local Conditions = {
 	passes = function(producer, name: string, player: Player?): boolean
@@ -24,17 +29,20 @@ local Conditions = {
 	end,
 }
 
-local ConditionsServer = {}
-local ConditionsClient = {}
+local ConditionsMeta = {
+	type = "other",
+}
+local ConditionsServer: ConditionsServer = table.clone(ConditionsMeta) :: any
+local ConditionsClient: ConditionsClient = table.clone(ConditionsMeta) :: any
 
 function ConditionsServer:CheckCondition(player: Player, conditionType: string, value: any): boolean
-	local producer = self.path.controller.ServerData:WaitForPlayerProfile(player):expect().producer
+	local producer = self.path.controller.ServerData:GetPlayerProducerAsync(player):expect()
 
 	return Conditions[conditionType](producer, value, player)
 end
 
 function ConditionsClient:CheckCondition(conditionType: string, value: any): boolean
-	local producer = self.path.controller.ClientData:getPlayerProducerAsync():expect()
+	local producer = self.path.controller.ClientData:GetPlayerProducerAsync():expect()
 
 	return Conditions[conditionType](producer, value)
 end

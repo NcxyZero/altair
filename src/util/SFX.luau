@@ -17,7 +17,6 @@ local SFX: SFX = {} :: SFX
 
 SFX.Sounds = {
 	Confetti = "rbxassetid://72685643396992",
-	InterfaceClick = "rbxassetid://421058925",
 	InterfacePress = "rbxassetid://421058925",
 }
 

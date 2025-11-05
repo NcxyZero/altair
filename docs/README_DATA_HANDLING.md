@@ -75,13 +75,16 @@ The `ClientData` module (`src/client/modules/ClientData.luau`) manages client-si
 local profile = ServerData:GetPlayerProfile(player)
 
 -- Wait for a player's profile to be loaded
-ServerData:WaitForPlayerProfile(player):andThen(function(profile)
-    -- Use profile
-    local coins = profile.producer:getState().coins
+local profileYielded = ServerData:WaitForPlayerProfile(player):expect()
+
+-- Wait for a player's profile.producer to be loaded
+ServerData:GetPlayerProducerAsync(player):andThen(function(producer)
+    -- Use producer
+    local coins = producer:getState().coins
     print("Player has", coins, "coins")
 
     -- Modify profile data
-    profile.producer:addCoins(100)
+    producer.addCoins(100)
 end)
 
 -- Access game data
@@ -96,28 +99,30 @@ ServerData.gameProducer:setActivePlayers(10)
 
 ```luau
 -- Get player data
-ClientData:getPlayerProducerAsync():andThen(function(producer)
+ClientData:GetPlayerProducerAsync():andThen(function(producer)
     -- Use player data
     local coins = producer:getState().coins
     print("I have", coins, "coins")
 
     -- Modify player data
-    producer:addCoins(100)
+    producer.addCoins(100)
 end)
 
 -- Get game data
-ClientData:getGameProducerAsync():andThen(function(producer)
+ClientData:GetGameProducerAsync():andThen(function(producer)
     -- Use game data
     local activePlayers = producer:getState().activePlayers
     print("Active players:", activePlayers)
+
+    -- Cannot modify game data by client
 end)
 
--- Access client-specific data
+-- Access client-specific data [WIP]
 local musicVolume = ClientData.clientProducer:getState().localSettings.musicVolume
 print("Music volume:", musicVolume)
 
 -- Modify client-specific data
-ClientData.clientProducer:setLocalSetting("musicVolume", 0.8)
+ClientData.clientProducer.setLocalSetting("musicVolume", 0.8)
 ```
 
 ## Data Flow
@@ -146,6 +151,8 @@ The `ServerData` module is implemented as a controller in the Altair project's m
 - `playerDataLoadedEvent` - A signal fired when a player's data is loaded
 - `GetPlayerProfile` - A function to get a player's profile
 - `WaitForPlayerProfile` - A function to wait for a player's profile to be loaded
+- `GetPlayerProducerAsync` - A function to get the player producer asynchronously
+- `GetGameProducerAsync` - A function to get the game producer asynchronously
 - `PlayerAdded` - A function called when a player joins
 - `PlayerRemoving` - A function called when a player leaves
 - `Init` - A function called when the module is initialized
@@ -161,7 +168,7 @@ The `ClientData` module is implemented as a controller in the Altair project's m
 - `isGameDataLoaded` - A boolean indicating if game data is loaded
 - `playerDataLoadedSignal` - A signal fired when player data is loaded
 - `gameDataLoadedSignal` - A signal fired when game data is loaded
-- `getPlayerProducerAsync` - A function to get the player producer asynchronously
-- `getGameProducerAsync` - A function to get the game producer asynchronously
+- `GetPlayerProducerAsync` - A function to get the player producer asynchronously
+- `GetGameProducerAsync` - A function to get the game producer asynchronously
 - `PlayerAdded` - A function called when a player joins
 - `Init` - A function called when the module is initialized

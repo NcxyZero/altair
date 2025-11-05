@@ -1,60 +1,95 @@
 {
-	"client get server producer yield async": {
+	"client get player producer yield async": {
 		"scope": "luau,lua",
-		"prefix": ["producer-async"],
-		"body": ["ClientPlayerData.getServerProducerAsync():expect()"],
-		"description": "Wait for data"
+		"prefix": ["producer-async", "player-producer-async"],
+		"body": ["ClientData:GetPlayerProducerAsync():expect()"],
+		"description": "Wait for player producer"
 	},
-	"client get server state yield async": {
+	"client get player state yield async": {
 		"scope": "luau,lua",
 		"prefix": "state-async",
-		"body": [
-			"ClientPlayerData.getServerProducerAsync():expect():getState()"
-		],
-		"description": "Wait for data and get the state"
+		"body": ["ClientData:GetPlayerProducerAsync():expect():getState()"],
+		"description": "Wait for player data and get the state"
+	},
+	"client get game producer yield async": {
+		"scope": "luau,lua",
+		"prefix": ["game-producer-async"],
+		"body": ["ClientData:GetGameProducerAsync():expect()"],
+		"description": "Wait for game producer"
+	},
+	"client get game state yield async": {
+		"scope": "luau,lua",
+		"prefix": "game-state-async",
+		"body": ["ClientData:GetGameProducerAsync():expect():getState()"],
+		"description": "Wait for game data and get the state"
 	},
 	"server get profile": {
 		"scope": "luau,lua",
 		"prefix": "profile",
-		"body": ["ServerPlayerData.GetPlayerProfile(player)"],
+		"body": ["ServerData:GetPlayerProfile(player)"],
 		"description": "Get player profile"
 	},
 	"server wait for profile": {
 		"scope": "luau,lua",
 		"prefix": "profile-async",
-		"body": ["ServerPlayerProfile.WaitForPlayerProfile(player):expect()"],
+		"body": ["ServerData:WaitForPlayerProfile(player):expect()"],
 		"description": "Wait for player profile"
 	},
-	"client get server state": {
+	"client get player state": {
 		"scope": "luau,lua",
 		"prefix": "state",
-		"body": ["ClientPlayerData.serverProfile:getState()"],
+		"body": ["ClientData.playerProducer:getState()"],
 		"description": "Get local player state"
 	},
-	"client get server producer": {
+	"client get player producer": {
 		"scope": "luau,lua",
 		"prefix": "producer",
-		"body": ["ClientPlayerData.serverProfile"],
+		"body": ["ClientData.playerProducer"],
 		"description": "Get local player producer"
 	},
-	"subscribe client": {
+	"client get game state": {
 		"scope": "luau,lua",
-		"prefix": "subscribe, subscribe-client",
+		"prefix": "game-state",
+		"body": ["ClientData.gameProducer:getState()"],
+		"description": "Get game state"
+	},
+	"client get game producer": {
+		"scope": "luau,lua",
+		"prefix": "game-producer",
+		"body": ["ClientData.gameProducer"],
+		"description": "Get game producer"
+	},
+	"subscribe client player": {
+		"scope": "luau,lua",
+		"prefix": ["subscribe", "subscribe-client"],
 		"body": [
-			"ClientPlayerData.serverProfile:subscribe(function(state: {[string]: any})",
+			"ClientData.playerProducer:subscribe(function(state: {[string]: any})",
 			"\treturn state.$1",
 			"end, function($2)",
 			"\t$0",
 			"end)",
 			""
 		],
-		"description": "subscribe to reflex state changes on client"
+		"description": "subscribe to reflex player state changes on client"
+	},
+	"subscribe client game": {
+		"scope": "luau,lua",
+		"prefix": ["subscribe-client-game"],
+		"body": [
+			"ClientData.gameProducer:subscribe(function(state: {[string]: any})",
+			"\treturn state.$1",
+			"end, function($2)",
+			"\t$0",
+			"end)",
+			""
+		],
+		"description": "subscribe to reflex game state changes on client"
 	},
 	"subscribe server": {
 		"scope": "luau,lua",
 		"prefix": "subscribe-server",
 		"body": [
-			"ServerPlayerData.GetPlayerProfile(player).producer:subscribe(function(state: {[string]: any})",
+			"ServerData:GetPlayerProfile(player).producer:subscribe(function(state: {[string]: any})",
 			"\treturn state.$1",
 			"end, function($2)",
 			"\t$0",
@@ -62,5 +97,17 @@
 			""
 		],
 		"description": "subscribe to reflex state changes on server"
+	},
+	"server get player producer yield async": {
+		"scope": "luau,lua",
+		"prefix": "server-producer-async",
+		"body": ["ServerData:GetPlayerProducerAsync(player):expect()"],
+		"description": "Wait for server player producer"
+	},
+	"server get game producer yield async": {
+		"scope": "luau,lua",
+		"prefix": "server-game-producer-async",
+		"body": ["ServerData:GetGameProducerAsync():expect()"],
+		"description": "Wait for server game producer"
 	}
 }

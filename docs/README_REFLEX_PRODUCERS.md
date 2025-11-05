@@ -26,8 +26,8 @@ local exampleState = {
 }
 
 -- Example actions
-playerProducer:setCoins(100)
-playerProducer:addCoins(50)
+playerProducer.setCoins(100)
+playerProducer.addCoins(50)
 ```
 
 ### gameProfile.luau
@@ -42,9 +42,9 @@ local exampleState = {
 }
 
 -- Example actions
-gameProducer:setActivePlayers(10)
-gameProducer:incrementActivePlayers()
-gameProducer:decrementActivePlayers()
+gameProducer.setActivePlayers(10)
+gameProducer.incrementActivePlayers()
+gameProducer.decrementActivePlayers()
 ```
 
 ### settingsProfile.luau
@@ -62,9 +62,9 @@ local exampleState = {
 }
 
 -- Example actions
-settingsProducer:setMusicVolume(0.8)
-settingsProducer:setSFXVolume(0.6)
-settingsProducer:toggleFPS()
+settingsProducer.setMusicVolume(0.8)
+settingsProducer.setSFXVolume(0.6)
+settingsProducer.toggleFPS()
 ```
 
 ### inventoryProfile.luau
@@ -91,9 +91,9 @@ local exampleState = {
 }
 
 -- Example actions
-inventoryProducer:addItem("item2", newItem)
-inventoryProducer:removeItem("item1")
-inventoryProducer:equipItem("item2", "weapon")
+inventoryProducer.addItem("item2", newItem)
+inventoryProducer.removeItem("item1")
+inventoryProducer.equipItem("item2", "weapon")
 ```
 
 ## Using CombineProducers
@@ -104,7 +104,7 @@ The `combineProducers` function from the Reflex library is used to combine multi
 
 In `ServerData.luau`, the producers are combined when a player joins:
 
-```lua
+```luau
 -- Create individual producers
 local playerProducer = playerProfile.CreateProducer(data)
 local settingsProducer = settingsProfile.CreateProducer(data.settings or settingsProfile.DEFAULT_STATE)
@@ -122,7 +122,7 @@ local combinedProducer = Reflex.combineProducers({
 
 In `ClientData.luau`, the producers are combined when player data is loaded:
 
-```lua
+```luau
 -- Create individual producers
 local playerProducer = playerProfile.CreateProducer(playerData)
 local settingsProducer = settingsProfile.CreateProducer(playerData.settings or settingsProfile.DEFAULT_STATE)
@@ -158,19 +158,21 @@ local equippedItems = combinedState.inventory.equippedItems
 
 ## Dispatching Actions
 
-Actions can be dispatched on the combined producer using the format `producerName_actionName` or directly on the individual producers:
+When using a combined producer created with `Reflex.combineProducers`, all actions from all child producers are exposed at the combined producer root. There are no profile-name prefixes on action names.
 
 ```luau
--- Using the combined producer
-combinedProducer.player_setCoins(100)
-combinedProducer.settings_setMusicVolume(0.8)
-combinedProducer.inventory_addItem("item3", newItem)
+-- Using the combined producer (no prefixes)
+combinedProducer.setCoins(100) -- from playerProfile
+combinedProducer.setMusicVolume(0.8) -- from settingsProfile
+combinedProducer.addItem("item3", newItem) -- from inventoryProfile
 
--- Using individual producers
-playerProducer:setCoins(100)
-settingsProducer:setMusicVolume(0.8)
-inventoryProducer:addItem("item3", newItem)
+-- Using individual producers (also valid)
+playerProducer.setCoins(100)
+settingsProducer.setMusicVolume(0.8)
+inventoryProducer.addItem("item3", newItem)
 ```
+
+Note: If your actions are named with custom prefixes (e.g., secureAddCoins or secureAddItem), they are still available directly on the combined producer without any profile prefix, for example: `combinedProducer.secureAddCoins(5)` and `combinedProducer.secureAddItem("test")`.
 
 ## Saving Data
 

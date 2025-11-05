@@ -1,5 +1,4 @@
 local MarketplaceService = game:GetService("MarketplaceService")
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
@@ -27,6 +26,7 @@ export type CacheManager = {
 		name: string
 	) -> boolean,
 	Init: (self: CacheManager, path: InitializerTypes.ServerPath) -> (),
+	PlayerRemoving: (self: CacheManager, player: Player) -> (),
 }
 
 local CacheManager: CacheManager = {} :: CacheManager
@@ -65,8 +65,8 @@ end
 CacheManager.checkers = {
 	monetization = function(player: Player, conditionType: string, name: string): boolean
 		local data = CacheManager.path.controller.ServerData
-			:WaitForPlayerProfile(player)
-			:expect().producer
+			:GetPlayerProducerAsync(player)
+			:expect()
 			:getState().monetization[conditionType][name]
 		if data == true then
 			return data
@@ -98,14 +98,11 @@ function CacheManager:CheckCondition(player: Player, cacheType: string, conditio
 end
 
 function CacheManager:Init(): ()
-	Players.PlayerRemoving:Connect(function(player: Player): ()
-		self.cache[player] = nil
-	end)
+	--
+end
 
-	--! FOR SOLO TEST !--
-	-- task.delay(5, function(): ()
-	-- 	print(self:CheckCondition(Players:GetPlayers()[1], "monetization", "passes", "test"))
-	-- end)
+function CacheManager:PlayerRemoving(player: Player): ()
+	self.cache[player] = nil
 end
 
 return CacheManager

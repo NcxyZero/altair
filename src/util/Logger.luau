@@ -1,16 +1,33 @@
 --!nocheck
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local RunService = game:GetService("RunService")
+local TestService = game:GetService("TestService")
+
+local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
 
 export type Logger = {
 	warn: (...string) -> (),
 	print: (...string) -> (),
 	error: (...string) -> (),
+	errorStack: (...string) -> (),
 	assert: (boolean?, ...string) -> (),
 }
 
 local Logger: Logger = {} :: any
 
 local DEBUG_LOG_LOGGER: boolean = false
+
+local kindFunctions = {
+	["print"] = print,
+	["warn"] = warn,
+	["error"] = function(...: string): ()
+		TestService:Error(` ( {RunService:IsServer() and "Server" or "Client"} )  ` .. table.concat({ ... }, ", "))
+	end,
+	["errorStack"] = function(...: string): ()
+		error(table.concat({ ... }, ", "), 0)
+	end,
+}
 
 local function debugLog(...: string): ()
 	if DEBUG_LOG_LOGGER then
@@ -28,6 +45,11 @@ end
 
 local function cleanFilenameFromSource(source: string): string
 	return source:match("[^/\\]*$") or source
+end
+
+local function checkLoggingAllowance(): boolean
+	return RunService:IsStudio() and GameConfig.debug.loggerShowInStudio
+		or not RunService:IsStudio() and GameConfig.debug.loggerShowInGame
 end
 
 local function tryFrame(level: number): string?
@@ -113,6 +135,10 @@ local function getSourceInfo(): string
 end
 
 local function emit(kind: string, parts: { string }): ()
+	if not checkLoggingAllowance() then
+		return
+	end
+
 	debugLog("emit:", kind, "called")
 
 	if not RunService:IsStudio() then
@@ -126,13 +152,14 @@ local function emit(kind: string, parts: { string }): ()
 
 	debugLog("emit:", kind, "source:", sourceInfo, "message:", message)
 
-	if kind == "warn" then
-		warn(sourceInfo .. message)
-	elseif kind == "print" then
-		print(sourceInfo .. message)
-	else
-		error(sourceInfo .. message)
+	message = sourceInfo .. message
+
+	local kindExec = kindFunctions[kind]
+	if not kindExec then
+		error(`Unknown kind "{kind}" for log:\n> {message}`)
 	end
+
+	kindExec(message)
 end
 
 Logger.warn = function(...: string): ()
@@ -147,7 +174,15 @@ Logger.error = function(...: string): ()
 	emit("error", { ... })
 end
 
+Logger.errorStack = function(...: string): ()
+	emit("errorStack", { ... })
+end
+
 Logger.assert = function(value: boolean?, ...: string): ()
+	if not checkLoggingAllowance() then
+		return
+	end
+
 	debugLog("assert called")
 
 	if not RunService:IsStudio() then

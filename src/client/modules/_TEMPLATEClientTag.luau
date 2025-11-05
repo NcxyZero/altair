@@ -18,7 +18,7 @@ export type Default = {
 local ClientTagTemplate: Default = {} :: Default
 ClientTagTemplate.__index = ClientTagTemplate
 ClientTagTemplate.type = "tag"
-ClientTagTemplate.tag = "Template"
+ClientTagTemplate.tag = script.Name
 
 function ClientTagTemplate.new(instance: Instance, path: InitializerTypes.ClientPath): Default
 	local self = setmetatable({}, ClientTagTemplate)

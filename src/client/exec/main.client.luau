@@ -3,16 +3,19 @@ local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local StarterPlayer = game:GetService("StarterPlayer")
 
-local ClientInitConfig = require(StarterPlayer.StarterPlayerScripts.clientConfig.ClientInitConfig)
+local ClientInitConfig = require(ReplicatedStorage.client.clientConfig.ClientInitConfig)
+local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
 local Logger = require(ReplicatedStorage.util.Logger)
+local Maid = require(ReplicatedStorage.package.Maid)
+local OpenGui = require(ReplicatedStorage.util.OpenGui)
 
 local path = {}
 path.controller = {}
 path.module = {}
 path.local_tag = {}
 path.tag = {}
+path.other = {}
 
 local moduleTags = {}
 local moduleTagsLocal = {}
@@ -20,7 +23,10 @@ local tags = {}
 local loadFirst = {}
 local load = {}
 
-for _index: number, folder: Folder in script.Parent:GetChildren() do
+local folders: { Folder } = ReplicatedStorage:WaitForChild("client"):GetChildren()
+table.insert(folders, ReplicatedStorage.shared.modules)
+
+for _index: number, folder: Folder in folders do
 	if table.find(ClientInitConfig, folder.Name) then
 		continue
 	end
@@ -70,6 +76,10 @@ for _index: number, folder: Folder in script.Parent:GetChildren() do
 		else
 			path[moduleType][module.Name] = required
 		end
+
+		if moduleType == "other" then
+			required.path = path
+		end
 	end
 end
 
@@ -118,37 +128,47 @@ local function InitTag(required: unknown): ()
 		return
 	end
 
-	CollectionService:GetInstanceAddedSignal(tag):Connect(function(instance: Instance): ()
+	required.tagclasses = {}
+
+	local function addInstance(instance: Instance): ()
 		local class: unknown = new(instance, path)
-
-		if class then
-			class.path = path
-			tags[instance] = class
-
-			path.tag[instance] = class
+		if not class then
+			return
 		end
-	end)
 
-	CollectionService:GetInstanceRemovedSignal(tag):Connect(function(instance: Instance): ()
-		if tags[instance] and tags[instance].Destroy then
-			tags[instance]:Destroy(instance)
-			tags[instance] = nil
+		class.path = path
+		tags[instance] = class
+		path.tag[instance] = class
+
+		if not required.tagclass then
+			required.tagclass = class
+		end
+
+		table.insert(required.tagclasses, class)
+	end
+
+	local function removeInstance(instance: Instance): ()
+		local class: unknown = tags[instance]
+
+		table.remove(required.tagclasses, table.find(required.tagclasses, class))
+
+		if required.tagclass == class then
+			required.tagclass = select(2, next(required.tagclasses))
+		end
+
+		if class and class.Destroy then
+			class:Destroy(instance)
+			class = nil
 		end
 
 		path.tag[instance] = nil
-	end)
+	end
+
+	CollectionService:GetInstanceAddedSignal(tag):Connect(addInstance)
+	CollectionService:GetInstanceRemovedSignal(tag):Connect(removeInstance)
 
 	for _index: number, instance: Instance in CollectionService:GetTagged(tag) do
-		task.spawn(function(): ()
-			local class: unknown = new(instance, path)
-
-			if class then
-				class.path = path
-				tags[instance] = class
-
-				path.tag[instance] = class
-			end
-		end)
+		task.spawn(addInstance, instance)
 	end
 end
 
@@ -165,45 +185,72 @@ local function InitLocalTag(required: unknown): ()
 		return
 	end
 
-	CollectionService:GetInstanceAddedSignal(tag):Connect(function(instance: Instance): ()
-		if not Players.LocalPlayer:IsAncestorOf(instance) then
-			if not Players.LocalPlayer.Character or not Players.LocalPlayer.Character:IsAncestorOf(instance) then
+	required.tagclasses = {}
+
+	local function addInstance(instance: Instance): ()
+		if not LocalPlayer:IsAncestorOf(instance) then
+			if not LocalPlayer.Character or not LocalPlayer.Character:IsAncestorOf(instance) then
 				return
 			end
 		end
 
 		local class: unknown = new(instance, path)
-
-		if class then
-			class.path = path
-			tags[instance] = class
-			path.local_tag[instance] = class
+		if not class then
+			return
 		end
-	end)
 
-	CollectionService:GetInstanceRemovedSignal(tag):Connect(function(instance: Instance): ()
-		if tags[instance] and tags[instance].Destroy then
-			tags[instance]:Destroy(instance)
-			tags[instance] = nil
+		class.path = path
+		tags[instance] = class
+
+		path.local_tag[instance] = class
+
+		if not required.tagclass then
+			required.tagclass = class
 		end
-	end)
+
+		table.insert(required.tagclasses, class)
+
+		if not class.closeButtons then
+			return
+		end
+
+		if not class.closeButtonsMaid then
+			class.closeButtonsMaid = Maid.new()
+		end
+
+		for _index: number, button: GuiButton in class.closeButtons do
+			class.closeButtonsMaid:GiveTask(button.MouseButton1Up:Connect(function(): ()
+				if class.Close then
+					class:Close()
+				else
+					OpenGui:Close(required)
+				end
+			end))
+		end
+	end
+
+	local function removeInstance(instance: Instance): ()
+		local class: unknown = tags[instance]
+
+		table.remove(required.tagclasses, table.find(required.tagclasses, class))
+
+		if required.tagclass == class then
+			required.tagclass = select(2, next(required.tagclasses))
+		end
+
+		if class and class.Destroy then
+			class:Destroy(instance)
+			class = nil
+		end
+
+		path.local_tag[instance] = nil
+	end
+
+	CollectionService:GetInstanceAddedSignal(tag):Connect(addInstance)
+	CollectionService:GetInstanceRemovedSignal(tag):Connect(removeInstance)
 
 	for _index: number, instance: Instance in CollectionService:GetTagged(tag) do
-		task.spawn(function(): ()
-			if not Players.LocalPlayer:IsAncestorOf(instance) then
-				if not Players.LocalPlayer.Character or not Players.LocalPlayer.Character:IsAncestorOf(instance) then
-					return
-				end
-			end
-
-			local class: unknown = new(instance, path)
-
-			if class then
-				class.path = path
-				tags[instance] = class
-				path.local_tag[instance] = class
-			end
-		end)
+		task.spawn(addInstance, instance)
 	end
 end
 
@@ -262,6 +309,24 @@ for _index: number, required: unknown in load do
 		Logger.warn(`Failed to start controller {required.type or "unknown"}: {err}`)
 	end
 end
+
+Players.PlayerRemoving:Connect(function(player: Player): ()
+	for _index: number, class: unknown in path.controller do
+		task.spawn(function(): ()
+			if class.PlayerRemoving then
+				class:PlayerRemoving(player)
+			end
+		end)
+	end
+
+	for _index: number, class: unknown in path.tag do
+		task.spawn(function(): ()
+			if class.PlayerRemoving then
+				class:PlayerRemoving(player)
+			end
+		end)
+	end
+end)
 
 Players.PlayerAdded:Connect(function(player: Player): ()
 	for _index: number, class: unknown in path.controller do
@@ -335,7 +400,7 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 	end)
 end)
 
-Players.LocalPlayer.CharacterAdded:Connect(function(character: Model): ()
+LocalPlayer.CharacterAdded:Connect(function(character: Model): ()
 	for _index: number, class: unknown in path.controller do
 		task.spawn(function(): ()
 			if class.CharacterAdded then
@@ -373,7 +438,7 @@ Players.LocalPlayer.CharacterAdded:Connect(function(character: Model): ()
 	end)
 end)
 
-Players.LocalPlayer.CharacterAppearanceLoaded:Connect(function(character: Model): ()
+LocalPlayer.CharacterAppearanceLoaded:Connect(function(character: Model): ()
 	for _index: number, class: unknown in path.controller do
 		task.spawn(function(): ()
 			if class.CharacterAdded then
@@ -445,13 +510,13 @@ RunService.PreRender:Connect(function(delta: number): ()
 	end
 end)
 
-for _index: number, ui: ScreenGui in Players.LocalPlayer.PlayerGui:GetChildren() do
+for _index: number, ui: ScreenGui in LocalPlayer.PlayerGui:GetChildren() do
 	if ui:IsA("ScreenGui") and not ui:GetAttribute("SkipResetOnSpawn") then
 		ui.ResetOnSpawn = false
 	end
 end
 
-Players.LocalPlayer.PlayerGui.ChildAdded:Connect(function(ui: Instance): ()
+LocalPlayer.PlayerGui.ChildAdded:Connect(function(ui: Instance): ()
 	if ui:IsA("ScreenGui") and not ui:GetAttribute("SkipResetOnSpawn") then
 		ui.ResetOnSpawn = false
 	end

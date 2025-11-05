@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
 local IsValidUTF8 = require(ReplicatedStorage.util.IsValidUTF8)
 local Logger = require(ReplicatedStorage.util.Logger)
 local MergeDictionaries = require(ReplicatedStorage.util.MergeDictionaries)
@@ -51,6 +52,8 @@ export type Default = {
 	playerDataLoadedEvent: Signal.Signal<Player, ServerPlayerProfile>,
 	GetPlayerProfile: (self: Default, player: Player) -> ServerPlayerProfile?,
 	WaitForPlayerProfile: (self: Default, player: Player) -> Promise.TypedPromise<ServerPlayerProfile>,
+	GetPlayerProducerAsync: (self: Default, player: Player) -> Promise.TypedPromise<ProfileTypes.PlayerProducer>,
+	GetGameProducerAsync: (self: Default) -> Promise.TypedPromise<gameProfile.Producer>,
 	PlayerAdded: (self: Default, player: Player) -> (),
 	PlayerRemoving: (self: Default, player: Player) -> (),
 	Init: (self: Default) -> (),
@@ -63,9 +66,9 @@ ServerData.profiles = {}
 ServerData.gameData = {}
 ServerData.playerDataLoadedEvent = Signal.new()
 
-local DATASTORE_KEY: string = "PlayerData_v1"
+local DATASTORE_KEY: string = GameConfig.data.datastoreKey
 local function getPlayerKey(userId: number): string
-	return "Player_" .. userId
+	return GameConfig.data.playerKeyPattern:format(userId)
 end
 
 local ReplicateStore = Instance.new("RemoteEvent")
@@ -111,6 +114,19 @@ function ServerData:WaitForPlayerProfile(player: Player): Promise.TypedPromise<S
 			connection:Disconnect()
 			resolve(data)
 		end)
+	end)
+end
+
+function ServerData:GetPlayerProducerAsync(player: Player): Promise.TypedPromise<ProfileTypes.PlayerProducer>
+	return Promise.new(function(resolve: (ProfileTypes.PlayerProducer) -> ()): ()
+		local profile = self:WaitForPlayerProfile(player):expect()
+		resolve(profile and profile.producer or nil)
+	end)
+end
+
+function ServerData:GetGameProducerAsync(): Promise.TypedPromise<gameProfile.Producer>
+	return Promise.new(function(resolve: (gameProfile.Producer) -> ()): ()
+		resolve(self.gameProducer)
 	end)
 end
 
@@ -215,7 +231,7 @@ function ServerData:PlayerAdded(player: Player): ()
 	self.playerDataLoadedEvent:Fire(player, profile)
 	player:SetAttribute("DataLoaded", true)
 
-	self.gameProducer:incrementActivePlayers()
+	task.defer(self.gameProducer.incrementActivePlayers)
 end
 
 function ServerData:PlayerRemoving(player: Player): ()
@@ -255,7 +271,7 @@ function ServerData:PlayerRemoving(player: Player): ()
 	profile.profileStore:Release()
 	self.profiles[player] = nil
 
-	self.gameProducer:decrementActivePlayers()
+	self.gameProducer.decrementActivePlayers()
 end
 
 function ServerData:Init(): ()
@@ -300,7 +316,6 @@ function ServerData:Init(): ()
 		end
 
 		profile.nextActionIsReplicated = true
-
 		do
 			(profile.producer :: any)[data.name](unpack(data.arguments))
 		end
@@ -322,36 +337,28 @@ function ServerData:Init(): ()
 	end)
 
 	GetPlayerData.OnServerInvoke = function(player: Player): ...any
-		local profile: ServerPlayerProfile? = table.pack(self:WaitForPlayerProfile(player):timeout(5, false):await())[2]
+		local profile: ServerPlayerProfile? = select(
+			2,
+			self:WaitForPlayerProfile(player):timeout(GameConfig.data.playerProfileInvokeTimeout, false):await()
+		)
 		if not profile then
 			Logger.warn(`GetPlayerData: No profile found for {player.Name}`)
 
 			return nil
 		end
 
-		local combinedState = profile.producer:getState()
-
-		return combinedState
+		return profile.producer:getState()
 	end
 
 	GetGameData.OnServerInvoke = function(): ...any
 		return self.gameProducer:getState()
 	end
 
-	Players.PlayerRemoving:Connect(function(player: Player): ()
-		self:PlayerRemoving(player)
-	end)
-
 	for _index: number, player: Player in Players:GetPlayers() do
 		task.spawn(function(): ()
 			self:PlayerAdded(player)
 		end)
 	end
-
-	--! FOR SOLO TEST !--
-	-- task.delay(5, function(): ()
-	-- 	print(self:WaitForPlayerProfile(game:GetService("Players"):GetPlayers()[1]):expect().producer:getState())
-	-- end)
 end
 
 return ServerData

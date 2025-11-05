@@ -12,7 +12,7 @@ local OpenGui: OpenGui = {} :: OpenGui
 local CurrentlyOpen: (ModuleScript & any)?
 
 local function OpenAnimation(UIModule: ModuleScript & any): ()
-	local UIElement: Frame = UIModule.MainFrame
+	local UIElement: Frame = UIModule.tagclass.instance
 	if not UIElement:GetAttribute("OgSize") then
 		UIElement:SetAttribute("OgSize", UIElement.Size)
 	end
@@ -37,7 +37,7 @@ local function CloseAnimation(UIModule: ModuleScript & any): ()
 		UIElement = CurrentlyOpen :: any
 	end
 
-	UIElement = UIElement.MainFrame
+	UIElement = UIModule.tagclass.instance
 
 	if not UIElement:GetAttribute("OgSize") then
 		UIElement:SetAttribute("OgSize", UIElement.Size)
