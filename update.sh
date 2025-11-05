@@ -2,6 +2,7 @@
 
 set -e
 echo "Starting update..."
+aftman install || true
 rm -f wally.lock
 wally install
 rojo sourcemap default.project.json --output sourcemap.json
