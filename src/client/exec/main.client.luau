@@ -219,7 +219,7 @@ local function InitLocalTag(required: unknown): ()
 		end
 
 		for _index: number, button: GuiButton in class.closeButtons do
-			class.closeButtonsMaid:GiveTask(button.MouseButton1Up:Connect(function(): ()
+			class.closeButtonsMaid:GiveTask(button.MouseButton1Down:Connect(function(): ()
 				if class.Close then
 					class:Close()
 				else
