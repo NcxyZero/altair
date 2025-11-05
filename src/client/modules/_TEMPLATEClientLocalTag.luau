@@ -6,7 +6,7 @@ local Maid = require(ReplicatedStorage.package.Maid)
 
 export type Default = {
 	type: string,
-	tag: string,
+	local_tag: string,
 	path: InitializerTypes.ClientPath,
 	instance: Instance,
 	maid: Maid.Maid,
@@ -15,23 +15,23 @@ export type Default = {
 	Destroy: (self: Default) -> (),
 }
 
-local ClientTagTemplate: Default = {} :: Default
-ClientTagTemplate.__index = ClientTagTemplate
-ClientTagTemplate.type = "tag"
-ClientTagTemplate.tag = script.Name
+local ClientLocalTagTemplate: Default = {} :: Default
+ClientLocalTagTemplate.__index = ClientLocalTagTemplate
+ClientLocalTagTemplate.type = "tag"
+ClientLocalTagTemplate.local_tag = script.Name
 
-function ClientTagTemplate.new(instance: Instance, path: InitializerTypes.ClientPath): Default
-	local self = setmetatable({}, ClientTagTemplate)
+function ClientLocalTagTemplate.new(instance: Instance, path: InitializerTypes.ClientPath): Default
+	local self = setmetatable({}, ClientLocalTagTemplate)
 	self.instance = instance
 	self.path = path
 	self.maid = Maid.new()
-	Logger.print("ClientTagTemplate initalized instance: " .. instance.Name)
+	Logger.print("ClientLocalTagTemplate initalized instance: " .. instance.Name)
 
 	return self
 end
 
-function ClientTagTemplate:Destroy(): ()
+function ClientLocalTagTemplate:Destroy(): ()
 	self.maid:DoCleaning()
 end
 
-return ClientTagTemplate
+return ClientLocalTagTemplate
