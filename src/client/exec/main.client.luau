@@ -137,7 +137,12 @@ local function InitTag(required: unknown): ()
 		end
 
 		class.path = path
-		tags[instance] = class
+
+		if not tags[instance] then
+			tags[instance] = {}
+		end
+		tags[instance][tag] = class
+
 		path.tag[instance] = class
 
 		if not required.tagclass then
@@ -148,7 +153,7 @@ local function InitTag(required: unknown): ()
 	end
 
 	local function removeInstance(instance: Instance): ()
-		local class: unknown = tags[instance]
+		local class: unknown = tags[instance] and tags[instance][tag]
 
 		table.remove(required.tagclasses, table.find(required.tagclasses, class))
 
@@ -200,7 +205,11 @@ local function InitLocalTag(required: unknown): ()
 		end
 
 		class.path = path
-		tags[instance] = class
+
+		if not tags[instance] then
+			tags[instance] = {}
+		end
+		tags[instance][tag] = class
 
 		path.local_tag[instance] = class
 
@@ -230,7 +239,7 @@ local function InitLocalTag(required: unknown): ()
 	end
 
 	local function removeInstance(instance: Instance): ()
-		local class: unknown = tags[instance]
+		local class: unknown = tags[instance] and tags[instance][tag]
 
 		table.remove(required.tagclasses, table.find(required.tagclasses, class))
 
