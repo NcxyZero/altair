@@ -67,17 +67,19 @@ function RaycastController:RaycastPlayerStanding(raycastParams: RaycastParams): 
 end
 
 function RaycastController:Init(): ()
-	WaitForGameToLoad()
+	task.defer(function(): ()
+		WaitForGameToLoad()
 
-	local raycastParams: RaycastParams = RaycastParams.new()
-	raycastParams.FilterType = Enum.RaycastFilterType.Include
-	raycastParams.FilterDescendantsInstances = { CollectionService:GetTagged("RaycastDetect") }
+		local raycastParams: RaycastParams = RaycastParams.new()
+		raycastParams.FilterType = Enum.RaycastFilterType.Include
+		raycastParams.FilterDescendantsInstances = { CollectionService:GetTagged("RaycastDetect") }
 
-	Promise.retryWithDelay(function(): Promise.TypedPromise<>
-		return Promise.new(function(_resolve: () -> (), reject: () -> ()): ()
-			reject(self:RaycastPlayerStanding(raycastParams))
-		end)
-	end, math.huge, GameConfig.core.raycastDetectionTimeout)
+		Promise.retryWithDelay(function(): Promise.TypedPromise<>
+			return Promise.new(function(_resolve: () -> (), reject: () -> ()): ()
+				reject(self:RaycastPlayerStanding(raycastParams))
+			end)
+		end, math.huge, GameConfig.core.raycastDetectionTimeout)
+	end)
 end
 
 return RaycastController
