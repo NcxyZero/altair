@@ -24,6 +24,9 @@ local Conditions = {
 		return producer:getState().monetization.passes[name]
 			or (isServer and player and CacheManager:CheckCondition(player, "monetization", "passes", name))
 	end,
+	offers = function(producer, name: string): boolean
+		return producer:getState().monetization.offers[name]
+	end,
 	rebirth = function(producer, required: number): boolean
 		return producer:getState().player.rebirth >= required
 	end,
