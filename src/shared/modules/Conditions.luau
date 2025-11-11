@@ -20,12 +20,12 @@ export type ConditionsClient = {
 export type Conditions = ConditionsServer & ConditionsClient
 
 local Conditions = {
+	offers = function(producer, name: string): boolean
+		return producer:getState().monetization.offers[name]
+	end,
 	passes = function(producer, name: string, player: Player?): boolean
 		return producer:getState().monetization.passes[name]
 			or (isServer and player and CacheManager:CheckCondition(player, "monetization", "passes", name))
-	end,
-	offers = function(producer, name: string): boolean
-		return producer:getState().monetization.offers[name]
 	end,
 	rebirth = function(producer, required: number): boolean
 		return producer:getState().player.rebirth >= required
