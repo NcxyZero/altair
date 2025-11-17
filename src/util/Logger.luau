@@ -59,7 +59,7 @@ local function tryFrame(level: number): string?
 	if not ok then
 		debugLog("tryFrame: debug.info failed", tostring(level))
 
-		return nil
+		return
 	end
 
 	local sourceStr: string? = nil
@@ -80,7 +80,7 @@ local function tryFrame(level: number): string?
 	if not sourceStr or sourceStr == "" then
 		debugLog("tryFrame: empty source", tostring(level))
 
-		return nil
+		return
 	end
 
 	local filename: string = cleanFilenameFromSource(sourceStr)
@@ -96,7 +96,7 @@ local function tryFrame(level: number): string?
 
 	debugLog("tryFrame: skipped frame", tostring(level))
 
-	return nil
+	return
 end
 
 local function getSourceInfo(): string

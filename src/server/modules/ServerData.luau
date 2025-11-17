@@ -344,7 +344,7 @@ function ServerData:Init(): ()
 		if not profile then
 			Logger.warn(`GetPlayerData: No profile found for {player.Name}`)
 
-			return nil
+			return
 		end
 
 		return profile.producer:getState()

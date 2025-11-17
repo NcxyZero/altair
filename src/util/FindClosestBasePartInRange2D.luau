@@ -4,7 +4,7 @@ return function(baseParts: { BasePart }, range: number): BasePart?
 	local closest: BasePart, distance: number
 	local character: Model? = Players.LocalPlayer.Character
 	if not character then
-		return nil
+		return
 	end
 
 	for _index: number, basePart: BasePart in baseParts do
