@@ -7,11 +7,13 @@ export type Producer = Reflex.Producer<State, Actions>
 
 export type State = {
 	userId: number,
+	lastSeen: number,
 	money: string,
 	rebirth: number,
 }
 
 type Actions = {
+	secureSetLastSeenTimestamp: () -> State,
 	secureAddMoney: (amount: number | string) -> State,
 	secureSpendMoney: (amount: number | string) -> State,
 	secureAddRebirth: (addMultipleAmount: number?) -> State,
@@ -19,6 +21,7 @@ type Actions = {
 
 local DEFAULT_STATE: State = {
 	userId = 0,
+	lastSeen = DateTime.now().UnixTimestamp,
 	money = "",
 	rebirth = 0,
 }
@@ -29,6 +32,13 @@ local SAVE_EXCEPTIONS: { string } = {
 
 function CreateProducer(initialState: State): Producer
 	local producer: Producer = Reflex.createProducer(initialState, {
+		secureSetLastSeenTimestamp = function(oldState: State): State
+			local state = table.clone(oldState)
+			state.lastSeen = DateTime.now().UnixTimestamp
+
+			return state
+		end,
+
 		secureAddMoney = function(oldState: State, amount: number | string): State
 			if type(amount) == "string" then
 				amount = tonumber(amount) :: number

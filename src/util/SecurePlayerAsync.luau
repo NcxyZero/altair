@@ -6,6 +6,10 @@ local Maid = require(ReplicatedStorage.package.Maid)
 local Promise = require(ReplicatedStorage.package.Promise)
 
 local function securePlayerAsync<T>(player: Player, ...: Promise.TypedPromise<T>): Promise.TypedPromise<T | any>
+	if not player then
+		return Promise.reject("SecurePlayerAsync - Player is nil! Rejecting...")
+	end
+
 	local maid: Maid.Maid = Maid.new()
 
 	local securePlayerPromise: Promise.TypedPromise<any> = Promise.new(

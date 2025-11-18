@@ -1,11 +1,12 @@
+local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local ServerScriptService = game:GetService("ServerScriptService")
 
+local CacheManager = require(ReplicatedStorage.shared.modules.CacheManager)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
+local MonetizationConfig = require(ReplicatedStorage.shared.config.MonetizationConfig)
 
 local isServer: boolean = RunService:IsServer()
-local CacheManager = isServer and require(ServerScriptService.server.modules.CacheManager) or nil
 
 export type ConditionsServer = {
 	path: InitializerTypes.ServerPath,
@@ -24,8 +25,26 @@ local Conditions = {
 		return producer:getState().monetization.offers[name]
 	end,
 	passes = function(producer, name: string, player: Player?): boolean
-		return producer:getState().monetization.passes[name]
-			or (isServer and player and CacheManager:CheckCondition(player, "monetization", "passes", name))
+		local hasPass: boolean = producer:getState().monetization.passes[name]
+		if hasPass then
+			return true
+		end
+
+		if not (isServer and player) then
+			return false
+		end
+
+		local key: string = "passes:" .. name
+		local value: any = CacheManager:GetOrCompute(player, key, function(): boolean
+			local id: number? = MonetizationConfig.passes[name]
+			if not id then
+				return false
+			end
+
+			return MarketplaceService:UserOwnsGamePassAsync(player.UserId, id)
+		end, nil, "monetization")
+
+		return value == true
 	end,
 	rebirth = function(producer, required: number): boolean
 		return producer:getState().player.rebirth >= required

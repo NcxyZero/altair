@@ -62,47 +62,65 @@ ServerMonetization.index = 2
 ServerMonetization.idIndexedMonetizationReference = {} :: any
 
 function ServerMonetization:ProceedGamePassPurchaseAsync(player: Player, id: number): Promise.TypedPromise<boolean>
-	return Promise.new(function(resolve: (boolean) -> (), _reject: () -> (), onCancel: (() -> ()) -> ()): ()
-		MarketplaceService:PromptGamePassPurchase(player, id)
+	return SecurePlayerAsync(
+		player,
+		Promise.new(function(resolve: (boolean) -> (), _reject: () -> (), onCancel: ((() -> ())?) -> ()): ()
+			if not player then
+				return onCancel()
+			end
 
-		local maid: Maid.Maid = Maid.new()
-		onCancel(function(): ()
-			maid:DoCleaning()
-		end)
+			MarketplaceService:PromptGamePassPurchase(player, id)
 
-		maid:GiveTask(
-			MarketplaceService.PromptGamePassPurchaseFinished:Connect(
-				function(eventPlayer: Player, gamePassId: number, wasPurchased: boolean): ()
-					if eventPlayer == player and gamePassId == id then
-						maid:DoCleaning()
-						resolve(wasPurchased)
+			local maid: Maid.Maid = Maid.new()
+			onCancel(function(): ()
+				maid:DoCleaning()
+			end)
+
+			maid:GiveTask(
+				MarketplaceService.PromptGamePassPurchaseFinished:Connect(
+					function(eventPlayer: Player, gamePassId: number, wasPurchased: boolean): ()
+						if eventPlayer == player and gamePassId == id then
+							maid:DoCleaning()
+							resolve(wasPurchased)
+						end
 					end
-				end
+				)
 			)
-		)
-	end):catch(warn)
+
+			return
+		end)
+	):catch(warn)
 end
 
 function ServerMonetization:ProceedDevProductPurchaseAsync(player: Player, id: number): Promise.TypedPromise<boolean>
-	return Promise.new(function(resolve: (boolean) -> (), _reject: () -> (), onCancel: (() -> ()) -> ()): ()
-		MarketplaceService:PromptProductPurchase(player, id)
+	return SecurePlayerAsync(
+		player,
+		Promise.new(function(resolve: (boolean) -> (), _reject: () -> (), onCancel: ((() -> ())?) -> ()): ()
+			if not player then
+				return onCancel()
+			end
 
-		local maid: Maid.Maid = Maid.new()
-		onCancel(function(): ()
-			maid:DoCleaning()
-		end)
+			MarketplaceService:PromptProductPurchase(player, id)
 
-		maid:GiveTask(
-			MarketplaceService.PromptProductPurchaseFinished:Connect(
-				function(userId: number, productId: number, isPurchased: boolean): ()
-					if userId == player.UserId and productId == id then
-						maid:DoCleaning()
-						resolve(isPurchased)
+			local maid: Maid.Maid = Maid.new()
+			onCancel(function(): ()
+				maid:DoCleaning()
+			end)
+
+			maid:GiveTask(
+				MarketplaceService.PromptProductPurchaseFinished:Connect(
+					function(userId: number, productId: number, isPurchased: boolean): ()
+						if userId == player.UserId and productId == id then
+							maid:DoCleaning()
+							resolve(isPurchased)
+						end
 					end
-				end
+				)
 			)
-		)
-	end):catch(warn)
+
+			return
+		end)
+	):catch(warn)
 end
 
 function ServerMonetization:PromptGamePassByNameAsync(player: Player, name: string): Promise.TypedPromise<boolean>

@@ -25,7 +25,8 @@ path.other = {}
 
 local loadFirst = {}
 local load = {}
-local tags = {}
+local tagModules = {}
+local tagInstances = {}
 
 local folders: { Folder } = script.Parent:GetChildren()
 table.insert(folders, ReplicatedStorage.shared.modules)
@@ -44,7 +45,8 @@ for _index: number, folder: Folder in folders do
 			continue
 		end
 
-		if module.Name:lower():find("template") then
+		local moduleName: string = module.Name
+		if moduleName:lower():find("template") then
 			continue
 		end
 
@@ -74,13 +76,15 @@ for _index: number, folder: Folder in folders do
 		end
 
 		if moduleType == "tag" then
-			tags[module.Name] = required
+			tagModules[module.Name] = required
 		else
 			path[moduleType][module.Name] = required
 		end
 
 		if moduleType == "other" then
 			required.path = path
+		elseif required.type then
+			required.name = moduleName
 		end
 	end
 end
@@ -128,13 +132,13 @@ end
 local function InitTag(required: unknown): ()
 	local tag: string = required.tag
 	if not tag then
-		Logger.warn("Tag not specified for required module:", required)
+		Logger.warn("Tag not specified for required module:", required.name)
 		return
 	end
 
 	local new: ((Instance) -> unknown)? = required.new
 	if not new then
-		Logger.warn("New function not specified for tag module:", required)
+		Logger.warn("New function not specified for tag module:", required.name)
 		return
 	end
 
@@ -150,10 +154,10 @@ local function InitTag(required: unknown): ()
 
 		class.path = path
 
-		if not tags[instance] then
-			tags[instance] = {}
+		if not tagInstances[instance] then
+			tagInstances[instance] = {}
 		end
-		tags[instance][tag] = class
+		tagInstances[instance][tag] = class
 
 		path.tag[instance] = class
 
@@ -171,7 +175,7 @@ local function InitTag(required: unknown): ()
 	end
 
 	local function removeInstance(instance: Instance): ()
-		local class: unknown = tags[instance] and tags[instance][tag]
+		local class: unknown = tagInstances[instance] and tagInstances[instance][tag]
 
 		table.remove(required.tagclasses, table.find(required.tagclasses, class))
 
@@ -215,11 +219,11 @@ for _index: number, required: unknown in load do
 	end)
 
 	if not success then
-		Logger.warn(`Failed to initialize controller {required.type or "unknown"}: {err}`)
+		Logger.warn(`Failed to initialize controller of type {required.type or "unknown"}: {err}`)
 	end
 end
 
-for _index: number, required: unknown in tags do
+for _index: number, required: unknown in tagModules do
 	task.spawn(InitTag, required)
 end
 
@@ -231,7 +235,7 @@ for _index: number, required: unknown in loadFirst do
 	end)
 
 	if not success then
-		Logger.warn(`Failed to start priority controller {required.type or "unknown"}: {err}`)
+		Logger.warn(`Failed to start priority controller of type {required.type or "unknown"}: {err}`)
 	end
 end
 

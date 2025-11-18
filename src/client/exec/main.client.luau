@@ -19,7 +19,7 @@ path.other = {}
 
 local moduleTags = {}
 local moduleTagsLocal = {}
-local tags = {}
+local tagInstances = {}
 local loadFirst = {}
 local load = {}
 
@@ -40,7 +40,8 @@ for _index: number, folder: Folder in folders do
 			continue
 		end
 
-		if module.Name:lower():find("template") then
+		local moduleName: string = module.Name
+		if moduleName:lower():find("template") then
 			continue
 		end
 
@@ -79,6 +80,8 @@ for _index: number, folder: Folder in folders do
 
 		if moduleType == "other" then
 			required.path = path
+		elseif required.type then
+			required.name = moduleName
 		end
 	end
 end
@@ -118,13 +121,13 @@ end
 local function InitTag(required: unknown): ()
 	local tag: string = required.tag
 	if not tag then
-		Logger.warn("Tag not specified for required module:", required)
+		Logger.warn("Tag not specified for required module")
 		return
 	end
 
 	local new: ((Instance) -> unknown)? = required.new
 	if not new then
-		Logger.warn("New function not specified for tag module:", required)
+		Logger.warn("New function not specified for tag module:", required.name)
 		return
 	end
 
@@ -138,10 +141,10 @@ local function InitTag(required: unknown): ()
 
 		class.path = path
 
-		if not tags[instance] then
-			tags[instance] = {}
+		if not tagInstances[instance] then
+			tagInstances[instance] = {}
 		end
-		tags[instance][tag] = class
+		tagInstances[instance][tag] = class
 
 		path.tag[instance] = class
 
@@ -153,7 +156,7 @@ local function InitTag(required: unknown): ()
 	end
 
 	local function removeInstance(instance: Instance): ()
-		local class: unknown = tags[instance] and tags[instance][tag]
+		local class: unknown = tagInstances[instance] and tagInstances[instance][tag]
 
 		table.remove(required.tagclasses, table.find(required.tagclasses, class))
 
@@ -180,13 +183,13 @@ end
 local function InitLocalTag(required: unknown): ()
 	local tag: string = required.tag
 	if not tag then
-		Logger.warn("Tag not specified for local tag module:", required)
+		Logger.warn("Tag not specified for local tag module:", required.name)
 		return
 	end
 
 	local new: ((Instance) -> unknown)? = required.new
 	if not new then
-		Logger.warn("New function not specified for local tag module:", required)
+		Logger.warn("New function not specified for local tag module:", required.name)
 		return
 	end
 
@@ -206,10 +209,10 @@ local function InitLocalTag(required: unknown): ()
 
 		class.path = path
 
-		if not tags[instance] then
-			tags[instance] = {}
+		if not tagInstances[instance] then
+			tagInstances[instance] = {}
 		end
-		tags[instance][tag] = class
+		tagInstances[instance][tag] = class
 
 		path.local_tag[instance] = class
 
@@ -239,7 +242,7 @@ local function InitLocalTag(required: unknown): ()
 	end
 
 	local function removeInstance(instance: Instance): ()
-		local class: unknown = tags[instance] and tags[instance][tag]
+		local class: unknown = tagInstances[instance] and tagInstances[instance][tag]
 
 		table.remove(required.tagclasses, table.find(required.tagclasses, class))
 
@@ -271,7 +274,7 @@ for _index: number, required: unknown in loadFirst do
 	end)
 
 	if not success then
-		Logger.warn(`Failed to initialize priority controller {required.type or "unknown"}: {err}`)
+		Logger.warn(`Failed to initialize priority controller of type {required.type or "unknown"}: {err}`)
 	end
 end
 
@@ -283,7 +286,7 @@ for _index: number, required: unknown in load do
 	end)
 
 	if not success then
-		Logger.warn(`Failed to initialize controller {required.type or "unknown"}: {err}`)
+		Logger.warn(`Failed to initialize controller of type {required.type or "unknown"}: {err}`)
 	end
 end
 
@@ -303,7 +306,7 @@ for _index: number, required: unknown in loadFirst do
 	end)
 
 	if not success then
-		Logger.warn(`Failed to start priority controller {required.type or "unknown"}: {err}`)
+		Logger.warn(`Failed to start priority controller of type {required.type or "unknown"}: {err}`)
 	end
 end
 
@@ -346,7 +349,15 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 		end)
 	end
 
-	for _index: number, class: unknown in tags do
+	for _index: number, class: unknown in path.tag do
+		task.spawn(function(): ()
+			if class.PlayerAdded then
+				class:PlayerAdded(player)
+			end
+		end)
+	end
+
+	for _index: number, class: unknown in path.local_tag do
 		task.spawn(function(): ()
 			if class.PlayerAdded then
 				class:PlayerAdded(player)
@@ -363,7 +374,15 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 			end)
 		end
 
-		for _index: number, class: unknown in tags do
+		for _index: number, class: unknown in path.tag do
+			task.spawn(function(): ()
+				if class.AnyCharacterAdded then
+					class:AnyCharacterAdded(player, character)
+				end
+			end)
+		end
+
+		for _index: number, class: unknown in path.local_tag do
 			task.spawn(function(): ()
 				if class.AnyCharacterAdded then
 					class:AnyCharacterAdded(player, character)
@@ -380,7 +399,15 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 				end
 			end
 
-			for _index: number, class: unknown in tags do
+			for _index: number, class: unknown in path.tag do
+				task.spawn(function(): ()
+					if class.AnyDied then
+						class:AnyDied(player, character)
+					end
+				end)
+			end
+
+			for _index: number, class: unknown in path.local_tag do
 				task.spawn(function(): ()
 					if class.AnyDied then
 						class:AnyDied(player, character)
@@ -399,7 +426,15 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 			end)
 		end
 
-		for _index: number, class: unknown in tags do
+		for _index: number, class: unknown in path.tag do
+			task.spawn(function(): ()
+				if class.AnyCharacterAppearanceLoaded then
+					class:AnyCharacterAppearanceLoaded(player, character)
+				end
+			end)
+		end
+
+		for _index: number, class: unknown in path.local_tag do
 			task.spawn(function(): ()
 				if class.AnyCharacterAppearanceLoaded then
 					class:AnyCharacterAppearanceLoaded(player, character)
@@ -418,7 +453,15 @@ LocalPlayer.CharacterAdded:Connect(function(character: Model): ()
 		end)
 	end
 
-	for _index: number, class: unknown in tags do
+	for _index: number, class: unknown in path.tag do
+		task.spawn(function(): ()
+			if class.CharacterAdded then
+				class:CharacterAdded(character)
+			end
+		end)
+	end
+
+	for _index: number, class: unknown in path.local_tag do
 		task.spawn(function(): ()
 			if class.CharacterAdded then
 				class:CharacterAdded(character)
@@ -437,7 +480,15 @@ LocalPlayer.CharacterAdded:Connect(function(character: Model): ()
 			end)
 		end
 
-		for _index: number, class: unknown in tags do
+		for _index: number, class: unknown in path.tag do
+			task.spawn(function(): ()
+				if class.Died then
+					class:Died(character)
+				end
+			end)
+		end
+
+		for _index: number, class: unknown in path.local_tag do
 			task.spawn(function(): ()
 				if class.Died then
 					class:Died(character)
@@ -456,7 +507,15 @@ LocalPlayer.CharacterAppearanceLoaded:Connect(function(character: Model): ()
 		end)
 	end
 
-	for _index: number, class: unknown in tags do
+	for _index: number, class: unknown in path.tag do
+		task.spawn(function(): ()
+			if class.CharacterAdded then
+				class:CharacterAppearanceLoaded(character)
+			end
+		end)
+	end
+
+	for _index: number, class: unknown in path.local_tag do
 		task.spawn(function(): ()
 			if class.CharacterAdded then
 				class:CharacterAppearanceLoaded(character)
@@ -474,7 +533,15 @@ RunService.Heartbeat:Connect(function(delta: number): ()
 		end)
 	end
 
-	for _index: number, class: unknown in tags do
+	for _index: number, class: unknown in path.tag do
+		task.defer(function(): ()
+			if class.Physics then
+				class:Physics(delta)
+			end
+		end)
+	end
+
+	for _index: number, class: unknown in path.local_tag do
 		task.defer(function(): ()
 			if class.Physics then
 				class:Physics(delta)
@@ -492,7 +559,15 @@ RunService.PreSimulation:Connect(function(delta: number): ()
 		end)
 	end
 
-	for _index: number, class: unknown in tags do
+	for _index: number, class: unknown in path.tag do
+		task.defer(function(): ()
+			if class.Stepped then
+				class:Stepped(delta)
+			end
+		end)
+	end
+
+	for _index: number, class: unknown in path.local_tag do
 		task.defer(function(): ()
 			if class.Stepped then
 				class:Stepped(delta)
@@ -510,7 +585,15 @@ RunService.PreRender:Connect(function(delta: number): ()
 		end)
 	end
 
-	for _index: number, class: unknown in tags do
+	for _index: number, class: unknown in path.tag do
+		task.defer(function(): ()
+			if class.Render then
+				class:Render(delta)
+			end
+		end)
+	end
+
+	for _index: number, class: unknown in path.local_tag do
 		task.defer(function(): ()
 			if class.Render then
 				class:Render(delta)

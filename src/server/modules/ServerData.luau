@@ -240,6 +240,8 @@ function ServerData:PlayerRemoving(player: Player): ()
 		return
 	end
 
+	profile.producer.secureSetLastSeenTimestamp()
+
 	local combinedState = profile.producer:getState()
 	local dataToSave = {}
 
