@@ -22,8 +22,8 @@ Button3DAnimation.tag = script.Name
 
 local SHRINK_MULTIPLIER: number = 0.85 -- determines how much the button shrinks on press
 local DARKEN_MULTIPLIER: number = 0.35 -- determines how much the color darkens on press
-local SHRINK_TIME: number = 0.1 -- seconds
-local GROW_TIME: number = 0.25 -- seconds
+local SHRINK_TIME: number = 0.1
+local GROW_TIME: number = 0.25
 
 function Button3DAnimation.new(instance: BasePart, path: any): Button3DAnimation
 	local self = setmetatable({}, Button3DAnimation)
@@ -40,8 +40,8 @@ function Button3DAnimation.new(instance: BasePart, path: any): Button3DAnimation
 end
 
 local function cancelTweens(self: any): ()
-	local shrink: Tween? = self.shrinkTween
-	local grow: Tween? = self.growTween
+	local shrink: Tween = self.shrinkTween
+	local grow: Tween = self.growTween
 
 	if shrink then
 		shrink:Cancel()
@@ -65,6 +65,8 @@ function Button3DAnimation:Animate(): ()
 	end
 
 	cancelTweens(self)
+
+	button:SetAttribute("RaycastIgnore", true)
 
 	local shrinkSize: Vector3 = self.originalSize * (Vector3.one * SHRINK_MULTIPLIER)
 	local darkerColor: Color3 = Color3.new(
@@ -105,6 +107,8 @@ function Button3DAnimation:Animate(): ()
 			self.shrinkTween = nil
 			self.growTween = nil
 		end
+
+		button:SetAttribute("RaycastIgnore")
 	end))
 
 	shrinkTween:Play()

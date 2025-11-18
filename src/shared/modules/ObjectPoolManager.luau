@@ -49,7 +49,7 @@ local function getCategory(self: ObjectPoolManager, category: string?): { [strin
 end
 
 local function ensurePool(self: ObjectPoolManager, key: string, category: string?): Pool
-	local categoryMap = getCategory(self, category)
+	local categoryMap: { [string]: Pool } = getCategory(self, category)
 	local pool: Pool = categoryMap[key]
 	if not pool then
 		pool = {
@@ -150,7 +150,7 @@ end
 
 function ObjectPoolManager:Clear(key: string, category: string?): ()
 	local categoryName: string = category or self.defaultCategory
-	local categoryMap = self.pools[categoryName]
+	local categoryMap: { [string]: Pool } = self.pools[categoryName]
 	if not categoryMap then
 		return
 	end

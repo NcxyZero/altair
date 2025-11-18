@@ -30,7 +30,11 @@ function RaycastController:RaycastPlayerStanding(raycastParams: RaycastParams): 
 
 	local raycast: RaycastResult = workspace:Raycast(primaryPart.Position, Vector3.yAxis * -50, raycastParams)
 	if not raycast or not raycast.Instance then
-		if self.lastRaycastActionName and self.lastRaycastInstance then
+		if
+			self.lastRaycastActionName
+			and self.lastRaycastInstance
+			and not self.lastRaycastInstance:GetAttribute("RaycastIgnore")
+		then
 			RaycastActions[self.lastRaycastActionName](self.lastRaycastInstance, true)
 
 			self.lastRaycastInstance = nil
@@ -54,7 +58,7 @@ function RaycastController:RaycastPlayerStanding(raycastParams: RaycastParams): 
 		return
 	end
 
-	if raycastActionName == self.lastRaycastActionName then
+	if raycast.Instance == self.lastRaycastInstance then
 		return
 	elseif self.lastRaycastActionName and self.lastRaycastInstance then
 		RaycastActions[raycastActionName](self.lastRaycastInstance, true)
@@ -67,7 +71,7 @@ function RaycastController:RaycastPlayerStanding(raycastParams: RaycastParams): 
 	if raycastActionAnimationName then
 		local raycastActionAnimation = self.path.tag[raycast.Instance][raycastActionAnimationName]
 		if raycastActionAnimation and raycastActionAnimation.Animate then
-			raycastActionAnimation:Animate()
+			task.spawn(raycastActionAnimation.Animate, raycastActionAnimation)
 		end
 	end
 
