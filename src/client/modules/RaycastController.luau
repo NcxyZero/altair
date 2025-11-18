@@ -63,6 +63,14 @@ function RaycastController:RaycastPlayerStanding(raycastParams: RaycastParams): 
 	self.lastRaycastInstance = raycast.Instance
 	self.lastRaycastActionName = raycastActionName
 
+	local raycastActionAnimationName: string = raycast.Instance:GetAttribute("RaycastActionAnimation") :: any
+	if raycastActionAnimationName then
+		local raycastActionAnimation = self.path.tag[raycast.Instance][raycastActionAnimationName]
+		if raycastActionAnimation and raycastActionAnimation.Animate then
+			raycastActionAnimation:Animate()
+		end
+	end
+
 	raycastAction(raycast.Instance)
 end
 

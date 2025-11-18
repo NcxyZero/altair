@@ -146,7 +146,10 @@ local function InitTag(required: unknown): ()
 		end
 		tagInstances[instance][tag] = class
 
-		path.tag[instance] = class
+		if not path.tag[instance] then
+			path.tag[instance] = {}
+		end
+		path.tag[instance][tag] = class
 
 		if not required.tagclass then
 			required.tagclass = class
@@ -169,7 +172,9 @@ local function InitTag(required: unknown): ()
 			class = nil
 		end
 
-		path.tag[instance] = nil
+		if path.tag[instance] then
+			path.tag[instance][tag] = nil
+		end
 	end
 
 	CollectionService:GetInstanceAddedSignal(tag):Connect(addInstance)
