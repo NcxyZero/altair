@@ -37,11 +37,21 @@
 				"$path": "ServerPackages"
 			}
 		},
+		"StarterGui": {
+			"$properties": {
+				"ScreenOrientation": "LandscapeSensor"
+			}
+		},
 		"StarterPlayer": {
 			"$className": "StarterPlayer",
 			"StarterPlayerScripts": {
 				"$className": "StarterPlayerScripts",
 				"$path": "src/client/exec"
+			}
+		},
+		"TestService": {
+			"$properties": {
+				"ExecuteWithStudioRun": true
 			}
 		}
 	}
