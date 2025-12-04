@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
+local GetBridge = require(ReplicatedStorage.util.GetBridge)
 local IsValidUTF8 = require(ReplicatedStorage.util.IsValidUTF8)
 local Logger = require(ReplicatedStorage.util.Logger)
 local MergeDictionaries = require(ReplicatedStorage.util.MergeDictionaries)
@@ -41,12 +42,12 @@ export type ServerPlayerProfile = {
 	profileStore: Reflex.Producer<any, any> & { Data: Data },
 	producer: ProfileTypes.PlayerProducer,
 	nextActionIsReplicated: boolean,
+	slices: { string },
 }
 
 export type Default = {
 	index: number,
 	type: string,
-	gameData: {},
 	gameProducer: gameProfile.Producer,
 	profiles: { [Player]: ServerPlayerProfile? },
 	playerDataLoadedEvent: Signal.Signal<Player, ServerPlayerProfile>,
@@ -63,8 +64,9 @@ local ServerData: Default = {} :: Default
 ServerData.index = 0
 ServerData.type = "controller"
 ServerData.profiles = {}
-ServerData.gameData = {}
 ServerData.playerDataLoadedEvent = Signal.new()
+
+local PlayerReady = GetBridge("PlayerReady")
 
 local DATASTORE_KEY: string = GameConfig.data.datastoreKey
 local function getPlayerKey(userId: number): string
@@ -86,10 +88,6 @@ GetPlayerData.Parent = ReplicatedStorage
 local GetGameData = Instance.new("RemoteFunction")
 GetGameData.Name = "GetGameData"
 GetGameData.Parent = ReplicatedStorage
-
-local SAVE_EXCEPTIONS = {
-	"userId",
-}
 
 function ServerData:GetPlayerProfile(player: Player): ServerPlayerProfile?
 	return self.profiles[player]
@@ -125,7 +123,13 @@ function ServerData:GetPlayerProducerAsync(player: Player): Promise.TypedPromise
 end
 
 function ServerData:GetGameProducerAsync(): Promise.TypedPromise<gameProfile.Producer>
-	return Promise.new(function(resolve: (gameProfile.Producer) -> ()): ()
+	return Promise.new(function(resolve: (gameProfile.Producer) -> (), reject: (string) -> ()): ()
+		if not self.gameProducer then
+			reject(
+				`Game producer not initialized yet! Change calling controller index to higher number than {self.index}!`
+			)
+		end
+
 		resolve(self.gameProducer)
 	end)
 end
@@ -174,18 +178,62 @@ function ServerData:PlayerAdded(player: Player): ()
 	end
 
 	local data = profileStore.Data
-
 	local producers = {}
 
 	local playerData = data.player or {}
+
+	local function normalizeNumericKeys(tbl: any): any
+		local result: { [number]: any } = {}
+		if type(tbl) ~= "table" then
+			return result
+		end
+
+		for key: any, value: any in tbl :: any do
+			local nKey: number? = (type(key) == "number") and (key :: number) or tonumber(key)
+			if nKey then
+				result[nKey :: number] = value
+			end
+		end
+
+		return result
+	end
+
+	playerData.stands = normalizeNumericKeys(playerData.stands)
+	playerData.standsMoney = normalizeNumericKeys(playerData.standsMoney)
+	playerData.standLevels = normalizeNumericKeys(playerData.standLevels)
+
+	for key: number, value: any in playerData.standLevels do
+		if typeof(value) ~= "number" or value < 1 then
+			playerData.standLevels[key] = 1
+		end
+	end
+
+	for key: number, value: any in playerData.standsMoney do
+		local num: number = (typeof(value) == "number" and (value :: number)) or tonumber(value) or 0
+		if num < 0 then
+			playerData.standsMoney[key] = 0
+		else
+			playerData.standsMoney[key] = num
+		end
+	end
+
+	playerData.ready = false
 	playerData.userId = player.UserId
 
 	producers.player = playerProfile.CreateProducer(MergeDictionaries(playerProfile.DEFAULT_STATE, playerData))
+	local slices: { string } = {}
+	table.insert(slices, "player")
 
 	for key: string, module: any in profileModules do
 		if key == "player" or key == "game" then
 			continue
 		end
+
+		if not module.SLICE then
+			continue
+		end
+
+		table.insert(slices, module.SLICE)
 
 		local initialState
 		if data[key] then
@@ -205,6 +253,7 @@ function ServerData:PlayerAdded(player: Player): ()
 		profileStore = profileStore,
 		producer = combinedProducer,
 		nextActionIsReplicated = false,
+		slices = slices,
 	}
 
 	local replicateMiddleware: Reflex.Middleware = function(): ((...any) -> any, string) -> (...any) -> any
@@ -231,6 +280,8 @@ function ServerData:PlayerAdded(player: Player): ()
 	self.playerDataLoadedEvent:Fire(player, profile)
 	player:SetAttribute("DataLoaded", true)
 
+	profile.producer.secureFirstTime()
+
 	task.defer(self.gameProducer.incrementActivePlayers)
 end
 
@@ -243,33 +294,42 @@ function ServerData:PlayerRemoving(player: Player): ()
 	profile.producer.secureSetLastSeenTimestamp()
 
 	local combinedState = profile.producer:getState()
-	local dataToSave = {}
 
-	local playerState = combinedState.player
 	local saveableData = {}
-	for key, value in playerState do
-		if table.find(SAVE_EXCEPTIONS, key) ~= nil then
-			continue
-		end
+	local exceptions = {}
 
-		if typeof(value) == "string" and not IsValidUTF8(value) then
-			continue
+	for _, module in getProfileModules() do
+		if module.SAVE_EXCEPTIONS and module.SLICE then
+			exceptions[module.SLICE] = module.SAVE_EXCEPTIONS
 		end
-
-		saveableData[key] = value
 	end
 
-	dataToSave.player = saveableData
+	for sliceName, stateSlice in combinedState do
+		local data = {}
 
-	for key: string, value: any in combinedState do
-		if key == "player" then
+		if not table.find(profile.slices, sliceName) then
 			continue
 		end
 
-		dataToSave[key] = value
+		local sliceExceptions = exceptions[sliceName] or {}
+		for key, value in stateSlice do
+			if table.find(sliceExceptions, key) ~= nil then
+				continue
+			end
+
+			if typeof(value) == "string" and not IsValidUTF8(value) then
+				continue
+			end
+
+			data[key] = value
+		end
+
+		saveableData[sliceName] = data
 	end
 
-	profile.profileStore.Data = dataToSave :: any
+	saveableData.player.lastOnline = workspace:GetServerTimeNow()
+
+	profile.profileStore.Data = saveableData :: any
 	profile.profileStore:Release()
 	self.profiles[player] = nil
 
@@ -277,6 +337,10 @@ function ServerData:PlayerRemoving(player: Player): ()
 end
 
 function ServerData:Init(): ()
+	PlayerReady:Connect(function(player: Player): ()
+		ServerData:GetPlayerProducerAsync(player):expect().setPlayerReady()
+	end)
+
 	self.gameProducer = gameProfile.CreateProducer(gameProfile.DEFAULT_STATE)
 
 	local nextActionIsReplicated: boolean = false

@@ -1,9 +1,9 @@
 local SocialService = game:GetService("SocialService")
 
 return function(sendingPlayer: Player): boolean
-	local success, canSend = pcall(function(): boolean
+	local success: boolean, canSend: boolean = xpcall(function(): boolean
 		return SocialService:CanSendGameInviteAsync(sendingPlayer)
-	end)
+	end, warn)
 
 	return success and canSend
 end

@@ -265,12 +265,14 @@ Players.PlayerRemoving:Connect(function(player: Player): ()
 		end)
 	end
 
-	for _index: number, class: unknown in path.tag do
-		task.spawn(function(): ()
-			if class.PlayerRemoving then
-				class:PlayerRemoving(player)
-			end
-		end)
+	for _instance: Instance, classes: { unknown } in path.tag do
+		for _index: number, class: unknown in classes do
+			task.spawn(function(): ()
+				if class.PlayerRemoving then
+					class:PlayerRemoving(player)
+				end
+			end)
+		end
 	end
 end)
 
@@ -283,12 +285,14 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 		end)
 	end
 
-	for _index: number, class: unknown in path.tag do
-		task.spawn(function(): ()
-			if class.PlayerAdded then
-				class:PlayerAdded(player)
-			end
-		end)
+	for _instance: Instance, classes: { unknown } in path.tag do
+		for _index: number, class: unknown in classes do
+			task.spawn(function(): ()
+				if class.PlayerAdded then
+					class:PlayerAdded(player)
+				end
+			end)
+		end
 	end
 
 	player.CharacterAdded:Connect(function(character: Model): ()
@@ -300,12 +304,14 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 			end)
 		end
 
-		for _index: number, class: unknown in path.tag do
-			task.spawn(function(): ()
-				if class.CharacterAdded then
-					class:CharacterAdded(player, character)
-				end
-			end)
+		for _instance: Instance, classes: { unknown } in path.tag do
+			for _index: number, class: unknown in classes do
+				task.defer(function(): ()
+					if class.CharacterAdded then
+						class:CharacterAdded(player, character)
+					end
+				end)
+			end
 		end
 
 		local humanoid: Humanoid = character:WaitForChild("Humanoid")
@@ -319,12 +325,14 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 				end)
 			end
 
-			for _index: number, class: unknown in path.tag do
-				task.spawn(function(): ()
-					if class.Died then
-						class:Died(player, character)
-					end
-				end)
+			for _instance: Instance, classes: { unknown } in path.tag do
+				for _index: number, class: unknown in classes do
+					task.defer(function(): ()
+						if class.Died then
+							class:Died(player, character)
+						end
+					end)
+				end
 			end
 		end)
 	end)
@@ -338,12 +346,14 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 			end)
 		end
 
-		for _index: number, class: unknown in path.tag do
-			task.spawn(function(): ()
-				if class.CharacterAppearanceLoaded then
-					class:CharacterAppearanceLoaded(player, character)
-				end
-			end)
+		for _instance: Instance, classes: { unknown } in path.tag do
+			for _index: number, class: unknown in classes do
+				task.defer(function(): ()
+					if class.CharacterAppearanceLoaded then
+						class:CharacterAppearanceLoaded(player, character)
+					end
+				end)
+			end
 		end
 	end)
 end)
@@ -357,12 +367,14 @@ RunService.Heartbeat:Connect(function(delta: number): ()
 		end)
 	end
 
-	for _index: number, class: unknown in path.tag do
-		task.defer(function(): ()
-			if class.Physics then
-				class:Physics(delta)
-			end
-		end)
+	for _instance: Instance, classes: { unknown } in path.tag do
+		for _index: number, class: unknown in classes do
+			task.defer(function(): ()
+				if class.Physics then
+					class:Physics(delta)
+				end
+			end)
+		end
 	end
 end)
 
@@ -375,12 +387,14 @@ RunService.PreSimulation:Connect(function(delta: number): ()
 		end)
 	end
 
-	for _index: number, class: unknown in path.tag do
-		task.defer(function(): ()
-			if class.Stepped then
-				class:Stepped(delta)
-			end
-		end)
+	for _instance: Instance, classes: { unknown } in path.tag do
+		for _index: number, class: unknown in classes do
+			task.defer(function(): ()
+				if class.Stepped then
+					class:Stepped(delta)
+				end
+			end)
+		end
 	end
 end)
 
@@ -393,11 +407,13 @@ RunService.PreRender:Connect(function(delta: number): ()
 		end)
 	end
 
-	for _index: number, class: unknown in path.tag do
-		task.defer(function(): ()
-			if class.Render then
-				class:Render(delta)
-			end
-		end)
+	for _instance: Instance, classes: { unknown } in path.tag do
+		for _index: number, class: unknown in classes do
+			task.defer(function(): ()
+				if class.Render then
+					class:Render(delta)
+				end
+			end)
+		end
 	end
 end)

@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local ClientInitConfig = require(ReplicatedStorage.client.clientConfig.ClientInitConfig)
+local GetBridge = require(ReplicatedStorage.util.GetBridge)
 local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
 local Logger = require(ReplicatedStorage.util.Logger)
 local Maid = require(ReplicatedStorage.package.Maid)
@@ -336,9 +337,19 @@ Players.PlayerRemoving:Connect(function(player: Player): ()
 		end)
 	end
 
-	for _index: number, class: unknown in path.tag do
+	for _instance: Instance, classes: { unknown } in path.tag do
+		for _index: number, class: unknown in classes do
+			task.spawn(function(): ()
+				if class.PlayerRemoving then
+					class:PlayerRemoving(player)
+				end
+			end)
+		end
+	end
+
+	for _instance: Instance, class: unknown in path.local_tag do
 		task.spawn(function(): ()
-			if class.PlayerRemoving then
+			if class and class.PlayerRemoving then
 				class:PlayerRemoving(player)
 			end
 		end)
@@ -354,17 +365,19 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 		end)
 	end
 
-	for _index: number, class: unknown in path.tag do
-		task.spawn(function(): ()
-			if class.PlayerAdded then
-				class:PlayerAdded(player)
-			end
-		end)
+	for _instance: Instance, classes: { unknown } in path.tag do
+		for _index: number, class: unknown in classes do
+			task.spawn(function(): ()
+				if class.PlayerAdded then
+					class:PlayerAdded(player)
+				end
+			end)
+		end
 	end
 
-	for _index: number, class: unknown in path.local_tag do
+	for _instance: Instance, class: unknown in path.local_tag do
 		task.spawn(function(): ()
-			if class.PlayerAdded then
+			if class and class.PlayerAdded then
 				class:PlayerAdded(player)
 			end
 		end)
@@ -379,23 +392,32 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 			end)
 		end
 
-		for _index: number, class: unknown in path.tag do
-			task.spawn(function(): ()
-				if class.AnyCharacterAdded then
-					class:AnyCharacterAdded(player, character)
-				end
-			end)
+		for _instance: Instance, classes: { unknown } in path.tag do
+			for _index: number, class: unknown in classes do
+				task.defer(function(): ()
+					if class.CharacterAdded then
+						class:CharacterAdded(player, character)
+					end
+				end)
+			end
 		end
 
-		for _index: number, class: unknown in path.local_tag do
-			task.spawn(function(): ()
-				if class.AnyCharacterAdded then
-					class:AnyCharacterAdded(player, character)
+		for _instance: Instance, class: unknown in path.local_tag do
+			task.defer(function(): ()
+				if class and class.CharacterAdded then
+					class:CharacterAdded(player, character)
 				end
 			end)
 		end
 
 		local humanoid: Humanoid = character:WaitForChild("Humanoid")
+
+		local animator: Animator? = humanoid:FindFirstChildWhichIsA("Animator")
+		if not animator then
+			local newAnimator: Animator = Instance.new("Animator") :: any
+			newAnimator.Name = "Animator"
+			newAnimator.Parent = humanoid
+		end
 
 		humanoid.Died:Connect(function(): ()
 			for _index: number, class: unknown in path.controller do
@@ -404,17 +426,19 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 				end
 			end
 
-			for _index: number, class: unknown in path.tag do
-				task.spawn(function(): ()
-					if class.AnyDied then
-						class:AnyDied(player, character)
-					end
-				end)
+			for _instance: Instance, classes: { unknown } in path.tag do
+				for _index: number, class: unknown in classes do
+					task.defer(function(): ()
+						if class.AnyDied then
+							class:AnyDied(player, character)
+						end
+					end)
+				end
 			end
 
-			for _index: number, class: unknown in path.local_tag do
-				task.spawn(function(): ()
-					if class.AnyDied then
+			for _instance: Instance, class: unknown in path.local_tag do
+				task.defer(function(): ()
+					if class and class.AnyDied then
 						class:AnyDied(player, character)
 					end
 				end)
@@ -431,17 +455,19 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 			end)
 		end
 
-		for _index: number, class: unknown in path.tag do
-			task.spawn(function(): ()
-				if class.AnyCharacterAppearanceLoaded then
-					class:AnyCharacterAppearanceLoaded(player, character)
-				end
-			end)
+		for _instance: Instance, classes: { unknown } in path.tag do
+			for _index: number, class: unknown in classes do
+				task.defer(function(): ()
+					if class.AnyCharacterAppearanceLoaded then
+						class:AnyCharacterAppearanceLoaded(player, character)
+					end
+				end)
+			end
 		end
 
-		for _index: number, class: unknown in path.local_tag do
-			task.spawn(function(): ()
-				if class.AnyCharacterAppearanceLoaded then
+		for _instance: Instance, class: unknown in path.local_tag do
+			task.defer(function(): ()
+				if class and class.AnyCharacterAppearanceLoaded then
 					class:AnyCharacterAppearanceLoaded(player, character)
 				end
 			end)
@@ -458,17 +484,19 @@ LocalPlayer.CharacterAdded:Connect(function(character: Model): ()
 		end)
 	end
 
-	for _index: number, class: unknown in path.tag do
-		task.spawn(function(): ()
-			if class.CharacterAdded then
-				class:CharacterAdded(character)
-			end
-		end)
+	for _instance: Instance, classes: { unknown } in path.tag do
+		for _index: number, class: unknown in classes do
+			task.defer(function(): ()
+				if class.CharacterAdded then
+					class:CharacterAdded(character)
+				end
+			end)
+		end
 	end
 
-	for _index: number, class: unknown in path.local_tag do
-		task.spawn(function(): ()
-			if class.CharacterAdded then
+	for _instance: Instance, class: unknown in path.local_tag do
+		task.defer(function(): ()
+			if class and class.CharacterAdded then
 				class:CharacterAdded(character)
 			end
 		end)
@@ -485,17 +513,19 @@ LocalPlayer.CharacterAdded:Connect(function(character: Model): ()
 			end)
 		end
 
-		for _index: number, class: unknown in path.tag do
-			task.spawn(function(): ()
-				if class.Died then
-					class:Died(character)
-				end
-			end)
+		for _instance: Instance, classes: { unknown } in path.tag do
+			for _index: number, class: unknown in classes do
+				task.defer(function(): ()
+					if class.Died then
+						class:Died(character)
+					end
+				end)
+			end
 		end
 
-		for _index: number, class: unknown in path.local_tag do
-			task.spawn(function(): ()
-				if class.Died then
+		for _instance: Instance, class: unknown in path.local_tag do
+			task.defer(function(): ()
+				if class and class.Died then
 					class:Died(character)
 				end
 			end)
@@ -512,17 +542,19 @@ LocalPlayer.CharacterAppearanceLoaded:Connect(function(character: Model): ()
 		end)
 	end
 
-	for _index: number, class: unknown in path.tag do
-		task.spawn(function(): ()
-			if class.CharacterAdded then
-				class:CharacterAppearanceLoaded(character)
-			end
-		end)
+	for _instance: Instance, classes: { unknown } in path.tag do
+		for _index: number, class: unknown in classes do
+			task.defer(function(): ()
+				if class.CharacterAdded then
+					class:CharacterAppearanceLoaded(character)
+				end
+			end)
+		end
 	end
 
-	for _index: number, class: unknown in path.local_tag do
-		task.spawn(function(): ()
-			if class.CharacterAdded then
+	for _instance: Instance, class: unknown in path.local_tag do
+		task.defer(function(): ()
+			if class and class.CharacterAdded then
 				class:CharacterAppearanceLoaded(character)
 			end
 		end)
@@ -537,18 +569,19 @@ RunService.Heartbeat:Connect(function(delta: number): ()
 			end
 		end)
 	end
-
-	for _index: number, class: unknown in path.tag do
-		task.defer(function(): ()
-			if class.Physics then
-				class:Physics(delta)
-			end
-		end)
+	for _instance: Instance, classes: { unknown } in path.tag do
+		for _index: number, class: unknown in classes do
+			task.defer(function(): ()
+				if class.Physics then
+					class:Physics(delta)
+				end
+			end)
+		end
 	end
 
-	for _index: number, class: unknown in path.local_tag do
+	for _instance: Instance, class: unknown in path.local_tag do
 		task.defer(function(): ()
-			if class.Physics then
+			if class and class.Physics then
 				class:Physics(delta)
 			end
 		end)
@@ -564,17 +597,19 @@ RunService.PreSimulation:Connect(function(delta: number): ()
 		end)
 	end
 
-	for _index: number, class: unknown in path.tag do
-		task.defer(function(): ()
-			if class.Stepped then
-				class:Stepped(delta)
-			end
-		end)
+	for _instance: Instance, classes: { unknown } in path.tag do
+		for _index: number, class: unknown in classes do
+			task.defer(function(): ()
+				if class.Stepped then
+					class:Stepped(delta)
+				end
+			end)
+		end
 	end
 
-	for _index: number, class: unknown in path.local_tag do
+	for _instance: Instance, class: unknown in path.local_tag do
 		task.defer(function(): ()
-			if class.Stepped then
+			if class and class.Stepped then
 				class:Stepped(delta)
 			end
 		end)
@@ -590,17 +625,19 @@ RunService.PreRender:Connect(function(delta: number): ()
 		end)
 	end
 
-	for _index: number, class: unknown in path.tag do
-		task.defer(function(): ()
-			if class.Render then
-				class:Render(delta)
-			end
-		end)
+	for _instance: Instance, classes: { unknown } in path.tag do
+		for _index: number, class: unknown in classes do
+			task.defer(function(): ()
+				if class.Render then
+					class:Render(delta)
+				end
+			end)
+		end
 	end
 
-	for _index: number, class: unknown in path.local_tag do
+	for _instance: Instance, class: unknown in path.local_tag do
 		task.defer(function(): ()
-			if class.Render then
+			if class and class.Render then
 				class:Render(delta)
 			end
 		end)
@@ -618,3 +655,5 @@ LocalPlayer.PlayerGui.ChildAdded:Connect(function(ui: Instance): ()
 		ui.ResetOnSpawn = false
 	end
 end)
+
+GetBridge("PlayerReady"):Fire()

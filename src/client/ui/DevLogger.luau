@@ -64,10 +64,12 @@ function DevLogger:BuildGui(): ScreenGui
 	local screenGui: ScreenGui = CreateInstance("ScreenGui", Players.LocalPlayer.PlayerGui, "DevLogDisplay", {
 		ZIndexBehavior = Enum.ZIndexBehavior.Global,
 		DisplayOrder = 100_000,
+		AutoLocalize = false,
 	})
 	local scrollingFrame: ScrollingFrame = CreateInstance("ScrollingFrame", screenGui, {
 		Active = false,
 		AnchorPoint = Vector2.new(0, 1),
+		AutoLocalize = false,
 		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 		BackgroundTransparency = 1,
 		Interactable = false,
@@ -80,6 +82,7 @@ function DevLogger:BuildGui(): ScreenGui
 	})
 	CreateInstance("UIListLayout", scrollingFrame)
 	CreateInstance("TextLabel", scrollingFrame, {
+		AutoLocalize = false,
 		BackgroundTransparency = 1,
 		Size = UDim2.fromScale(1, 1),
 		FontFace = Font.fromEnum(Enum.Font.Ubuntu),

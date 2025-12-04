@@ -7,6 +7,7 @@ local ProfileTypes = require(ReplicatedStorage.shared.reflex.ProfileTypes)
 local Promise = require(ReplicatedStorage.package.Promise)
 local Reflex = require(ReplicatedStorage.package.Reflex)
 local Signal = require(ReplicatedStorage.package.Signal)
+local clientProfile = require(ReplicatedStorage.shared.reflex.clientProfile)
 local gameProfile = require(ReplicatedStorage.shared.reflex.gameProfile)
 
 local sharedFolder: Folder = ReplicatedStorage:WaitForChild("shared") :: Folder
@@ -34,7 +35,7 @@ export type Default = {
 	index: number,
 	type: string,
 	path: InitializerTypes.ClientPath,
-	clientProducer: Reflex.Producer<any, any>,
+	clientProducer: clientProfile.Producer,
 	playerProducer: ProfileTypes.PlayerProducer,
 	gameProducer: gameProfile.Producer,
 	isPlayerDataLoaded: boolean,
@@ -56,25 +57,11 @@ local ClientData: Default = {
 	gameDataLoadedSignal = Signal.new(),
 } :: Default
 
-local nextActionIsReplicated: boolean = false
-
-local DEFAULT_CLIENT_STATE = {
-	localSettings = {
-		musicVolume = 0.5,
-		sfxVolume = 0.5,
-	},
-}
+local playerDataQueue: number = 0
+local gameDataQueue: number = 0
 
 local function CreateClientProducer(data: any): Reflex.Producer<any, any>
-	local producer: Reflex.Producer<any, any> = Reflex.createProducer(data, {
-		setLocalSetting = function(state: any, key: string, value: any): any
-			local nextState = table.clone(state)
-			nextState.localSettings = table.clone(state.localSettings)
-			nextState.localSettings[key] = value
-
-			return nextState
-		end,
-	})
+	local producer: Reflex.Producer<any, any> = Reflex.createProducer(data, {})
 
 	return producer
 end
@@ -90,9 +77,15 @@ function ClientData:GetPlayerProducerAsync(): Promise.TypedPromise<ProfileTypes.
 end
 
 function ClientData:GetGameProducerAsync(): Promise.TypedPromise<gameProfile.Producer>
-	return Promise.new(function(resolve: (gameProfile.Producer) -> ()): ()
+	return Promise.new(function(resolve: (gameProfile.Producer) -> (), reject: (string) -> ()): ()
 		if not self.isGameDataLoaded then
 			self.gameDataLoadedSignal:Wait()
+		end
+
+		if not self.gameProducer then
+			reject(
+				`Game producer not initialized yet! Change calling controller index to higher number than {self.index}!`
+			)
 		end
 
 		resolve(self.gameProducer)
@@ -106,7 +99,7 @@ function ClientData:PlayerAdded(player: Player): ()
 end
 
 function ClientData:Init(): ()
-	self.clientProducer = CreateClientProducer(DEFAULT_CLIENT_STATE)
+	self.clientProducer = CreateClientProducer(clientProfile.DEFAULT_STATE)
 
 	local function loadPlayerData(): ()
 		local playerData = ReplicatedStorage:WaitForChild("GetPlayerData"):InvokeServer()
@@ -118,8 +111,9 @@ function ClientData:Init(): ()
 		local replicateMiddleware = function(): ()
 			return function(dispatch: (...any) -> (...any) -> any, name: string): (...any) -> any
 				return function(...: any): any
-					if nextActionIsReplicated then
-						nextActionIsReplicated = false
+					if playerDataQueue >= 1 then
+						playerDataQueue -= 1
+
 						return dispatch(...)
 					end
 
@@ -162,8 +156,9 @@ function ClientData:Init(): ()
 		local replicateMiddleware = function(): ()
 			return function(dispatch: (...any) -> (...any) -> any, name: string): (...any) -> any
 				return function(...: any): (...any) -> any
-					if nextActionIsReplicated then
-						nextActionIsReplicated = false
+					if gameDataQueue >= 1 then
+						gameDataQueue -= 1
+
 						return dispatch(...)
 					end
 
@@ -190,11 +185,10 @@ function ClientData:Init(): ()
 			return
 		end
 
-		nextActionIsReplicated = true
+		playerDataQueue += 1
 
 		if not self.isPlayerDataLoaded then
-			Logger.print("Queued store action before player data loaded:", data.name)
-			self.playerDataLoadedSignal:Wait()
+			return
 		end
 
 		local actionParts: { string } = string.split(data.name, "_")
@@ -214,11 +208,10 @@ function ClientData:Init(): ()
 			return
 		end
 
-		nextActionIsReplicated = true
+		gameDataQueue += 1
 
 		if not self.isGameDataLoaded then
-			Logger.print("Queued game store action before game data loaded:", data.name)
-			self.gameDataLoadedSignal:Wait()
+			return
 		end
 
 		if self.gameProducer[data.name] then

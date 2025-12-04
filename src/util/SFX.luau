@@ -18,6 +18,9 @@ local SFX: SFX = {} :: SFX
 SFX.Sounds = {
 	Confetti = "rbxassetid://72685643396992",
 	InterfacePress = "rbxassetid://421058925",
+	CashButton = "rbxassetid://0",
+	NotificationGreat = "rbxassetid://110217765141398",
+	ButtonStep = "rbxassetid://139800881181209",
 }
 
 local function CreateSound(SoundID: string, Volume: number?): Sound
@@ -31,9 +34,9 @@ local function CreateSound(SoundID: string, Volume: number?): Sound
 end
 
 local function AddSoundDebris(Sound: Sound): ()
-	repeat
+	while Sound.TimeLength <= 0 do
 		task.wait()
-	until Sound.TimeLength > 0
+	end
 	Debris:AddItem(Sound, Sound.TimeLength)
 end
 
@@ -49,15 +52,15 @@ function SFX.new(
 
 	if type(SoundID) == "table" then
 		if Randomize then
-			local soundID = SoundID[math.random(1, #SoundID)]
+			local soundID: string = SoundID[math.random(1, #SoundID)]
 			local Sound = CreateSound(soundID, Volume)
 			Sound:Play()
 			AddSoundDebris(Sound)
 
 			return Sound
 		else
-			local CreatedSounds = {}
-			for _, soundID: string in pairs(SoundID) do
+			local CreatedSounds: { Sound } = {}
+			for _, soundID: string in SoundID do
 				local Sound = CreateSound(soundID, Volume)
 				Sound:Play()
 				table.insert(CreatedSounds, Sound)

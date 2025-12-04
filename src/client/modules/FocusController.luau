@@ -16,7 +16,7 @@ local FocusController: Default = {} :: Default
 FocusController.type = "controller"
 
 function FocusController:Init(): ()
-	ClientData.gameProducer:subscribe(function(state: gameProfile.State): Player?
+	ClientData:GetGameProducerAsync():expect():subscribe(function(state: gameProfile.State): Player?
 		return state.focus
 	end, function(focus: Player?): ()
 		local humanoid: Humanoid = (focus and focus.Character)

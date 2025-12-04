@@ -20,5 +20,11 @@ return {
 			Description = "Duration in seconds of the notification. Defaults to 5 seconds",
 			Optional = true,
 		},
+		{
+			Name = "color",
+			Type = "string",
+			Description = "Optional color (name like 'red' or hex like #RRGGBB)",
+			Optional = true,
+		},
 	},
 }

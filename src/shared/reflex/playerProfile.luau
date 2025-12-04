@@ -13,6 +13,8 @@ export type State = {
 }
 
 type Actions = {
+	setPlayerReady: () -> State,
+	secureFirstTime: () -> State,
 	secureSetLastSeenTimestamp: () -> State,
 	secureAddMoney: (amount: number | string) -> State,
 	secureSpendMoney: (amount: number | string) -> State,
@@ -32,6 +34,20 @@ local SAVE_EXCEPTIONS: { string } = {
 
 function CreateProducer(initialState: State): Producer
 	local producer: Producer = Reflex.createProducer(initialState, {
+		setPlayerReady = function(oldState: State): State
+			local state = table.clone(oldState)
+			state.ready = true
+
+			return state
+		end,
+
+		secureFirstTime = function(oldState: State): State
+			local state = table.clone(oldState)
+			state.firstTime = false
+
+			return state
+		end,
+
 		secureSetLastSeenTimestamp = function(oldState: State): State
 			local state = table.clone(oldState)
 			state.lastSeen = DateTime.now().UnixTimestamp
@@ -40,26 +56,34 @@ function CreateProducer(initialState: State): Producer
 		end,
 
 		secureAddMoney = function(oldState: State, amount: number | string): State
+			local numAmount: number?
 			if type(amount) == "string" then
-				amount = tonumber(amount) :: number
+				numAmount = tonumber(amount)
+			else
+				numAmount = amount :: number?
 			end
 
+			local safeAmount: number = typeof(numAmount) == "number" and (numAmount :: number) or 0
 			local state = table.clone(oldState)
 			local convertedValue: string =
-				ConvertCurrency.NumberToString(ConvertCurrency.StringToNumber(state.money) + math.abs(amount :: number))
+				ConvertCurrency.NumberToString(ConvertCurrency.StringToNumber(state.money) + math.abs(safeAmount))
 			state.money = convertedValue
 
 			return state
 		end,
 
 		secureSpendMoney = function(oldState: State, amount: number | string): State
+			local numAmount: number?
 			if type(amount) == "string" then
-				amount = tonumber(amount) :: number
+				numAmount = tonumber(amount)
+			else
+				numAmount = amount
 			end
 
+			local safeAmount: number = typeof(numAmount) == "number" and (numAmount :: number) or 0
 			local state = table.clone(oldState)
 			local convertedValue: string =
-				ConvertCurrency.NumberToString(ConvertCurrency.StringToNumber(state.money) - math.abs(amount :: number))
+				ConvertCurrency.NumberToString(ConvertCurrency.StringToNumber(state.money) - math.abs(safeAmount))
 			state.money = convertedValue
 
 			return state

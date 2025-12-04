@@ -7,6 +7,7 @@ local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
 local Logger = require(ReplicatedStorage.util.Logger)
 local Promise = require(ReplicatedStorage.package.Promise)
 local RaycastActions = require(ReplicatedStorage.client.clientConfig.RaycastActions)
+local TagManager = require(ReplicatedStorage.shared.modules.TagManager)
 local WaitForGameToLoad = require(ReplicatedStorage.util.WaitForGameToLoad)
 
 export type Default = {
@@ -69,7 +70,7 @@ function RaycastController:RaycastPlayerStanding(raycastParams: RaycastParams): 
 
 	local raycastActionAnimationName: string = raycast.Instance:GetAttribute("RaycastActionAnimation") :: any
 	if raycastActionAnimationName then
-		local raycastActionAnimation = self.path.tag[raycast.Instance][raycastActionAnimationName]
+		local raycastActionAnimation = TagManager:GetTagClass(raycast.Instance, raycastActionAnimationName)
 		if raycastActionAnimation and raycastActionAnimation.Animate then
 			task.spawn(raycastActionAnimation.Animate, raycastActionAnimation)
 		end

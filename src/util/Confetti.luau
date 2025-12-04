@@ -10,7 +10,16 @@ local RotationSpeed: number = 20
 local ConfettiUI = {}
 ConfettiUI.__index = ConfettiUI
 
-local function Curve(t, direction, currentX, currentY, startX, startY, delta, finished)
+local function Curve(
+	t: number,
+	direction: number,
+	currentX: number,
+	currentY: number,
+	startX: number,
+	startY: number,
+	delta: number,
+	finished: boolean
+): (number, number, boolean)
 	if -math.sin(math.pi * t) < 0 and not finished then
 		local y = startY + -math.sin(math.pi * t)
 
@@ -21,8 +30,8 @@ local function Curve(t, direction, currentX, currentY, startX, startY, delta, fi
 	end
 end
 
-function ConfettiUI:Show(amount: number)
-	local ui = Instance.new("ScreenGui")
+function ConfettiUI:Show(amount: number): ()
+	local ui: ScreenGui = Instance.new("ScreenGui")
 	ui.DisplayOrder = -10
 	ui.Name = "Confetti"
 	ui.Enabled = false
@@ -38,10 +47,10 @@ function ConfettiUI:Show(amount: number)
 
 	ui.Enabled = true
 	local maid = Maid.new()
-	local frames = {}
+	local frames: { Frame } = {}
 
 	for _index = 1, amount, 1 do
-		task.spawn(function()
+		task.spawn(function(): ()
 			local frame = Instance.new("Frame")
 			maid:GiveTask(frame)
 			local zindex = math.random(10)
@@ -51,9 +60,9 @@ function ConfettiUI:Show(amount: number)
 			frame:SetAttribute("RotationDirection", math.random(2) % 2 == 0 and 1 or -1)
 			frame.BackgroundColor3 = colors[math.random(#colors)]
 			frame.Rotation = math.random(360)
-			local x = math.random(-500, 500) / 1000
-			local y = math.random(-1000, 1000) / 1000
-			local direction = 0
+			local x: number = math.random(-500, 500) / 1000
+			local y: number = math.random(-1000, 1000) / 1000
+			local direction: number = 0
 
 			if x > 0 then
 				direction = 1
@@ -73,15 +82,15 @@ function ConfettiUI:Show(amount: number)
 
 	local finished = false
 
-	task.spawn(function()
+	task.spawn(function(): ()
 		SFX.new(SFX.Sounds.Confetti)
 	end)
 
-	maid:GiveTask(RunService.PreAnimation:Connect(function(delta: number)
+	maid:GiveTask(RunService.PreAnimation:Connect(function(delta: number): ()
 		for _, frame in frames do
-			task.spawn(function()
+			task.spawn(function(): ()
 				frame:SetAttribute("Progress", frame:GetAttribute("Progress") + delta)
-				local x, y, done = Curve(
+				local x: number, y: number, done: boolean = Curve(
 					frame:GetAttribute("Progress"),
 					frame:GetAttribute("Direction"),
 					frame.Position.X.Scale,

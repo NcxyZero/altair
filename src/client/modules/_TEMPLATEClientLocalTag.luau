@@ -6,7 +6,7 @@ local Maid = require(ReplicatedStorage.package.Maid)
 
 export type Default = {
 	type: string,
-	local_tag: string,
+	tag: string,
 	path: InitializerTypes.ClientPath,
 	instance: Instance,
 	maid: Maid.Maid,
@@ -18,7 +18,7 @@ export type Default = {
 local ClientLocalTagTemplate: Default = {} :: Default
 ClientLocalTagTemplate.__index = ClientLocalTagTemplate
 ClientLocalTagTemplate.type = "tag"
-ClientLocalTagTemplate.local_tag = script.Name
+ClientLocalTagTemplate.tag = script.Name
 
 function ClientLocalTagTemplate.new(instance: Instance, path: InitializerTypes.ClientPath): Default
 	local self = setmetatable({}, ClientLocalTagTemplate)
