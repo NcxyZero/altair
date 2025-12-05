@@ -38,8 +38,15 @@
 			}
 		},
 		"StarterGui": {
+			"$className": "StarterGui",
 			"$properties": {
 				"ScreenOrientation": "LandscapeSensor"
+			},
+			"MainUI": {
+				"$className": "ScreenGui",
+				"$properties": {
+					"ResetOnSpawn": false
+				}
 			}
 		},
 		"StarterPlayer": {
@@ -49,7 +56,17 @@
 				"$path": "src/client/exec"
 			}
 		},
+		"SoundService": {
+			"$className": "SoundService",
+			"SFX": {
+				"$className": "Folder",
+				"SoundToClone": {
+					"$className": "Sound"
+				}
+			}
+		},
 		"TestService": {
+			"$className": "TestService",
 			"$properties": {
 				"ExecuteWithStudioRun": true
 			}
