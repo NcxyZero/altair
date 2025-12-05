@@ -412,13 +412,6 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 
 		local humanoid: Humanoid = character:WaitForChild("Humanoid")
 
-		local animator: Animator? = humanoid:FindFirstChildWhichIsA("Animator")
-		if not animator then
-			local newAnimator: Animator = Instance.new("Animator") :: any
-			newAnimator.Name = "Animator"
-			newAnimator.Parent = humanoid
-		end
-
 		humanoid.Died:Connect(function(): ()
 			for _index: number, class: unknown in path.controller do
 				if class.AnyDied then
