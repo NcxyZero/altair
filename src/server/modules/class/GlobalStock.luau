@@ -54,11 +54,11 @@ export type Default = {
 	InDateRange: (self: Default, startTimestamp: number?, endTimestamp: number?, now: number) -> boolean,
 	PredictStock: (self: Default, stockData: StockData, restockTime: number) -> { any },
 	GetKeyStore: (self: Default, stockName: string) -> GlobalDataStore,
-	GetOrCreateGlobalKeyFromDataStore: (self: Default, stockName: string) -> { number } | nil,
-	EnsureGlobalKeyAsync: (self: Default, stockName: string) -> { number } | nil,
+	GetOrCreateGlobalKeyFromDataStore: (self: Default, stockName: string) -> { number }?,
+	EnsureGlobalKeyAsync: (self: Default, stockName: string) -> { number }?,
 	GetAnchor: (self: Default, stockName: string) -> number,
 	MemoryStoreMap: (self: Default, stockName: string) -> MemoryStoreSortedMap,
-	GetForcedStock: (self: Default, stockName: string) -> { any } | nil,
+	GetForcedStock: (self: Default, stockName: string) -> { any }?,
 	SaveForcedStock: (self: Default, stockName: string, stockList: { any }, restocks: number) -> (),
 	ClearForcedStockInStore: (self: Default, stockName: string) -> (),
 	CreateStock: (
@@ -73,9 +73,9 @@ export type Default = {
 	) -> StockData?,
 	GetCurrentStock: (self: Default, stockName: string) -> { any }?,
 	GetStockForRestockTime: (self: Default, stockName: string, restockTime: number) -> { any }?,
-	GetDeterministicBoundary: (self: Default, stockName: string) -> number | nil,
-	GetNextRestockTime: (self: Default, stockName: string) -> number | nil,
-	GetTimeUntilRestock: (self: Default, stockName: string) -> number | nil,
+	GetDeterministicBoundary: (self: Default, stockName: string) -> number?,
+	GetNextRestockTime: (self: Default, stockName: string) -> number?,
+	GetTimeUntilRestock: (self: Default, stockName: string) -> number?,
 	ForceNextStock: (self: Default, stockName: string, stockList: { any }, restocks: number?) -> boolean,
 	ClearForcedStock: (self: Default, stockName: string) -> (),
 	StopStock: (self: Default, stockName: string) -> (),
@@ -205,7 +205,7 @@ function GlobalStock:GetKeyStore(stockName: string): GlobalDataStore
 	return DataStoreService:GetDataStore(storeName)
 end
 
-function GlobalStock:GetOrCreateGlobalKeyFromDataStore(stockName: string): { number } | nil
+function GlobalStock:GetOrCreateGlobalKeyFromDataStore(stockName: string): { number }?
 	if self.cachedGlobalKeyByStock[stockName] then
 		local sd: StockData = self.stocks[stockName]
 		if sd and not sd.globalKey then
@@ -226,7 +226,7 @@ function GlobalStock:GetOrCreateGlobalKeyFromDataStore(stockName: string): { num
 	local attempts: number = cfg.core.maxUpdateAttempts
 
 	for attempt = 1, attempts do
-		local success: boolean, result: any = xpcall(function(): any
+		local success: boolean, result: any = pcall(function(): any
 			return store:UpdateAsync(keyKey, function(oldValue: any): (any, { number }?, {}?)
 				if oldValue and type(oldValue) == "table" and oldValue.numbers then
 					return oldValue
@@ -237,7 +237,7 @@ function GlobalStock:GetOrCreateGlobalKeyFromDataStore(stockName: string): { num
 					created = os.time(),
 				}
 			end)
-		end, Logger.warn)
+		end)
 
 		if success and type(result) == "table" and result.numbers then
 			self.cachedGlobalKeyByStock[stockName] = result.numbers
@@ -261,7 +261,7 @@ function GlobalStock:GetOrCreateGlobalKeyFromDataStore(stockName: string): { num
 	return
 end
 
-function GlobalStock:EnsureGlobalKeyAsync(stockName: string): { number } | nil
+function GlobalStock:EnsureGlobalKeyAsync(stockName: string): { number }?
 	if self.cachedGlobalKeyByStock[stockName] then
 		local sd: StockData = self.stocks[stockName]
 		if sd and not sd.globalKey then
@@ -293,7 +293,7 @@ function GlobalStock:GetAnchor(stockName: string): number
 	local anchorStoreName: string = config.stores.restockAnchorStore
 	local restockAnchorStore: DataStore = DataStoreService:GetDataStore(anchorStoreName)
 
-	local success: boolean, stored: any = xpcall(function(): any
+	local success: boolean, stored: any = pcall(function(): any
 		return restockAnchorStore:UpdateAsync("Anchor", function(oldValue: any): (any, { number }?, {}?)
 			if type(oldValue) == "number" then
 				return oldValue - (oldValue % 5)
@@ -303,7 +303,7 @@ function GlobalStock:GetAnchor(stockName: string): number
 
 			return now - (now % 5)
 		end)
-	end, Logger.warn)
+	end)
 
 	if success and type(stored) == "number" then
 		self.cachedAnchorKeyByStock[stockName] = stored
@@ -329,7 +329,7 @@ function GlobalStock:MemoryStoreMap(stockName: string): MemoryStoreSortedMap
 	return MemoryStoreService:GetSortedMap(key)
 end
 
-function GlobalStock:GetForcedStock(stockName: string): { any } | nil
+function GlobalStock:GetForcedStock(stockName: string): { any }?
 	local memoryStoreMap: MemoryStoreSortedMap = self:MemoryStoreMap(stockName)
 
 	local success: boolean, forcedStock: any = xpcall(function(): any
@@ -584,7 +584,7 @@ function GlobalStock:CreateStock(
 	return stockData
 end
 
-function GlobalStock:GetDeterministicBoundary(stockName: string): number | nil
+function GlobalStock:GetDeterministicBoundary(stockName: string): number?
 	local stockData = self.stocks[stockName]
 	if not stockData then
 		return
@@ -593,7 +593,7 @@ function GlobalStock:GetDeterministicBoundary(stockName: string): number | nil
 	return self:ComputeDeterministicBoundary(self:GetAnchor(stockName), stockName, stockData.restockInterval)
 end
 
-function GlobalStock:GetNextRestockTime(stockName: string): number | nil
+function GlobalStock:GetNextRestockTime(stockName: string): number?
 	local stockData = self.stocks[stockName]
 	if not stockData then
 		return
@@ -607,7 +607,7 @@ function GlobalStock:GetNextRestockTime(stockName: string): number | nil
 	return boundary + stockData.restockInterval
 end
 
-function GlobalStock:GetTimeUntilRestock(stockName: string): number | nil
+function GlobalStock:GetTimeUntilRestock(stockName: string): number?
 	local nextTime: number? = self:GetNextRestockTime(stockName)
 	if not nextTime then
 		return
@@ -616,7 +616,7 @@ function GlobalStock:GetTimeUntilRestock(stockName: string): number | nil
 	return math.max(0, nextTime - os.time())
 end
 
-function GlobalStock:GetCurrentStock(stockName: string): { any } | nil
+function GlobalStock:GetCurrentStock(stockName: string): { any }?
 	local stockData = self.stocks[stockName]
 	if not stockData then
 		return {}
@@ -648,7 +648,7 @@ function GlobalStock:GetCurrentStock(stockName: string): { any } | nil
 	return self:PredictStock(stockData, restockTime)
 end
 
-function GlobalStock:GetStockForRestockTime(stockName: string, restockTime: number): { any } | nil
+function GlobalStock:GetStockForRestockTime(stockName: string, restockTime: number): { any }?
 	local stockData = self.stocks[stockName]
 	if not stockData then
 		return {}

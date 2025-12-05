@@ -56,13 +56,7 @@ function CreateProducer(initialState: State): Producer
 		end,
 
 		secureAddMoney = function(oldState: State, amount: number | string): State
-			local numAmount: number?
-			if type(amount) == "string" then
-				numAmount = tonumber(amount)
-			else
-				numAmount = amount :: number?
-			end
-
+			local numAmount: number = tonumber(amount) or amount :: number
 			local safeAmount: number = typeof(numAmount) == "number" and (numAmount :: number) or 0
 			local state = table.clone(oldState)
 			local convertedValue: string =
@@ -73,13 +67,7 @@ function CreateProducer(initialState: State): Producer
 		end,
 
 		secureSpendMoney = function(oldState: State, amount: number | string): State
-			local numAmount: number?
-			if type(amount) == "string" then
-				numAmount = tonumber(amount)
-			else
-				numAmount = amount
-			end
-
+			local numAmount: number = tonumber(amount) or amount :: number
 			local safeAmount: number = typeof(numAmount) == "number" and (numAmount :: number) or 0
 			local state = table.clone(oldState)
 			local convertedValue: string =
