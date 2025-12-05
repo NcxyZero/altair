@@ -182,41 +182,6 @@ function ServerData:PlayerAdded(player: Player): ()
 
 	local playerData = data.player or {}
 
-	local function normalizeNumericKeys(tbl: any): any
-		local result: { [number]: any } = {}
-		if type(tbl) ~= "table" then
-			return result
-		end
-
-		for key: any, value: any in tbl :: any do
-			local nKey: number? = (type(key) == "number") and (key :: number) or tonumber(key)
-			if nKey then
-				result[nKey :: number] = value
-			end
-		end
-
-		return result
-	end
-
-	playerData.stands = normalizeNumericKeys(playerData.stands)
-	playerData.standsMoney = normalizeNumericKeys(playerData.standsMoney)
-	playerData.standLevels = normalizeNumericKeys(playerData.standLevels)
-
-	for key: number, value: any in playerData.standLevels do
-		if typeof(value) ~= "number" or value < 1 then
-			playerData.standLevels[key] = 1
-		end
-	end
-
-	for key: number, value: any in playerData.standsMoney do
-		local num: number = (typeof(value) == "number" and (value :: number)) or tonumber(value) or 0
-		if num < 0 then
-			playerData.standsMoney[key] = 0
-		else
-			playerData.standsMoney[key] = num
-		end
-	end
-
 	playerData.ready = false
 	playerData.userId = player.UserId
 
