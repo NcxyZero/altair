@@ -179,7 +179,6 @@ function ServerData:PlayerAdded(player: Player): ()
 
 	local data = profileStore.Data
 	local producers = {}
-
 	local playerData = data.player or {}
 
 	playerData.ready = false

@@ -2,6 +2,7 @@ local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
+local Logger = require(ReplicatedStorage.util.Logger)
 
 local PlayerCollisions = {}
 PlayerCollisions.type = "controller"
@@ -11,10 +12,10 @@ local function addToPlayerCollision(part: BasePart): ()
 		return
 	end
 
-	pcall(function(): ()
+	xpcall(function(): ()
 		PhysicsService:RegisterCollisionGroup("Player")
 		PhysicsService:CollisionGroupSetCollidable("Player", "Player", false)
-	end)
+	end, Logger.warn)
 
 	part.CollisionGroup = "Player"
 end
