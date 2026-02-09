@@ -112,6 +112,7 @@ The actual structure of the project is:
 - Do not use section title comments in code (e.g., "-- Constants", "-- Private functions")
 - Do not use the `pairs()` function in Luau code; use direct indexing or other iteration methods instead
 - Use direct string methods instead of string library functions (e.g., use `text:split("")` instead of `string.split(text, "")`)
+- When formatting strings with backticks in Luau, use `{}` directly without `$`; `${}` would appear literally because Luau already interpolates
 - Use integer division (`//`) instead of regular division with `math.floor()` (e.g., use `value // 2` instead of `math.floor(value / 2)`)
 - Do not use multiple statements in one line
 - Do not use `.Touched()` event
@@ -122,7 +123,7 @@ The actual structure of the project is:
 - Do not use `SetPrimaryPartCFrame()` as it is deprecated, always use `PivotTo()`, `GetPivot()`, `ScaleTo()` and `GetScale()` instead
 - Use `UDim2.fromScale()` and `UDim2.fromOffset()` instead of `UDim2.new()` when you are not setting both scale and offset
 - Use `Color3.new()` instead of `Color3.fromRGB(0, 0, 0)` as zeros are the default values
-- Use `CFrame.new()` instead of `CFrame.new(0, 0, 0)` as zeros are the default values
+- Use `CFrame.identity` instead of `CFrame.new(0, 0, 0)` or `CFrame.new()` as zeros are the default values
 - Use `CFrame.fromAxisAngle()` instead of `CFrame.Angles()` in case of only one axe not being zero
 - Use `Vector2`'s and `Vector3`'s `.xAxis`, `.yAxis`, and `Vector3`'s `.zAxis` in `CFrame.fromAxisAngle()` and in case of only one axe not being zero, example: `Vector2.yAxis * 5`
 - Use `Vector2`'s and `Vector3`'s `.zero` and `.one` instead of `.new()`, `.new(0, 0, 0)` and `.new(1, 1, 1)`

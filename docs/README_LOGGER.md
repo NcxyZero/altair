@@ -14,6 +14,8 @@ The `Logger` module provides safe debug-only logging functions designed for use 
 
 All logging functions are disabled outside Roblox Studio. They will **do nothing in live game sessions** to prevent exposing sensitive debug information.
 
+The logger automatically prefixes each message with the calling file (and line when available). Do **not** manually add source labels in your strings (for example `"[GameController]"`); this makes logs noisy and redundant.
+
 ## 🔐 Usage
 
 ```luau

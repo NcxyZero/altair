@@ -226,7 +226,7 @@ function GlobalStock:GetOrCreateGlobalKeyFromDataStore(stockName: string): { num
 	local attempts: number = cfg.core.maxUpdateAttempts
 
 	for attempt = 1, attempts do
-		local success: boolean, result: any = pcall(function(): any
+		local success: boolean, result: any = xpcall(function(): any
 			return store:UpdateAsync(keyKey, function(oldValue: any): (any, { number }?, {}?)
 				if oldValue and type(oldValue) == "table" and oldValue.numbers then
 					return oldValue
@@ -237,7 +237,7 @@ function GlobalStock:GetOrCreateGlobalKeyFromDataStore(stockName: string): { num
 					created = os.time(),
 				}
 			end)
-		end)
+		end, Logger.warn)
 
 		if success and type(result) == "table" and result.numbers then
 			self.cachedGlobalKeyByStock[stockName] = result.numbers
@@ -293,7 +293,7 @@ function GlobalStock:GetAnchor(stockName: string): number
 	local anchorStoreName: string = config.stores.restockAnchorStore
 	local restockAnchorStore: DataStore = DataStoreService:GetDataStore(anchorStoreName)
 
-	local success: boolean, stored: any = pcall(function(): any
+	local success: boolean, stored: any = xpcall(function(): any
 		return restockAnchorStore:UpdateAsync("Anchor", function(oldValue: any): (any, { number }?, {}?)
 			if type(oldValue) == "number" then
 				return oldValue - (oldValue % 5)
@@ -303,7 +303,7 @@ function GlobalStock:GetAnchor(stockName: string): number
 
 			return now - (now % 5)
 		end)
-	end)
+	end, Logger.warn)
 
 	if success and type(stored) == "number" then
 		self.cachedAnchorKeyByStock[stockName] = stored
