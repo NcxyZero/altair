@@ -55,7 +55,7 @@ end
 local function tryFrame(level: number): string?
 	debugLog("tryFrame: level", tostring(level))
 
-	local ok: boolean, sourceAny: string, lineAny: number = pcall(debug.info, level, "sl")
+	local ok: boolean, sourceAny: string, lineAny: number = xpcall(debug.info, warn, level, "sl")
 	if not ok then
 		debugLog("tryFrame: debug.info failed", tostring(level))
 
@@ -71,7 +71,7 @@ local function tryFrame(level: number): string?
 	if type(lineAny) == "number" then
 		line = lineAny
 	else
-		local okLine: boolean, lineNum: number = pcall(debug.info, level, "l")
+		local okLine: boolean, lineNum: number = xpcall(debug.info, warn, level, "l")
 		if okLine and type(lineNum) == "number" then
 			line = lineNum
 		end
@@ -117,7 +117,7 @@ local function getSourceInfo(): string
 		end
 	end
 
-	local ok: boolean, s: string = pcall(debug.info, 3, "s")
+	local ok: boolean, s: string = xpcall(debug.info, warn, 3, "s")
 	if ok and type(s) == "string" and s ~= "" then
 		local filename: string = cleanFilenameFromSource(s)
 		if filename ~= "" and not filename:match("Logger") then

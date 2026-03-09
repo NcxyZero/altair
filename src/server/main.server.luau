@@ -7,6 +7,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local GetBridge = require(ReplicatedStorage.util.GetBridge)
 local Logger = require(ReplicatedStorage.util.Logger)
+local Promise = require(ReplicatedStorage.package.Promise)
 local ServerInitConfig = require(ServerScriptService.server.serverConfig.ServerInitConfig)
 
 local replicateToServer = Instance.new("RemoteFunction")
@@ -24,6 +25,7 @@ path.tag = {}
 path.other = {}
 
 local loadFirst = {}
+local loadFirstEntries = {}
 local load = {}
 local tagModules = {}
 local tagInstances = {}
@@ -58,6 +60,7 @@ for _index: number, folder: Folder in folders do
 
 		if not success then
 			Logger.warn(`Failed to load module {module:GetFullName()}: {required}`)
+
 			continue
 		end
 
@@ -68,8 +71,13 @@ for _index: number, folder: Folder in folders do
 		local moduleType: string = required.type or "module"
 
 		if moduleType == "controller" then
-			if required.index then
-				loadFirst[required.index] = required
+			local rawIndex: unknown = required.index
+			if type(rawIndex) == "number" then
+				table.insert(loadFirstEntries, {
+					index = rawIndex,
+					moduleName = moduleName,
+					required = required,
+				})
 			else
 				table.insert(load, required)
 			end
@@ -87,6 +95,21 @@ for _index: number, folder: Folder in folders do
 			required.name = moduleName
 		end
 	end
+end
+
+table.sort(loadFirstEntries, function(a: any, b: any): boolean
+	if a.index == b.index then
+		return tostring(a.moduleName) < tostring(b.moduleName)
+	end
+
+	return a.index < b.index
+end)
+
+for index: number = 1, #loadFirstEntries do
+	local entry: any = loadFirstEntries[index]
+	local required: unknown = entry.required
+
+	table.insert(loadFirst, required)
 end
 
 local function InitController(required: unknown): ()
@@ -114,6 +137,24 @@ local function InitController(required: unknown): ()
 	end
 end
 
+local function InitControllerAsync(required: unknown, context: string): Promise.Promise
+	local delay: number = 5
+	return Promise.race({
+		Promise.delay(delay):andThen(function(): ()
+			Logger.warn(
+				`Initialization of {context} controller {required.type or "unknown"} ({required.name or "unknown"}) exceeded {delay}s, continuing to next`
+			)
+		end),
+		Promise.new(function(resolve: () -> ()): ()
+			task.spawn(function(): ()
+				InitController(required)
+
+				resolve()
+			end)
+		end),
+	})
+end
+
 local function StartController(required: unknown): ()
 	local Start: ((unknown?) -> unknown?)? = required.Start
 	if Start then
@@ -133,12 +174,14 @@ local function InitTag(required: unknown): ()
 	local tag: string = required.tag
 	if not tag then
 		Logger.warn("Tag not specified for required module:", required.name)
+
 		return
 	end
 
 	local new: ((Instance) -> unknown)? = required.new
 	if not new then
 		Logger.warn("New function not specified for tag module:", required.name)
+
 		return
 	end
 
@@ -204,9 +247,10 @@ local function InitTag(required: unknown): ()
 	end
 end
 
-for _index: number, required: unknown in loadFirst do
+for index: number = 1, #loadFirst do
+	local required: unknown = loadFirst[index]
 	local success: boolean, err: unknown = xpcall(function(): ()
-		InitController(required)
+		InitControllerAsync(required, "priority"):expect()
 	end, function(err2: string): string
 		return debug.traceback(err2)
 	end)
@@ -218,7 +262,7 @@ end
 
 for _index: number, required: unknown in load do
 	local success: boolean, err: unknown = xpcall(function(): ()
-		InitController(required)
+		InitControllerAsync(required, "regular"):expect()
 	end, function(err2: string): string
 		return debug.traceback(err2)
 	end)
@@ -232,7 +276,8 @@ for _index: number, required: unknown in tagModules do
 	task.spawn(InitTag, required)
 end
 
-for _index: number, required: unknown in loadFirst do
+for index: number = 1, #loadFirst do
+	local required: unknown = loadFirst[index]
 	local success: boolean, err: unknown = xpcall(function(): ()
 		StartController(required)
 	end, function(err2: string): string

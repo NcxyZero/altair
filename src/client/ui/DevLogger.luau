@@ -188,7 +188,7 @@ end
 function DevLogger:Init(): ()
 	if
 		workspace:GetAttribute("SHOW_DEV_LOGS") == false
-		or Players.LocalPlayer:GetRankInGroup(game.CreatorId) < self.GroupRankRequired
+		or Players.LocalPlayer:GetRankInGroupAsync(game.CreatorId) < self.GroupRankRequired
 	then
 		return
 	end

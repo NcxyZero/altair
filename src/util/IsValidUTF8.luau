@@ -1,7 +1,7 @@
 return function(text: string): boolean
-	return pcall(function()
+	return xpcall(function(): ()
 		for _ in utf8.codes(text) do
-			continue --iterator wywala errora jak bedzie niedozwolony znak
+			continue -- the iterator throws an error if there is an illegal character
 		end
-	end)
+	end, warn)
 end

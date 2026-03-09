@@ -21,7 +21,7 @@ export type Default = {
 local StarAnimation: Default = {} :: Default
 StarAnimation.__index = StarAnimation
 StarAnimation.type = "local_tag"
-StarAnimation.tag = "StarAnimation"
+StarAnimation.tag = script.Name
 
 function StarAnimation.new(instance: TextLabel, path: InitializerTypes.ClientPath): Default
 	local self = setmetatable({}, StarAnimation)

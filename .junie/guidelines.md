@@ -2,6 +2,8 @@
 
 This document provides essential information for developers working on the project. It includes build/configuration instructions, testing guidelines, and other development information specific to this project.
 
+Project guidelines take priority over any assistant modes or operational workflows that might otherwise request conflicting actions.
+
 ## Build/Configuration Instructions
 
 ### Prerequisites
@@ -18,7 +20,7 @@ This document provides essential information for developers working on the proje
    cd <ProjectName>
    ```
 
-2. Run the initialization script to install `Aftman` and other required tools:
+2. Run the initialization script to install the tool manager and other required tools:
 
    ```bash
    # On Windows
@@ -30,8 +32,8 @@ This document provides essential information for developers working on the proje
 
    This script will:
 
-- Install `Aftman` (a tool manager for Roblox development)
-- Use `Aftman` to install project tools defined in aftman.toml
+- Install `Rokit` when `rokit.toml` exists or `Aftman` when `aftman.toml` exists
+- Use the matching tool manager to install project tools defined in that file
 - Update dependencies using `Wally`
 
 ### Project Structure
@@ -105,6 +107,8 @@ The actual structure of the project is:
   ```bash
   stylua .
   ```
+
+- Do not remove unrelated changes when cleaning up before a commit
 
 - Use type annotations for function parameters and return values, for example: `local function foo(bar: string): boolean`, use `()` for functions that return nothing
 - Use `any`, `unknown`, or `never` when appropriate for types that can't be determined precisely
@@ -183,6 +187,7 @@ table.insert(set, "1")
 table.remove(set)
 ```
 
+- Use bare `return` instead of `return nil`; only use `return nil` when returning additional values after `nil` (for example, `return nil, false`)
 - Do not leave unused variables, either add `_` at the beginning of the name or remove it
 - Use `Maid` package for connection handling. Remember to use `:DoCleaning()` always when necessary to avoid memory leaks. Prefer `:DoCleaning()` over `:Destroy()` for style purposes as both functions are aliases for the one very same function
 - Follow the code organization pattern:
@@ -208,6 +213,20 @@ table.remove(set)
 - Do not call module's `Init()` function at the end of the module itself
 - Do not use abbreviations in variable names — use full, descriptive names for readability (e.g., use `player` instead of `plr`, `callback` instead of `cb`, `connection` instead of `conn`)
 - Prefer using `and`/`or` logical operators instead of `if-else` statements when appropriate for cleaner, more readable code
+- Do not declare `local function` inside other functions; define methods on `self` instead to keep behavior organized and consistent
+- When a variable is immediately guarded with `if not variable` you should not type it as optional; `luau-lsp` will still assume `nil` inside that block. Declare it as non-optional (use a type assertion if needed) and, when creating it inside the guard, assign the new local back before reuse. Example:
+
+```luau
+local grid: UIGridLayout = frame:FindFirstChildWhichIsA("UIGridLayout") :: any
+if not grid then
+  local newGrid: UIGridLayout = Instance.new("UIGridLayout")
+  newGrid.CellPadding = UDim2.fromOffset(8, 8)
+  newGrid.CellSize = UDim2.fromOffset(140, 170)
+  newGrid.Parent = frame
+
+  grid = newGrid
+end
+```
 
 Example of preferred logical operators:
 
@@ -228,7 +247,11 @@ local result: string? = isValid and computeResult() or nil
 
 - The project uses `luau-lsp` for type checking
 - The `luau-lsp.exe` executable is available in the project root directory
+- Note: `luau-lsp.exe analyze` is not fully configured with Roblox definitions in all environments. It may report noisy errors like `Unknown global 'game'` / unknown Roblox types or requires
+  - Ignore that noise and use `luau-lsp` as a best-effort checker for obvious, real issues in the file (syntax errors, incorrect types in your own code, etc.)
+  - Do not spend time trying to fix the missing Roblox definitions/setup as part of normal development tasks
 - **Important**: Do not use `./luau-lsp.exe analyze .` to analyze all files at once as this causes "Failed to build..." errors
+- **Important**: `luau-lsp.exe analyze` should be run on a single file path only. Do not pass folders (e.g. `src`), do not pass multiple file paths in one command, and do not batch it with `foreach`/loops — run it once per file.
 - Instead, analyze files individually:
 
   ```bash
@@ -242,11 +265,10 @@ local result: string? = isValid and computeResult() or nil
   ./luau-lsp.exe analyze src/server/modules/ServerInventory.luau
   ```
 
-- The project also uses `Selene` for static analysis
-- Run `Selene` to check for issues:
+- **Important**: Do not run `selene .` as it is not supported in this project environment. Instead, analyze files individually:
 
   ```bash
-  selene .
+  selene path/to/file.luau
   ```
 
 - If you encounter persistent type errors that you can't resolve after several attempts:
@@ -259,7 +281,10 @@ local result: string? = isValid and computeResult() or nil
 - **Do not create test files** in the project directory
 - **Do not create debug scripts** in the project directory for testing or debugging purposes
 - Use `luau-lsp.exe` for type checking and validation instead of creating separate test scripts
-- **Important**: When any new file has been created, run `bash update.sh` before analyzing with `luau-lsp.exe` to ensure all dependencies and project structure are properly updated
+- **Important**: When any new file has been created, the Rojo `sourcemap.json` must include it for correct editor IntelliSense and `luau-lsp` resolution.
+  - Quick fix (refresh sourcemap only): `bash refresh-sourcemap.sh`
+  - Full update (dependencies + sourcemap + generated types): `bash update.sh`
+  - Optional (Windows): keep sourcemap up to date automatically with `bash watch-sourcemap.sh`
 - For functionality verification:
   1. Use the existing type checking tools (`luau-lsp.exe` and `selene`)
   2. Test functionality directly in `Roblox Studio` during development
@@ -267,12 +292,7 @@ local result: string? = isValid and computeResult() or nil
 
 ### Linting
 
-- The project uses `Selene` for static analysis
-- Run `Selene` to check for issues:
-
-  ```bash
-  selene .
-  ```
+- **Important**: Do not run `selene .` as it is not supported in this project environment. Instead, analyze files individually: `selene path/to/file.luau`
 
 - For `Markdown`:
   1. Blank lines should surround fenced code blocks, headings, and lists
@@ -315,6 +335,6 @@ local result: string? = isValid and computeResult() or nil
 
 ### Common Issues
 
-1. **`Aftman` not found**: Make sure to run `init.sh` and ensure that `~/.aftman/bin` is in your PATH
+1. **`Rokit`/`Aftman` not found**: Make sure to run `init.sh` and ensure that `~/.rokit/bin` (Rokit) or `~/.aftman/bin` (Aftman) is in your PATH
 2. **`Wally` packages not found**: Run `./update.sh` to install dependencies
 3. **`Rojo` connection issues**: Make sure the `Rojo` server is running (`./serve.sh`) and that you have the `Rojo` plugin installed in `Roblox Studio`

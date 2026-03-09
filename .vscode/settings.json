@@ -3,9 +3,12 @@
 	"cSpell.enabled": false,
 	"editor.formatOnPaste": true,
 	"editor.formatOnSave": true,
+	"editor.formatOnSaveMode": "file",
 	"explorer.compactFolders": false,
 	"files.eol": "\n",
 	"files.insertFinalNewline": true,
+	"files.trimTrailingWhitespace": true,
+	"files.trimFinalNewlines": true,
 	"git.autoStash": true, // return last stash: git stash apply
 	"git.rebaseWhenSync": true, // cancel: git rebase --abort
 	"[jsonc]": {
@@ -24,10 +27,21 @@
 	"[lua][luau]": {
 		"editor.defaultFormatter": "JohnnyMorganz.stylua"
 	},
+	"[powershell]": {
+		"debug.saveBeforeStart": "nonUntitledEditorsInActiveGroup",
+		"editor.defaultFormatter": "ms-vscode.powershell",
+		"editor.formatOnSave": true,
+		"editor.formatOnType": true,
+		"editor.codeActionsOnSave": {
+			"source.fixAll": "explicit"
+		},
+		"editor.semanticHighlighting.enabled": false,
+		"editor.wordSeparators": "`~!@#$%^&*()=+[{]}\\|;:'\",.<>/?"
+	},
 	"[shellscript]": {
 		"files.eol": "\n",
 		"editor.formatOnSave": true,
-		"editor.wordWrap": "on",
+		"editor.wordWrap": "on"
 	},
 	"[yaml]": {
 		"editor.defaultFormatter": "redhat.vscode-yaml",
@@ -38,7 +52,7 @@
 	},
 	"files.exclude": {
 		"Packages": true,
-		"ServerPackages": true,
+		"ServerPackages": true
 	},
 	"search.exclude": {
 		"**/node_modules": true,
@@ -62,8 +76,6 @@
 	"luau-lsp.completion.imports.separateGroupsWithLine": true,
 	"luau-lsp.completion.imports.enabled": true,
 	"luau-lsp.sourcemap.rojoProjectFile": "default.project.json",
-	"stylua.targetReleaseVersion": "latest",
-	// roblox lsp settings - not verified!
 	"robloxLsp.completion.alwaysShowMethods": true,
 	"robloxLsp.completion.callParenthesess": true,
 	"robloxLsp.completion.endAutocompletion": true,
@@ -71,5 +83,17 @@
 	"robloxLsp.hint.setType": true,
 	"robloxLsp.hint.paramName": true,
 	"robloxLsp.hint.enable": true,
-	"robloxLsp.typeChecking.mode": "Non Strict"
+	"robloxLsp.typeChecking.mode": "Non Strict",
+	"powershell.codeFormatting.addWhitespaceAroundPipe": true,
+	"powershell.codeFormatting.autoCorrectAliases": true,
+	"powershell.codeFormatting.newLineAfterCloseBrace": true,
+	"powershell.codeFormatting.newLineAfterOpenBrace": true,
+	"powershell.codeFormatting.openBraceOnSameLine": true,
+	"powershell.codeFormatting.pipelineIndentationStyle": "NoIndentation",
+	"powershell.codeFormatting.useCorrectCasing": true,
+	"powershell.codeFormatting.whitespaceAfterSeparator": true,
+	"powershell.codeFormatting.whitespaceAroundOperator": true,
+	"powershell.codeFormatting.whitespaceBeforeOpenBrace": true,
+	"powershell.codeFormatting.whitespaceBeforeOpenParen": true,
+	"stylua.targetReleaseVersion": "latest",
 }

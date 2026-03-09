@@ -42,6 +42,7 @@ export type Default = {
 	cachedGlobalKeyByStock: { [string]: { number } },
 	fetchingGlobalKeyByStock: { [string]: boolean },
 	cachedAnchorKeyByStock: { [string]: number },
+	cachedRemainingByStockItem: { [string]: number },
 	stocks: { [string]: StockData },
 	new: (config: GlobalStockConfig.GlobalStockConfig?) -> Default,
 	Rol32: (self: Default, value: number, shift: number) -> number,
@@ -54,6 +55,7 @@ export type Default = {
 	InDateRange: (self: Default, startTimestamp: number?, endTimestamp: number?, now: number) -> boolean,
 	PredictStock: (self: Default, stockData: StockData, restockTime: number) -> { any },
 	GetKeyStore: (self: Default, stockName: string) -> GlobalDataStore,
+	GetGlobalKeyCacheKey: (self: Default, stockName: string) -> string,
 	GetOrCreateGlobalKeyFromDataStore: (self: Default, stockName: string) -> { number }?,
 	EnsureGlobalKeyAsync: (self: Default, stockName: string) -> { number }?,
 	GetAnchor: (self: Default, stockName: string) -> number,
@@ -61,6 +63,17 @@ export type Default = {
 	GetForcedStock: (self: Default, stockName: string) -> { any }?,
 	SaveForcedStock: (self: Default, stockName: string, stockList: { any }, restocks: number) -> (),
 	ClearForcedStockInStore: (self: Default, stockName: string) -> (),
+	GetRemainingStockStore: (self: Default) -> any,
+	GetRemainingStockAmount: (self: Default, stockName: string, itemName: string) -> number?,
+	EnsureRemainingStockAmount: (self: Default, stockName: string, itemName: string, initialAmount: number) -> number,
+	ConsumeRemainingStockAmount: (
+		self: Default,
+		stockName: string,
+		itemName: string,
+		amount: number,
+		initialAmount: number
+	) -> number?,
+	ConsumeStockItem: (self: Default, stockName: string, itemName: string, amount: number) -> number?,
 	CreateStock: (
 		self: Default,
 		stockName: string,
@@ -86,6 +99,26 @@ export type Default = {
 local GlobalStock: Default = {} :: any
 GlobalStock.__index = GlobalStock
 GlobalStock.type = "other"
+
+local REMAINING_STOCK_STORE_NAME: string = "GlobalStockRemaining_v1"
+local REMAINING_STOCK_KEY_PREFIX: string = "remaining::"
+
+local function makeRemainingStockKey(stockName: string, itemName: string): string
+	return `{REMAINING_STOCK_KEY_PREFIX}{stockName}::{itemName}`
+end
+
+local function waitForDataStoreBudget(requestType: Enum.DataStoreRequestType, timeoutSeconds: number): boolean
+	local start: number = os.clock()
+	while DataStoreService:GetRequestBudgetForRequestType(requestType) <= 0 do
+		if os.clock() - start > timeoutSeconds then
+			return false
+		end
+
+		task.wait(0.1)
+	end
+
+	return true
+end
 
 local function buildStockConfig(
 	defaults: GlobalStockConfig.StockSettings,
@@ -142,6 +175,10 @@ function GlobalStock:KeyAndTimeToSeed(keyNumbers: { number }, restockTime: numbe
 end
 
 function GlobalStock:ComputeDeterministicBoundary(anchor: number, stockName: string, interval: number): number
+	if interval <= 0 then
+		return anchor
+	end
+
 	local hash: number = 0
 	for charIndex: number = 1, #stockName do
 		hash = (hash + stockName:byte(charIndex)) % interval
@@ -161,6 +198,7 @@ function GlobalStock.new(config: typeof(GlobalStockConfig)?): Default
 	self.cachedGlobalKeyByStock = {}
 	self.fetchingGlobalKeyByStock = {}
 	self.cachedAnchorKeyByStock = {}
+	self.cachedRemainingByStockItem = {}
 	self.stocks = {}
 
 	if self.config.stocks then
@@ -205,27 +243,58 @@ function GlobalStock:GetKeyStore(stockName: string): GlobalDataStore
 	return DataStoreService:GetDataStore(storeName)
 end
 
+function GlobalStock:GetGlobalKeyCacheKey(stockName: string): string
+	local config: GlobalStockConfig.StockSettings = self:GetStockConfig(stockName)
+	local storeName: string = config.stores.keyDataStoreName
+	local keyKey: string = config.stores.keyDataStoreKey
+
+	return `{storeName}::{keyKey}`
+end
+
 function GlobalStock:GetOrCreateGlobalKeyFromDataStore(stockName: string): { number }?
-	if self.cachedGlobalKeyByStock[stockName] then
+	local cacheKey: string = self:GetGlobalKeyCacheKey(stockName)
+	if self.cachedGlobalKeyByStock[cacheKey] then
 		local sd: StockData = self.stocks[stockName]
 		if sd and not sd.globalKey then
-			sd.globalKey = self.cachedGlobalKeyByStock[stockName]
+			sd.globalKey = self.cachedGlobalKeyByStock[cacheKey]
 		end
 
-		return self.cachedGlobalKeyByStock[stockName]
+		return self.cachedGlobalKeyByStock[cacheKey]
 	end
 
-	if self.fetchingGlobalKeyByStock[stockName] then
+	if self.fetchingGlobalKeyByStock[cacheKey] then
 		return
 	end
-	self.fetchingGlobalKeyByStock[stockName] = true
+	self.fetchingGlobalKeyByStock[cacheKey] = true
 
 	local store: GlobalDataStore = self:GetKeyStore(stockName)
 	local cfg: GlobalStockConfig.StockSettings = self:GetStockConfig(stockName)
 	local keyKey: string = cfg.stores.keyDataStoreKey
 	local attempts: number = cfg.core.maxUpdateAttempts
 
+	if waitForDataStoreBudget(Enum.DataStoreRequestType.GetAsync, 30) then
+		local ok: boolean, existing: any = xpcall(function(): any
+			return store:GetAsync(keyKey)
+		end, Logger.warn)
+
+		if ok and type(existing) == "table" and existing.numbers then
+			self.cachedGlobalKeyByStock[cacheKey] = existing.numbers
+			self.fetchingGlobalKeyByStock[cacheKey] = false
+
+			local stockData: StockData = self.stocks[stockName]
+			if stockData then
+				stockData.globalKey = existing.numbers
+			end
+
+			return self.cachedGlobalKeyByStock[cacheKey]
+		end
+	end
+
 	for attempt = 1, attempts do
+		if not waitForDataStoreBudget(Enum.DataStoreRequestType.UpdateAsync, 30) then
+			break
+		end
+
 		local success: boolean, result: any = xpcall(function(): any
 			return store:UpdateAsync(keyKey, function(oldValue: any): (any, { number }?, {}?)
 				if oldValue and type(oldValue) == "table" and oldValue.numbers then
@@ -240,21 +309,21 @@ function GlobalStock:GetOrCreateGlobalKeyFromDataStore(stockName: string): { num
 		end, Logger.warn)
 
 		if success and type(result) == "table" and result.numbers then
-			self.cachedGlobalKeyByStock[stockName] = result.numbers
-			self.fetchingGlobalKeyByStock[stockName] = false
+			self.cachedGlobalKeyByStock[cacheKey] = result.numbers
+			self.fetchingGlobalKeyByStock[cacheKey] = false
 
 			local sd: StockData = self.stocks[stockName]
 			if sd then
 				sd.globalKey = result.numbers
 			end
 
-			return self.cachedGlobalKeyByStock[stockName]
+			return self.cachedGlobalKeyByStock[cacheKey]
 		end
 
 		task.wait(math.min(attempt, 5))
 	end
 
-	self.fetchingGlobalKeyByStock[stockName] = false
+	self.fetchingGlobalKeyByStock[cacheKey] = false
 
 	Logger.warn(`Failed to fetch global key for stock "{stockName}" after {attempts} attempts`)
 
@@ -262,25 +331,50 @@ function GlobalStock:GetOrCreateGlobalKeyFromDataStore(stockName: string): { num
 end
 
 function GlobalStock:EnsureGlobalKeyAsync(stockName: string): { number }?
-	if self.cachedGlobalKeyByStock[stockName] then
-		local sd: StockData = self.stocks[stockName]
-		if sd and not sd.globalKey then
-			sd.globalKey = self.cachedGlobalKeyByStock[stockName]
+	local cacheKey: string = self:GetGlobalKeyCacheKey(stockName)
+	local cached: { number }? = self.cachedGlobalKeyByStock[cacheKey]
+	if cached then
+		local stockData: StockData = self.stocks[stockName]
+		if stockData and not stockData.globalKey then
+			stockData.globalKey = cached
 		end
 
-		return self.cachedGlobalKeyByStock[stockName]
+		return cached
 	end
 
-	local key: { number }? = self:GetOrCreateGlobalKeyFromDataStore(stockName)
-	if key then
-		return key
+	if self.fetchingGlobalKeyByStock[cacheKey] then
+		local start: number = os.clock()
+		local timeoutSeconds: number = 20
+		while self.fetchingGlobalKeyByStock[cacheKey] do
+			cached = self.cachedGlobalKeyByStock[cacheKey]
+			if cached then
+				local stockData: StockData = self.stocks[stockName]
+				if stockData and not stockData.globalKey then
+					stockData.globalKey = cached
+				end
+
+				return cached
+			end
+
+			if os.clock() - start > timeoutSeconds then
+				return
+			end
+
+			task.wait()
+		end
+
+		cached = self.cachedGlobalKeyByStock[cacheKey]
+		if cached then
+			local sd: StockData = self.stocks[stockName]
+			if sd and not sd.globalKey then
+				sd.globalKey = cached
+			end
+		end
+
+		return cached
 	end
 
-	task.delay(5, function(): ()
-		self:GetOrCreateGlobalKeyFromDataStore(stockName)
-	end)
-
-	return
+	return self:GetOrCreateGlobalKeyFromDataStore(stockName)
 end
 
 function GlobalStock:GetAnchor(stockName: string): number
@@ -291,32 +385,58 @@ function GlobalStock:GetAnchor(stockName: string): number
 
 	local config: GlobalStockConfig.StockSettings = self:GetStockConfig(stockName)
 	local anchorStoreName: string = config.stores.restockAnchorStore
+	local cachedByStore: number = self.cachedAnchorKeyByStock[anchorStoreName]
+	if cachedByStore ~= nil then
+		self.cachedAnchorKeyByStock[stockName] = cachedByStore
+
+		return cachedByStore
+	end
+
 	local restockAnchorStore: DataStore = DataStoreService:GetDataStore(anchorStoreName)
+	if waitForDataStoreBudget(Enum.DataStoreRequestType.GetAsync, 10) then
+		local getSuccess: boolean, storedValue: any = xpcall(function(): any
+			return restockAnchorStore:GetAsync("Anchor")
+		end, Logger.warn)
 
-	local success: boolean, stored: any = xpcall(function(): any
-		return restockAnchorStore:UpdateAsync("Anchor", function(oldValue: any): (any, { number }?, {}?)
-			if type(oldValue) == "number" then
-				return oldValue - (oldValue % 5)
-			end
+		if getSuccess and type(storedValue) == "number" then
+			local normalized: number = storedValue - (storedValue % 5)
+			self.cachedAnchorKeyByStock[anchorStoreName] = normalized
+			self.cachedAnchorKeyByStock[stockName] = normalized
 
-			local now: number = os.time()
+			return normalized
+		end
+	end
+	if waitForDataStoreBudget(Enum.DataStoreRequestType.UpdateAsync, 10) then
+		local success: boolean, stored: any = xpcall(function(): any
+			return restockAnchorStore:UpdateAsync("Anchor", function(oldValue: any): (any, { number }?, {}?)
+				if type(oldValue) == "number" then
+					return oldValue - (oldValue % 5)
+				end
 
-			return now - (now % 5)
-		end)
-	end, Logger.warn)
+				local now: number = os.time()
 
-	if success and type(stored) == "number" then
-		self.cachedAnchorKeyByStock[stockName] = stored
+				return now - (now % 5)
+			end)
+		end, Logger.warn)
 
-		return stored
+		if success and type(stored) == "number" then
+			self.cachedAnchorKeyByStock[anchorStoreName] = stored
+			self.cachedAnchorKeyByStock[stockName] = stored
+
+			return stored
+		end
 	end
 
 	local now: number = os.time()
 	local fallbackAnchor: number = now - (now % 5)
 
 	xpcall(function(): ()
+		self.cachedAnchorKeyByStock[anchorStoreName] = fallbackAnchor
 		self.cachedAnchorKeyByStock[stockName] = fallbackAnchor
-		restockAnchorStore:SetAsync("Anchor", fallbackAnchor)
+
+		if waitForDataStoreBudget(Enum.DataStoreRequestType.SetIncrementAsync, 10) then
+			restockAnchorStore:SetAsync("Anchor", fallbackAnchor)
+		end
 	end, Logger.warn)
 
 	return fallbackAnchor
@@ -349,7 +469,12 @@ function GlobalStock:SaveForcedStock(stockName: string, stockList: { any }, rest
 	local expiration: number = tonumber(restocks) or 1
 	local stockData = self.stocks[stockName]
 	local interval: number = stockData and stockData.restockInterval or 600
-	expiration *= interval
+	if interval <= 0 then
+		expiration *= 24 * 60 * 60
+	else
+		expiration *= interval
+	end
+	expiration = math.max(60, expiration)
 
 	xpcall(function(): ()
 		memoryStoreMap:SetAsync(stockName, stockList, expiration)
@@ -362,6 +487,138 @@ function GlobalStock:ClearForcedStockInStore(stockName: string): ()
 	xpcall(function(): ()
 		memoryStoreMap:RemoveAsync(stockName)
 	end, Logger.warn)
+end
+
+function GlobalStock:GetRemainingStockStore(): DataStore
+	return DataStoreService:GetDataStore(REMAINING_STOCK_STORE_NAME)
+end
+
+function GlobalStock:GetRemainingStockAmount(stockName: string, itemName: string): number?
+	local key: string = makeRemainingStockKey(stockName, itemName)
+	local cached: any = self.cachedRemainingByStockItem[key]
+	if type(cached) == "number" then
+		return cached
+	end
+
+	local store: DataStore = self:GetRemainingStockStore()
+	local success: boolean, value: any = xpcall(function(): any
+		return store:GetAsync(key)
+	end, Logger.warn)
+
+	if success and type(value) == "number" then
+		self.cachedRemainingByStockItem[key] = value
+
+		return value
+	end
+
+	return
+end
+
+function GlobalStock:EnsureRemainingStockAmount(stockName: string, itemName: string, initialAmount: number): number
+	local key: string = makeRemainingStockKey(stockName, itemName)
+	local cached: any = self.cachedRemainingByStockItem[key]
+	if type(cached) == "number" then
+		return cached
+	end
+
+	local store: DataStore = self:GetRemainingStockStore()
+	local initial: number = math.max(0, tonumber(initialAmount) or 0)
+
+	local success: boolean, value: any = xpcall(function(): any
+		return store:UpdateAsync(key, function(oldValue: any): any
+			if type(oldValue) == "number" then
+				return oldValue
+			end
+
+			return initial
+		end)
+	end, Logger.warn)
+
+	local finalValue: number = initial
+	if success and typeof(value) == "number" then
+		finalValue = value
+	end
+
+	self.cachedRemainingByStockItem[key] = finalValue
+
+	return finalValue
+end
+
+function GlobalStock:ConsumeRemainingStockAmount(
+	stockName: string,
+	itemName: string,
+	amount: number,
+	initialAmount: number
+): number?
+	local toConsume: number = math.max(0, tonumber(amount) or 0)
+	local initial: number = math.max(0, tonumber(initialAmount) or 0)
+	local key: string = makeRemainingStockKey(stockName, itemName)
+
+	local store: DataStore = self:GetRemainingStockStore()
+	local success: boolean, value: any = xpcall(function(): any
+		return store:UpdateAsync(key, function(oldValue: any): any
+			local current: number = type(oldValue) == "number" and oldValue or initial
+			current = math.max(0, current)
+
+			return math.max(0, current - toConsume)
+		end)
+	end, Logger.warn)
+
+	if success and type(value) == "number" then
+		self.cachedRemainingByStockItem[key] = value
+
+		return value
+	end
+
+	return
+end
+
+function GlobalStock:ConsumeStockItem(stockName: string, itemName: string, amount: number): number?
+	local stockData = self.stocks[stockName]
+	if not stockData then
+		return
+	end
+
+	local initialAmount: number = 0
+	for index: number = 1, #stockData.stockItems do
+		local configItem: StockItem = stockData.stockItems[index]
+		if configItem and configItem.name == itemName then
+			local minAmount: number = math.max(0, tonumber(configItem.minAmount) or 0)
+			local maxAmount: number = math.max(minAmount, tonumber(configItem.maxAmount) or minAmount)
+			initialAmount = maxAmount
+
+			break
+		end
+	end
+
+	local remaining: number? = self:ConsumeRemainingStockAmount(stockName, itemName, amount, initialAmount)
+	if not remaining then
+		return
+	end
+
+	local anchor: number = self:GetAnchor(stockName)
+	local interval: number = stockData.restockInterval
+	local restockTime: number
+	if interval <= 0 then
+		restockTime = anchor
+	else
+		restockTime = self:ComputeDeterministicBoundary(anchor, stockName, interval)
+	end
+
+	local predicted: { any } = self:PredictStock(stockData, restockTime)
+	for index: number = 1, #predicted do
+		local item: any = predicted[index]
+		local name: any = item and item.name
+		local predictedAmount: any = item and item.amount
+		if type(name) == "string" and type(predictedAmount) == "number" then
+			local currentRemaining: number? = self:GetRemainingStockAmount(stockName, name)
+			item.amount = currentRemaining or self:EnsureRemainingStockAmount(stockName, name, predictedAmount)
+		end
+	end
+
+	self:SaveForcedStock(stockName, predicted, 1)
+
+	return remaining
 end
 
 function GlobalStock:ToTime(dateTable: { number }?): number?
@@ -590,12 +847,20 @@ function GlobalStock:GetDeterministicBoundary(stockName: string): number?
 		return
 	end
 
+	if stockData.restockInterval <= 0 then
+		return
+	end
+
 	return self:ComputeDeterministicBoundary(self:GetAnchor(stockName), stockName, stockData.restockInterval)
 end
 
 function GlobalStock:GetNextRestockTime(stockName: string): number?
 	local stockData = self.stocks[stockName]
 	if not stockData then
+		return
+	end
+
+	if stockData.restockInterval <= 0 then
 		return
 	end
 
@@ -628,7 +893,13 @@ function GlobalStock:GetCurrentStock(stockName: string): { any }?
 	end
 
 	local anchor: number = self:GetAnchor(stockName)
-	local restockTime: number = self:ComputeDeterministicBoundary(anchor, stockName, stockData.restockInterval)
+	local interval: number = stockData.restockInterval
+	local restockTime: number
+	if interval <= 0 then
+		restockTime = anchor
+	else
+		restockTime = self:ComputeDeterministicBoundary(anchor, stockName, interval)
+	end
 
 	local now: number = os.time()
 	local inWindow: boolean = self:InDateRange(stockData.dateStart, stockData.dateEnd, now)
@@ -638,14 +909,34 @@ function GlobalStock:GetCurrentStock(stockName: string): { any }?
 	end
 
 	if not stockData.globalKey then
-		task.spawn(function(): ()
-			self:EnsureGlobalKeyAsync(stockName)
-		end)
+		local cacheKey: string = self:GetGlobalKeyCacheKey(stockName)
+		local cachedKey: { number }? = self.cachedGlobalKeyByStock[cacheKey]
+		if cachedKey then
+			stockData.globalKey = cachedKey
+		else
+			if not self.fetchingGlobalKeyByStock[cacheKey] then
+				task.spawn(function(): ()
+					self:EnsureGlobalKeyAsync(stockName)
+				end)
+			end
 
-		return {}
+			return {}
+		end
 	end
 
-	return self:PredictStock(stockData, restockTime)
+	local predicted: { any } = self:PredictStock(stockData, restockTime)
+	if interval <= 0 then
+		for index: number = 1, #predicted do
+			local item: any = predicted[index]
+			local name: any = item and item.name
+			local amount: any = item and item.amount
+			if type(name) == "string" and type(amount) == "number" then
+				item.amount = self:EnsureRemainingStockAmount(stockName, name, amount)
+			end
+		end
+	end
+
+	return predicted
 end
 
 function GlobalStock:GetStockForRestockTime(stockName: string, restockTime: number): { any }?
@@ -666,15 +957,27 @@ function GlobalStock:GetStockForRestockTime(stockName: string, restockTime: numb
 	end
 
 	if not stockData.globalKey then
-		task.spawn(function(): ()
-			self:EnsureGlobalKeyAsync(stockName)
-		end)
+		local cacheKey: string = self:GetGlobalKeyCacheKey(stockName)
+		local cachedKey: { number }? = self.cachedGlobalKeyByStock[cacheKey]
+		if cachedKey then
+			stockData.globalKey = cachedKey
+		else
+			if not self.fetchingGlobalKeyByStock[cacheKey] then
+				task.spawn(function(): ()
+					self:EnsureGlobalKeyAsync(stockName)
+				end)
+			end
 
-		return {}
+			return {}
+		end
 	end
 
 	local anchor: number = self:GetAnchor(stockName)
 	local interval: number = stockData.restockInterval
+	if interval <= 0 then
+		return self:PredictStock(stockData, restockTime)
+	end
+
 	local boundaryNow: number = self:ComputeDeterministicBoundary(anchor, stockName, interval)
 	local offsetIntervals: number = math.max(0, (restockTime - boundaryNow)) // interval
 	local targetBoundary: number = boundaryNow + (offsetIntervals * interval)

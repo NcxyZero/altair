@@ -1,4 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Cmdr = require(ReplicatedStorage:WaitForChild("CmdrClient") :: any)
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
@@ -9,6 +10,7 @@ local requiredGroup: number = roleData.groupId or game.CreatorType == Enum.Creat
 local requiredRank: number = game.CreatorType == Enum.CreatorType.User and 0 or roleData.rank
 
 Cmdr:SetActivationKeys(GameConfig.cmdr.activationKeys)
-Cmdr:SetEnabled(LocalPlayer:GetRankInGroup(requiredGroup) >= requiredRank)
+Cmdr:SetEnabled(RunService:IsStudio() or LocalPlayer:GetRankInGroupAsync(requiredGroup) >= requiredRank)
+Cmdr:SetHideOnLostFocus(false)
 
 return table.freeze({})

@@ -29,7 +29,9 @@ function RaycastController:RaycastPlayerStanding(raycastParams: RaycastParams): 
 		return
 	end
 
-	local raycast: RaycastResult = workspace:Raycast(primaryPart.Position, Vector3.yAxis * -50, raycastParams)
+	raycastParams.FilterDescendantsInstances = CollectionService:GetTagged("RaycastDetect")
+
+	local raycast: RaycastResult = workspace:Raycast(primaryPart.Position, Vector3.yAxis * -5, raycastParams)
 	if not raycast or not raycast.Instance then
 		if
 			self.lastRaycastActionName
@@ -59,20 +61,23 @@ function RaycastController:RaycastPlayerStanding(raycastParams: RaycastParams): 
 		return
 	end
 
-	if raycast.Instance == self.lastRaycastInstance then
+	local isSameInstance: boolean = raycast.Instance == self.lastRaycastInstance
+	if isSameInstance and raycastActionName ~= "LockBase" then
 		return
-	elseif self.lastRaycastActionName and self.lastRaycastInstance then
+	elseif not isSameInstance and self.lastRaycastActionName and self.lastRaycastInstance then
 		RaycastActions[raycastActionName](self.lastRaycastInstance, true)
 	end
 
-	self.lastRaycastInstance = raycast.Instance
-	self.lastRaycastActionName = raycastActionName
+	if not isSameInstance then
+		self.lastRaycastInstance = raycast.Instance
+		self.lastRaycastActionName = raycastActionName
 
-	local raycastActionAnimationName: string = raycast.Instance:GetAttribute("RaycastActionAnimation") :: any
-	if raycastActionAnimationName then
-		local raycastActionAnimation = TagManager:GetTagClass(raycast.Instance, raycastActionAnimationName)
-		if raycastActionAnimation and raycastActionAnimation.Animate then
-			task.spawn(raycastActionAnimation.Animate, raycastActionAnimation)
+		local raycastActionAnimationName: string = raycast.Instance:GetAttribute("RaycastActionAnimation") :: any
+		if raycastActionAnimationName then
+			local raycastActionAnimation = TagManager:GetTagClass(raycast.Instance, raycastActionAnimationName)
+			if raycastActionAnimation and raycastActionAnimation.Animate then
+				task.spawn(raycastActionAnimation.Animate, raycastActionAnimation)
+			end
 		end
 	end
 
@@ -85,7 +90,7 @@ function RaycastController:Init(): ()
 
 		local raycastParams: RaycastParams = RaycastParams.new()
 		raycastParams.FilterType = Enum.RaycastFilterType.Include
-		raycastParams.FilterDescendantsInstances = { CollectionService:GetTagged("RaycastDetect") }
+		raycastParams.FilterDescendantsInstances = CollectionService:GetTagged("RaycastDetect")
 
 		Promise.retryWithDelay(function(): Promise.TypedPromise<>
 			return Promise.new(function(_resolve: () -> (), reject: () -> ()): ()

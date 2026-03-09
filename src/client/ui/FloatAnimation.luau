@@ -1,23 +1,21 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local Maid = require(ReplicatedStorage.package.Maid)
 
 export type FloatAnimation = {
-	animationTime: number,
-	currentTween: Tween?,
-	floatThread: thread?,
 	instance: GuiObject,
+	isHorizontal: boolean,
 	maid: Maid.Maid,
-	maxPosition: UDim2,
-	minPosition: UDim2,
 	path: InitializerTypes.ClientPath,
+	progress: number,
+	start: number,
 	tag: string,
 	type: string,
 	__index: FloatAnimation,
 	new: (instance: GuiObject, path: InitializerTypes.ClientPath) -> FloatAnimation?,
-	Start: (self: FloatAnimation) -> (),
+	Render: (self: FloatAnimation, delta: number) -> (),
 	Destroy: (self: FloatAnimation) -> (),
 }
 
@@ -26,77 +24,38 @@ FloatAnimation.__index = FloatAnimation
 FloatAnimation.type = "local_tag"
 FloatAnimation.tag = script.Name
 
-local DEFAULT_ANIMATION_TIME: number = 1
-local DEFAULT_FLOAT_OFFSET: number = 24
-
-local function createOffset(basePosition: UDim2, offsetY: number): UDim2
-	return UDim2.new(basePosition.X.Scale, basePosition.X.Offset, basePosition.Y.Scale, basePosition.Y.Offset + offsetY)
-end
+local DEFAULT_FLOAT_SPEED: number = 1.5
+local DEFAULT_FLOAT_AMPLITUDE: number = 0.1
 
 function FloatAnimation.new(instance: GuiObject, path: InitializerTypes.ClientPath): FloatAnimation?
-	local minPosition: UDim2? = instance:GetAttribute("Min") :: any
-	local maxPosition: UDim2? = instance:GetAttribute("Max") :: any
-	local basePosition: UDim2 = minPosition or maxPosition or instance.Position
-	local resolvedMin: UDim2 = minPosition or basePosition
-	local resolvedMax: UDim2 = maxPosition or createOffset(basePosition, -DEFAULT_FLOAT_OFFSET)
-
-	if not minPosition and maxPosition then
-		resolvedMin = createOffset(basePosition, DEFAULT_FLOAT_OFFSET)
-	end
-
 	local self = setmetatable({}, FloatAnimation)
 	self.instance = instance
 	self.path = path
 	self.maid = Maid.new()
-	self.animationTime = instance:GetAttribute("AnimationTime") or DEFAULT_ANIMATION_TIME
-	self.minPosition = resolvedMin
-	self.maxPosition = resolvedMax
+	local horizontalAttribute: boolean? = instance:GetAttribute("Horizontal") :: boolean?
+	self.isHorizontal = not not horizontalAttribute
+	self.progress = math.random()
+	self.start = self.isHorizontal and instance.Position.X.Scale or instance.Position.Y.Scale
 
-	self:Start()
+	self.maid:GiveTask(RunService.PreRender:Connect(function(delta: number): ()
+		self:Render(delta)
+	end))
 
 	return self
 end
 
-function FloatAnimation:Start(): ()
-	self.instance.Position = self.minPosition
+function FloatAnimation:Render(delta: number): ()
+	self.progress += delta * DEFAULT_FLOAT_SPEED
+	self.progress %= 2 * math.pi
 
-	local tweenInfo: TweenInfo = TweenInfo.new(self.animationTime, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-	local isActive: boolean = true
+	local offset: number = math.sin(self.progress) * DEFAULT_FLOAT_AMPLITUDE
+	if self.isHorizontal then
+		self.instance.Position = UDim2.fromScale(self.start + offset, self.instance.Position.Y.Scale)
 
-	self.floatThread = task.spawn(function(): ()
-		while isActive do
-			local tweenToMax: Tween = TweenService:Create(self.instance, tweenInfo, { Position = self.maxPosition })
-			self.currentTween = tweenToMax
-			tweenToMax:Play()
+		return
+	end
 
-			tweenToMax.Completed:Wait()
-			if not isActive then
-				break
-			end
-
-			local tweenToMin: Tween = TweenService:Create(self.instance, tweenInfo, { Position = self.minPosition })
-			self.currentTween = tweenToMin
-			tweenToMin:Play()
-
-			tweenToMin.Completed:Wait()
-		end
-	end)
-
-	self.maid:GiveTask(function(): ()
-		isActive = false
-
-		if self.floatThread then
-			task.cancel(self.floatThread)
-
-			self.floatThread = nil
-		end
-
-		if self.currentTween then
-			self.currentTween:Cancel()
-
-			self.currentTween = nil
-		end
-	end)
+	self.instance.Position = UDim2.fromScale(self.instance.Position.X.Scale, self.start + offset)
 end
 
 function FloatAnimation:Destroy(): ()

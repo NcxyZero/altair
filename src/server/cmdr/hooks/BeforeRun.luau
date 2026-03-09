@@ -1,4 +1,5 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
 
@@ -23,7 +24,7 @@ local function checkRank(player: Player): number
 		return cacheEntry.rank
 	end
 
-	local rank: number = player:GetRankInGroup(requiredGroup)
+	local rank: number = player:GetRankInGroupAsync(requiredGroup)
 
 	cache[userId] = {
 		rank = rank,
@@ -34,7 +35,7 @@ local function checkRank(player: Player): number
 end
 
 local function adminPermissionCheck(player: Player): boolean
-	return checkRank(player) >= requiredRank
+	return RunService:IsStudio() or checkRank(player) >= requiredRank
 end
 
 return function(registry): ()

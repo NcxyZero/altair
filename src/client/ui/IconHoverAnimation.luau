@@ -1,8 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
---local AnchorPointAdjustments = require(ReplicatedStorage.util.AnchorPointAdjustments)
-
 local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
 local Maid = require(ReplicatedStorage.package.Maid)
 
@@ -27,7 +25,6 @@ export type IconHoverAnimation = {
 	instance: GuiObject,
 	maid: Maid.Maid,
 	valueMaid: Maid.Maid,
-
 	__index: IconHoverAnimation,
 	new: (instance: GuiObject) -> IconHoverAnimation,
 	MouseEnter: (self: IconHoverAnimation) -> (),
@@ -68,6 +65,7 @@ function IconHoverAnimation.new(instance: GuiObject): IconHoverAnimation
 		if uiScale then
 			baseScale = uiScale.Scale
 		end
+
 		table.insert(self.iconOriginalScales :: { number }, baseScale)
 	end
 
@@ -75,6 +73,7 @@ function IconHoverAnimation.new(instance: GuiObject): IconHoverAnimation
 	for _index: number, child: Instance in instance:GetChildren() do
 		if child.Name == name and child:IsA("ObjectValue") then
 			iconObjectValue = child
+
 			break
 		end
 	end
@@ -86,6 +85,7 @@ function IconHoverAnimation.new(instance: GuiObject): IconHoverAnimation
 	for _index: number, child: Instance in instance:GetChildren() do
 		if child.Name == name and child:IsA("GuiObject") then
 			addIcon(child :: GuiObject)
+
 			break
 		end
 	end
@@ -148,7 +148,6 @@ function IconHoverAnimation:MouseEnter(): ()
 					original.X.Scale * ICON_HOVER_SIZE_MULTIPLIER,
 					original.Y.Scale * ICON_HOVER_SIZE_MULTIPLIER
 				)
-				--AnchorPointAdjustments:AdjustPosition(icon, Vector2.one / 2)
 				local sizeTween: Tween =
 					TweenService:Create(icon, TweenInfo.new(0.1, Enum.EasingStyle.Linear), { Size = endSize })
 				sizeTween:Play()
@@ -159,7 +158,6 @@ function IconHoverAnimation:MouseEnter(): ()
 				original.X.Scale * ICON_HOVER_SIZE_MULTIPLIER,
 				original.Y.Scale * ICON_HOVER_SIZE_MULTIPLIER
 			)
-			--AnchorPointAdjustments:AdjustPosition(icon, Vector2.one / 2)
 			local sizeTween: Tween =
 				TweenService:Create(icon, TweenInfo.new(0.1, Enum.EasingStyle.Linear), { Size = endSize })
 			sizeTween:Play()

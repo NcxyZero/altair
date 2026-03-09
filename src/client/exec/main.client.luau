@@ -5,11 +5,19 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local ClientInitConfig = require(ReplicatedStorage.client.clientConfig.ClientInitConfig)
-local GetBridge = require(ReplicatedStorage.util.GetBridge)
 local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
 local Logger = require(ReplicatedStorage.util.Logger)
 local Maid = require(ReplicatedStorage.package.Maid)
 local OpenGui = require(ReplicatedStorage.util.OpenGui)
+local Promise = require(ReplicatedStorage.package.Promise)
+
+local sharedFolder: Folder = ReplicatedStorage:WaitForChild("shared") :: Folder
+sharedFolder:WaitForChild("types")
+sharedFolder:WaitForChild("reflex")
+sharedFolder:WaitForChild("config")
+sharedFolder:WaitForChild("modules")
+sharedFolder:WaitForChild("model")
+sharedFolder:WaitForChild("util")
 
 local path = {}
 path.controller = {}
@@ -22,10 +30,11 @@ local moduleTags = {}
 local moduleTagsLocal = {}
 local tagInstances = {}
 local loadFirst = {}
+local loadFirstEntries = {}
 local load = {}
 
 local folders: { Folder } = ReplicatedStorage:WaitForChild("client"):GetChildren()
-table.insert(folders, ReplicatedStorage.shared.modules)
+table.insert(folders, sharedFolder:WaitForChild("modules"))
 
 for _index: number, folder: Folder in folders do
 	if table.find(ClientInitConfig, folder.Name) then
@@ -64,8 +73,13 @@ for _index: number, folder: Folder in folders do
 		local moduleType: string = required.type or "module"
 
 		if moduleType == "controller" then
-			if required.index then
-				loadFirst[required.index] = required
+			local rawIndex: unknown = required.index
+			if type(rawIndex) == "number" then
+				table.insert(loadFirstEntries, {
+					index = rawIndex,
+					moduleName = moduleName,
+					required = required,
+				})
 			else
 				table.insert(load, required)
 			end
@@ -87,6 +101,21 @@ for _index: number, folder: Folder in folders do
 	end
 end
 
+table.sort(loadFirstEntries, function(a: any, b: any): boolean
+	if a.index == b.index then
+		return tostring(a.moduleName) < tostring(b.moduleName)
+	end
+
+	return a.index < b.index
+end)
+
+for index: number = 1, #loadFirstEntries do
+	local entry: any = loadFirstEntries[index]
+	local required: unknown = entry.required
+
+	table.insert(loadFirst, required)
+end
+
 local function InitController(required: unknown): ()
 	required.path = path
 
@@ -102,6 +131,25 @@ local function InitController(required: unknown): ()
 			Logger.warn(`Failed to initialize controller {required.type or "unknown"}: {err}`)
 		end
 	end
+end
+
+local function InitControllerAsync(required: unknown, context: string): Promise.Promise
+	local regularDelaySeconds: number = 5
+	local delay: number = context == "regular" and regularDelaySeconds or 2
+	return Promise.race({
+		Promise.delay(delay):andThen(function(): ()
+			Logger.warn(
+				`Initialization of {context} controller {required.type or "unknown"} ({required.name or "unknown"}) exceeded {delay}s, continuing to next`
+			)
+		end),
+		Promise.new(function(resolve: () -> ()): ()
+			task.spawn(function(): ()
+				InitController(required)
+
+				resolve()
+			end)
+		end),
+	})
 end
 
 local function StartController(required: unknown): ()
@@ -135,6 +183,8 @@ local function InitTag(required: unknown): ()
 	required.tagclasses = {}
 
 	local function addInstance(instance: Instance): ()
+		-- print(table.concat(instance:GetTags(), ", "), " | ", instance:GetFullName())
+
 		local class: unknown = new(instance, path)
 		if not class then
 			return
@@ -228,22 +278,52 @@ local function InitLocalTag(required: unknown): ()
 
 		table.insert(required.tagclasses, class)
 
-		if not class.closeButtons then
-			return
-		end
-
-		if not class.closeButtonsMaid then
-			class.closeButtonsMaid = Maid.new()
-		end
-
-		for _index: number, button: GuiButton in class.closeButtons do
-			class.closeButtonsMaid:GiveTask(button.MouseButton1Down:Connect(function(): ()
-				if class.Close then
-					class:Close()
-				else
-					OpenGui:Close(required)
+		if class.closeButtons then
+			for _index: number, button: GuiButton in class.closeButtons or {} do
+				if not class.closeButtonsMaid then
+					class.closeButtonsMaid = Maid.new()
 				end
-			end))
+
+				class.closeButtonsMaid:GiveTask(button.MouseButton1Down:Connect(function(): ()
+					if class.Close then
+						class:Close()
+					else
+						OpenGui:Close(required)
+					end
+				end))
+			end
+		end
+
+		if class.openButtons then
+			if not class.openButtonsMaid then
+				class.openButtonsMaid = Maid.new()
+			end
+
+			for _index: number, button: GuiButton in class.openButtons or {} do
+				class.openButtonsMaid:GiveTask(button.MouseButton1Down:Connect(function(): ()
+					if class.Open then
+						class:Open()
+					else
+						OpenGui:Open(required)
+					end
+				end))
+			end
+		end
+
+		if class.toggleButtons then
+			if not class.toggleButtonsMaid then
+				class.toggleButtonsMaid = Maid.new()
+			end
+
+			for _index: number, button: GuiButton in class.toggleButtons or {} do
+				class.toggleButtonsMaid:GiveTask(button.MouseButton1Down:Connect(function(): ()
+					if class.Toggle then
+						class:Toggle()
+					else
+						OpenGui:Toggle(required)
+					end
+				end))
+			end
 		end
 	end
 
@@ -256,9 +336,23 @@ local function InitLocalTag(required: unknown): ()
 			required.tagclass = select(2, next(required.tagclasses))
 		end
 
-		if class and class.Destroy then
-			class:Destroy(instance)
-			class = nil
+		if class then
+			if class.closeButtonsMaid and class.closeButtonsMaid.DoCleaning then
+				class.closeButtonsMaid:DoCleaning()
+			end
+
+			if class.openButtonsMaid and class.openButtonsMaid.DoCleaning then
+				class.openButtonsMaid:DoCleaning()
+			end
+
+			if class.toggleButtonsMaid and class.toggleButtonsMaid.DoCleaning then
+				class.toggleButtonsMaid:DoCleaning()
+			end
+
+			if class.Destroy then
+				class:Destroy(instance)
+				class = nil
+			end
 		end
 
 		path.local_tag[instance] = nil
@@ -272,9 +366,10 @@ local function InitLocalTag(required: unknown): ()
 	end
 end
 
-for _index: number, required: unknown in loadFirst do
+for index: number = 1, #loadFirst do
+	local required: unknown = loadFirst[index]
 	local success: boolean, err: unknown = xpcall(function(): ()
-		InitController(required)
+		InitControllerAsync(required, "priority"):expect()
 	end, function(err2: string): string
 		return debug.traceback(err2)
 	end)
@@ -286,7 +381,7 @@ end
 
 for _index: number, required: unknown in load do
 	local success: boolean, err: unknown = xpcall(function(): ()
-		InitController(required)
+		InitControllerAsync(required, "regular"):expect()
 	end, function(err2: string): string
 		return debug.traceback(err2)
 	end)
@@ -304,7 +399,8 @@ for _index: number, required: unknown in moduleTagsLocal do
 	task.spawn(InitLocalTag, required)
 end
 
-for _index: number, required: unknown in loadFirst do
+for index: number = 1, #loadFirst do
+	local required: unknown = loadFirst[index]
 	local success: boolean, err: unknown = xpcall(function(): ()
 		StartController(required)
 	end, function(err2: string): string
@@ -648,5 +744,3 @@ LocalPlayer.PlayerGui.ChildAdded:Connect(function(ui: Instance): ()
 		ui.ResetOnSpawn = false
 	end
 end)
-
-GetBridge("PlayerReady"):Fire()

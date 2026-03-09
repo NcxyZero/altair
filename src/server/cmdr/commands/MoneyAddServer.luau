@@ -10,7 +10,7 @@ return function(_context, players: { Player }, amount: number): string
 
 	for _index: number, player: Player in players do
 		local producer = ServerData:GetPlayerProducerAsync(player):expect()
-		producer.secureAddMoney(amount)
+		producer.secureAddMoney(amount, true)
 
 		table.insert(playersToLog, player.Name)
 		table.insert(

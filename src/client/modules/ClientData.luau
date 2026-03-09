@@ -1,17 +1,19 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local sharedFolder: Folder = ReplicatedStorage:WaitForChild("shared") :: Folder
+local _typesFolder: Folder = sharedFolder:WaitForChild("types") :: Folder
+local reflexFolder: Folder = sharedFolder:WaitForChild("reflex") :: Folder
+
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
 local Logger = require(ReplicatedStorage.util.Logger)
+local MergeDictionaries = require(ReplicatedStorage.util.MergeDictionaries)
 local ProfileTypes = require(ReplicatedStorage.shared.reflex.ProfileTypes)
 local Promise = require(ReplicatedStorage.package.Promise)
 local Reflex = require(ReplicatedStorage.package.Reflex)
 local Signal = require(ReplicatedStorage.package.Signal)
 local clientProfile = require(ReplicatedStorage.shared.reflex.clientProfile)
 local gameProfile = require(ReplicatedStorage.shared.reflex.gameProfile)
-
-local sharedFolder: Folder = ReplicatedStorage:WaitForChild("shared") :: Folder
-local reflexFolder: Folder = sharedFolder:WaitForChild("reflex") :: Folder
 
 type ProfileTypes = typeof(ProfileTypes)
 
@@ -21,7 +23,7 @@ local function getProfileModules(): { [string]: any }
 	for _index: number, child: Instance in reflexFolder:GetChildren() do
 		if child:IsA("ModuleScript") then
 			local name: string = child.Name
-			if name ~= "gameProfile" and name:match("Profile$") then
+			if name ~= "gameProfile" and name ~= "clientProfile" and name:match("Profile$") then
 				local key: string = name:gsub("Profile$", "")
 				modules[key] = require(child) :: any
 			end
@@ -43,6 +45,7 @@ export type Default = {
 	playerDataLoadedSignal: Signal.Signal<()>,
 	gameDataLoadedSignal: Signal.Signal<()>,
 	GetPlayerProducerAsync: (self: Default) -> Promise.TypedPromise<ProfileTypes.PlayerProducer>,
+	GetClientProducerAsync: (self: Default) -> Promise.TypedPromise<clientProfile.Producer>,
 	GetGameProducerAsync: (self: Default) -> Promise.TypedPromise<gameProfile.Producer>,
 	PlayerAdded: (self: Default, player: Player) -> (),
 	Init: (self: Default) -> (),
@@ -73,6 +76,16 @@ function ClientData:GetPlayerProducerAsync(): Promise.TypedPromise<ProfileTypes.
 		end
 
 		resolve(self.playerProducer)
+	end)
+end
+
+function ClientData:GetClientProducerAsync(): Promise.TypedPromise<clientProfile.Producer>
+	return Promise.new(function(resolve: (clientProfile.Producer) -> ()): ()
+		if not self.clientProducer then
+			self.playerDataLoadedSignal:Wait()
+		end
+
+		resolve(self.clientProducer)
 	end)
 end
 
@@ -130,11 +143,11 @@ function ClientData:Init(): ()
 		local modules = getProfileModules()
 		local producers = {}
 
-		for key: string, state: any in playerData do
-			local module = modules[key]
-			if module then
-				producers[key] = module.CreateProducer(state or module.DEFAULT_STATE)
-			end
+		for key: string, module: any in modules do
+			local state = playerData[key]
+			local initialState = state and MergeDictionaries(module.DEFAULT_STATE, state) or module.DEFAULT_STATE
+
+			producers[key] = module.CreateProducer(initialState)
 		end
 
 		self.playerProducer = Reflex.combineProducers(producers) :: ProfileTypes.PlayerProducer
@@ -180,45 +193,59 @@ function ClientData:Init(): ()
 		return
 	end
 
-	ReplicatedStorage:WaitForChild("ReplicateStore").OnClientEvent:Connect(function(data: { [string]: any }): ()
-		if type(data) ~= "table" then
-			return
-		end
-
-		playerDataQueue += 1
-
-		if not self.isPlayerDataLoaded then
-			return
-		end
-
-		local actionParts: { string } = string.split(data.name, "_")
-		if #actionParts == 2 then
-			if self.playerProducer[data.name] then
-				self.playerProducer[data.name](unpack(data.arguments))
-			else
-				Logger.warn("Unknown action:", data.name)
+	ReplicatedStorage:WaitForChild("ReplicateStore").OnClientEvent
+		:Connect(function(data: { name: string, arguments: { any } }): ()
+			if type(data) ~= "table" then
+				return
 			end
-		else
-			self.playerProducer[data.name](unpack(data.arguments))
-		end
-	end)
+
+			if not self.isPlayerDataLoaded then
+				return
+			end
+
+			local actionNameAny: any = data.name
+			local actionName: string? = type(actionNameAny) == "string" and actionNameAny or nil
+			if not actionName then
+				return
+			end
+
+			local action: any = self.playerProducer[actionName]
+			if type(action) ~= "function" then
+				Logger.warn("Unknown action:", actionName)
+
+				return
+			end
+
+			playerDataQueue += 1
+
+			action(unpack(data.arguments))
+		end)
 
 	ReplicatedStorage:WaitForChild("ReplicateGameStore").OnClientEvent:Connect(function(data: { [string]: any }): ()
 		if type(data) ~= "table" then
 			return
 		end
 
-		gameDataQueue += 1
-
 		if not self.isGameDataLoaded then
 			return
 		end
 
-		if self.gameProducer[data.name] then
-			self.gameProducer[data.name](unpack(data.arguments))
-		else
-			Logger.warn("Unknown game action:", data.name)
+		local actionNameAny: any = data.name
+		local actionName: string? = type(actionNameAny) == "string" and actionNameAny or nil
+		if not actionName then
+			return
 		end
+
+		local action: any = self.gameProducer[actionName]
+		if type(action) ~= "function" then
+			Logger.warn("Unknown game action:", actionName)
+
+			return
+		end
+
+		gameDataQueue += 1
+
+		action(unpack(data.arguments))
 	end)
 
 	loadPlayerData()

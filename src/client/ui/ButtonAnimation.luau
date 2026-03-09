@@ -14,8 +14,8 @@ export type ButtonAnimation = {
 	instance: GuiButton,
 	maid: Maid.Maid,
 	isHovered: boolean,
-	isPressed: boolean,
-
+	isMousePressed: boolean,
+	isExternalPressed: boolean,
 	__index: ButtonAnimation,
 	new: (instance: GuiButton) -> ButtonAnimation,
 	Destroy: (self: ButtonAnimation) -> (),
@@ -31,7 +31,8 @@ function ButtonAnimation.new(instance: GuiButton): ButtonAnimation
 	self.instance = instance
 	self.maid = Maid.new()
 	self.isHovered = false
-	self.isPressed = false
+	self.isMousePressed = false
+	self.isExternalPressed = instance:GetAttribute("Pressed") == true
 
 	local originalScalesByElement: { [GuiObject]: number } = {}
 	local activeTweensByElement: { [GuiObject]: Tween } = {}
@@ -53,9 +54,10 @@ function ButtonAnimation.new(instance: GuiButton): ButtonAnimation
 	end
 
 	local function applyCurrentState(): ()
+		local isPressed: boolean = self.isMousePressed or self.isExternalPressed
 		local desiredScale: number = 1
-		desiredScale = self.isPressed and BUTTON_SIZE_MULTIPLIER or desiredScale
-		desiredScale = (not self.isPressed and self.isHovered) and HOVER_SIZE_MULTIPLIER or desiredScale
+		desiredScale = isPressed and BUTTON_SIZE_MULTIPLIER or desiredScale
+		desiredScale = (not isPressed and self.isHovered) and HOVER_SIZE_MULTIPLIER or desiredScale
 
 		for _index: number, element: GuiObject in getElementsToAnimate() do
 			local uiScale: UIScale? = element:FindFirstChild("UIScale") :: UIScale
@@ -94,13 +96,13 @@ function ButtonAnimation.new(instance: GuiButton): ButtonAnimation
 	end
 
 	local function onMouseDown(): ()
-		self.isPressed = true
+		self.isMousePressed = true
 		applyCurrentState()
 		SFX.new(SFX.Sounds.InterfacePress, 0.4, false)
 	end
 
 	local function onMouseUp(): ()
-		self.isPressed = false
+		self.isMousePressed = false
 		applyCurrentState()
 	end
 
@@ -111,7 +113,17 @@ function ButtonAnimation.new(instance: GuiButton): ButtonAnimation
 
 	local function onMouseLeave(): ()
 		self.isHovered = false
-		self.isPressed = false
+		self.isMousePressed = false
+		applyCurrentState()
+	end
+
+	local function onPressedAttributeChanged(): ()
+		local pressedAttribute: boolean = instance:GetAttribute("Pressed") == true
+		if self.isExternalPressed == pressedAttribute then
+			return
+		end
+
+		self.isExternalPressed = pressedAttribute
 		applyCurrentState()
 	end
 
@@ -119,6 +131,9 @@ function ButtonAnimation.new(instance: GuiButton): ButtonAnimation
 	self.maid:GiveTask(instance.MouseButton1Up:Connect(onMouseUp))
 	self.maid:GiveTask(instance.MouseEnter:Connect(onMouseEnter))
 	self.maid:GiveTask(instance.MouseLeave:Connect(onMouseLeave))
+	self.maid:GiveTask(instance:GetAttributeChangedSignal("Pressed"):Connect(onPressedAttributeChanged))
+
+	applyCurrentState()
 
 	return self
 end

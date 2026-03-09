@@ -6,7 +6,7 @@ return function(model: Model & { PrimaryPart: Instance & any }): ()
 			weld.Part1 = basePart
 
 			weld.C0 = model.PrimaryPart.CFrame:Inverse() * basePart.CFrame
-			weld.C1 = CFrame.new()
+			weld.C1 = CFrame.identity
 
 			weld.Parent = basePart
 			basePart.Anchored = false

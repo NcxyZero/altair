@@ -7,9 +7,9 @@ local function async<T..., A...>(callback: (A...) -> T...): (A...) -> Promise.Ty
 		local arguments: { any } = { ... }
 
 		return Promise.new(function(resolve: (any) -> (), reject: (...any) -> ()): ()
-			local success: boolean, data: any = pcall(function(): T...
+			local success: boolean, data: any = xpcall(function(): T...
 				return callback(unpack(arguments))
-			end)
+			end, warn)
 
 			if success then
 				resolve(data)

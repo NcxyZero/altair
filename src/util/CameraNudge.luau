@@ -21,13 +21,14 @@ local PITCH_RATIO: number = 0.6 * 2
 local RETURN_DECAY: number = 1.5 * 2
 
 local appliedFovDeltaDeg: number = 0
-local appliedOffset: CFrame = CFrame.new()
+local appliedOffset: CFrame = CFrame.identity
 local currentAngles: Vector2 = Vector2.zero
 local currentFovDeltaDeg: number = 0
 local maid: Maid.Maid = Maid.new()
 local refCount: number = 0
 local rng: Random = Random.new()
 local running: boolean = false
+local stopPending: boolean = false
 local targetAngles: Vector2 = Vector2.zero
 local targetFovDeltaDeg: number = 0
 
@@ -61,6 +62,16 @@ local function stepCamera(deltaTime: number): ()
 	local newFovDeltaDeg: number = currentFovDeltaDeg
 	camera.FieldOfView = baseFov + newFovDeltaDeg
 	appliedFovDeltaDeg = newFovDeltaDeg
+
+	if stopPending and refCount == 0 then
+		local angleMagnitude: number = math.abs(currentAngles.X) + math.abs(currentAngles.Y)
+		local fovMagnitude: number = math.abs(currentFovDeltaDeg)
+
+		if angleMagnitude < 0.00005 and fovMagnitude < 0.0005 then
+			stopPending = false
+			maid:DoCleaning()
+		end
+	end
 end
 
 local function ensureStarted(): ()
@@ -89,7 +100,7 @@ local function ensureStarted(): ()
 			camera.FieldOfView = baseFov
 		end
 
-		appliedOffset = CFrame.new()
+		appliedOffset = CFrame.identity
 		targetAngles = Vector2.zero
 		currentAngles = Vector2.zero
 		targetFovDeltaDeg = 0
@@ -116,8 +127,9 @@ function CameraNudge:StartRef(attachMaid: Maid.Maid?): () -> ()
 		refCount -= 1
 		if refCount <= 0 then
 			refCount = 0
-
-			maid:DoCleaning()
+			stopPending = true
+			targetAngles = Vector2.zero
+			targetFovDeltaDeg = 0
 		end
 	end
 

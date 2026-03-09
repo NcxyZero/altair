@@ -20,7 +20,7 @@ export type Default = {
 local ShineAnimation: Default = {} :: Default
 ShineAnimation.__index = ShineAnimation
 ShineAnimation.type = "local_tag"
-ShineAnimation.tag = "ShineAnimation"
+ShineAnimation.tag = script.Name
 
 function ShineAnimation.new(instance: TextLabel, path: InitializerTypes.ClientPath): Default
 	local self = setmetatable({}, ShineAnimation)

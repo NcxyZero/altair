@@ -18,8 +18,9 @@ return function(instance: Instance, data: promptData): ProximityPrompt
 	prompt.RequiresLineOfSight = data and data.RequiresLineOfSight or false
 	prompt.Parent = instance
 
-	if data then
-		prompt.Triggered:Connect(data and data.Triggered)
+	local triggeredCallback: any = data and data.Triggered
+	if type(triggeredCallback) == "function" then
+		prompt.Triggered:Connect(triggeredCallback)
 	end
 
 	return prompt

@@ -20,7 +20,7 @@ export type Default = {
 local SpinAnimation: Default = {} :: Default
 SpinAnimation.__index = SpinAnimation
 SpinAnimation.type = "local_tag"
-SpinAnimation.tag = "SpinAnimation"
+SpinAnimation.tag = script.Name
 SpinAnimation.animationSpeed = 20 -- default when no attribute is set
 
 function SpinAnimation.new(instance: TextLabel, path: InitializerTypes.ClientPath): Default

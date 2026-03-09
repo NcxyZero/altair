@@ -44,13 +44,20 @@ export type StockOverrides = {
 	stores: StoreSettings?,
 }
 
-export type StockDefinition = StockOverrides & {
+export type StockDefinition = {
 	name: string?,
 	minItems: number,
 	maxItems: number,
 	restockInterval: number,
+	timerAt: number?,
+	timerInterval: number?,
 	items: { StockItemConfig },
 	info: { [string]: any }?,
+
+	core: CoreSettings?,
+	debug: DebugSettings?,
+	seed: SeedSettings?,
+	stores: StoreSettings?,
 }
 
 export type GlobalStockConfig = {
@@ -84,7 +91,34 @@ local globalStockConfig: GlobalStockConfig = {
 		},
 	},
 
-	stocks = nil,
+	stocks = {
+		LimitedSlot1 = {
+			minItems = 1,
+			maxItems = 1,
+			restockInterval = 0,
+			items = {
+				{
+					name = "Blackstone Rod",
+					chance = 100,
+					minAmount = 500,
+					maxAmount = 500,
+				},
+			},
+		},
+		LimitedSlot2 = {
+			minItems = 1,
+			maxItems = 1,
+			restockInterval = 0,
+			items = {
+				{
+					name = "El Gran Maja",
+					chance = 100,
+					minAmount = 1000,
+					maxAmount = 1000,
+				},
+			},
+		},
+	},
 }
 
 return table.freeze(globalStockConfig)
