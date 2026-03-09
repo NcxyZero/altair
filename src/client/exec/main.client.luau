@@ -17,7 +17,6 @@ sharedFolder:WaitForChild("reflex")
 sharedFolder:WaitForChild("config")
 sharedFolder:WaitForChild("modules")
 sharedFolder:WaitForChild("model")
-sharedFolder:WaitForChild("util")
 
 local path = {}
 path.controller = {}

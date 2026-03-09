@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
+local Logger = require(ReplicatedStorage.util.Logger)
 local Maid = require(ReplicatedStorage.package.Maid)
 
 export type Default = {
@@ -14,7 +15,7 @@ export type Default = {
 local PlayerNameplateController: Default = {} :: Default
 PlayerNameplateController.type = "controller"
 
-local template: BillboardGui = ReplicatedStorage.shared.model:WaitForChild("PlayerBGUI") :: BillboardGui
+local template: BillboardGui? = ReplicatedStorage.shared.model:WaitForChild("PlayerBGUI", 5)
 local maidByPlayer: { [Player]: Maid.Maid } = {}
 
 local function updateName(player: Player, label: TextLabel?): ()
@@ -53,7 +54,7 @@ local function attachNameplate(player: Player, character: Model, maid: Maid.Maid
 		existing:Destroy()
 	end
 
-	local nameplate: BillboardGui = template:Clone()
+	local nameplate: BillboardGui = template and template:Clone()
 	nameplate.Name = "PlayerBGUI"
 	nameplate.Adornee = humanoidRootPart
 	nameplate.Parent = humanoidRootPart
@@ -106,6 +107,12 @@ local function hookPlayer(player: Player): ()
 end
 
 function PlayerNameplateController:Init(): ()
+	if not template then
+		Logger.print("Failed to find PlayerBGUI template, nameplates will not be created")
+
+		return
+	end
+
 	Players.PlayerAdded:Connect(hookPlayer)
 
 	Players.PlayerRemoving:Connect(function(player: Player): ()
