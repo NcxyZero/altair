@@ -6,17 +6,13 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local APIDictionaries = require(ReplicatedStorage.shared.types.APIDictionaries)
 local Bridgenet2 = require(ReplicatedStorage.package.Bridgenet2)
 local Conditions = require(ReplicatedStorage.shared.modules.Conditions)
-local FishConfig = require(ReplicatedStorage.shared.config.FishConfig)
 local GetBridge = require(ReplicatedStorage.util.GetBridge)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
-local ItemServerUtil = require(ServerScriptService.server.serverUtil.ItemServerUtil)
-local ItemsConfig = require(ReplicatedStorage.shared.config.ItemsConfig)
 local Logger = require(ReplicatedStorage.util.Logger)
 local Maid = require(ReplicatedStorage.package.Maid)
 local MonetizationConfig = require(ReplicatedStorage.shared.config.MonetizationConfig)
 local MonetizationExecs = require(ServerScriptService.server.serverConfig.MonetizationExecs)
 local Promise = require(ReplicatedStorage.package.Promise)
-local RebirthConfig = require(ReplicatedStorage.shared.config.RebirthConfig)
 local SecurePlayerAsync = require(ReplicatedStorage.util.SecurePlayerAsync)
 local ServerData = require(ServerScriptService.server.modules.ServerData)
 
@@ -77,56 +73,11 @@ local GAMEPASS_OWNERSHIP_RETRY_DELAY_SECONDS: number = 1
 local GAMEPASS_ITEM_GRANTS: { [string]: string } = {}
 local BREAK_BARRIER_BASE_NUMBER_ATTR: string = "BreakBarrierBaseNumber"
 
-for itemId: string, itemConfig: any in ItemsConfig do
-	if type(itemConfig) ~= "table" then
-		continue
-	end
-
-	local gamePassNameAny: any = itemConfig.gamePassName
-	local gamePassName: string? = type(gamePassNameAny) == "string" and gamePassNameAny or nil
-	if not gamePassName then
-		continue
-	end
-
-	if GAMEPASS_ITEM_GRANTS[gamePassName] then
-		Logger.warn(`ServerMonetization: duplicate gamepass item mapping for passName={gamePassName} itemId={itemId}`)
-
-		continue
-	end
-
-	GAMEPASS_ITEM_GRANTS[gamePassName] = itemId
-end
-
-local function isFishTool(tool: Tool): boolean
-	local fishIdAny: any = tool:GetAttribute("FishId")
-	if type(fishIdAny) == "string" and #fishIdAny > 0 then
-		return true
-	end
-
-	local modelNameAny: any = tool:GetAttribute("ModelName")
-	if type(modelNameAny) == "string" and #modelNameAny > 0 then
-		return true
-	end
-
-	return FishConfig[tool.Name] ~= nil
-end
-
 local grantGamePassItem: (player: Player, producer: any, passName: string) -> ()
 
 local function applyGamePassOwnership(player: Player, producer: any, passName: string, showNotification: boolean): ()
 	if producer.secureAddGamePass then
 		producer.secureAddGamePass(passName)
-	end
-
-	if passName == "DoubleCash" then
-		local state = producer:getState()
-		local rebirth = state.player and state.player.rebirth or 0
-		local passes = state.monetization and state.monetization.passes or {}
-		local nextPasses: { [string]: boolean } = table.clone(passes)
-		nextPasses[passName] = true
-
-		local newMultiplier: number = RebirthConfig.ComputeMultiplier(rebirth, nextPasses)
-		producer.secureSetCashMultiplier(newMultiplier)
 	end
 
 	grantGamePassItem(player, producer, passName)
@@ -137,21 +88,6 @@ local function applyGamePassOwnership(player: Player, producer: any, passName: s
 			seconds = 4,
 			color = SUPPORT_NOTIFICATION_COLOR,
 		})
-	end
-
-	if passName == "BaseSlotsPlus2" then
-		local character: Model? = player.Character
-		if not character then
-			return
-		end
-
-		local equippedTool: Tool? = character:FindFirstChildWhichIsA("Tool") :: any
-		if equippedTool and isFishTool(equippedTool) then
-			local humanoid: Humanoid? = character:FindFirstChildWhichIsA("Humanoid") :: any
-			if humanoid then
-				humanoid:UnequipTools()
-			end
-		end
 	end
 end
 
@@ -197,14 +133,14 @@ grantGamePassItem = function(player: Player, producer: any, passName: string): (
 		return
 	end
 
-	local itemConfig: any = ItemsConfig[itemId]
-	if not itemConfig then
-		Logger.warn(
-			`ServerMonetization: item config missing for itemId={itemId} passName={passName} player={player.Name}`
-		)
+	-- local itemConfig: any = ItemsConfig[itemId]
+	-- if not itemConfig then
+	-- 	Logger.warn(
+	-- 		`ServerMonetization: item config missing for itemId={itemId} passName={passName} player={player.Name}`
+	-- 	)
 
-		return
-	end
+	-- 	return
+	-- end
 
 	local inventory: any = producer.getState and producer:getState().inventory
 	local items: any = inventory and inventory.items
@@ -216,19 +152,19 @@ grantGamePassItem = function(player: Player, producer: any, passName: string): (
 		return
 	end
 
-	if producer.secureAddItem then
-		local displayName: string = (itemConfig and itemConfig.displayName) or itemId
-		local rarity: string = (itemConfig and itemConfig.rarity) or "common"
+	-- if producer.secureAddItem then
+	-- 	local displayName: string = (itemConfig and itemConfig.displayName) or itemId
+	-- 	local rarity: string = (itemConfig and itemConfig.rarity) or "common"
 
-		producer.secureAddItem(itemId, {
-			id = itemId,
-			name = displayName,
-			description = "",
-			quantity = 1,
-			rarity = rarity,
-			equipped = false,
-		})
-	end
+	-- 	producer.secureAddItem(itemId, {
+	-- 		id = itemId,
+	-- 		name = displayName,
+	-- 		description = "",
+	-- 		quantity = 1,
+	-- 		rarity = rarity,
+	-- 		equipped = false,
+	-- 	})
+	-- end
 
 	if producer.secureUnlockItem then
 		producer.secureUnlockItem(itemId)
@@ -238,14 +174,14 @@ grantGamePassItem = function(player: Player, producer: any, passName: string): (
 		Logger.print(
 			`ServerMonetization: creating item tool from passName={passName} itemId={itemId} player={player.Name}`
 		)
-		ItemServerUtil.CreateItemTool(player, itemId)
+		-- ItemServerUtil.CreateItemTool(player, itemId)
 	end)
 
-	Notify:Fire(Bridgenet2.Players({ player }), {
-		text = `Equipped {(itemConfig and itemConfig.displayName) or itemId}!`,
-		seconds = 3,
-		color = SUPPORT_NOTIFICATION_COLOR,
-	})
+	-- Notify:Fire(Bridgenet2.Players({ player }), {
+	-- 	text = `Equipped {(itemConfig and itemConfig.displayName) or itemId}!`,
+	-- 	seconds = 3,
+	-- 	color = SUPPORT_NOTIFICATION_COLOR,
+	-- })
 end
 
 function ServerMonetization:ProceedGamePassPurchaseAsync(player: Player, id: number): Promise.TypedPromise<boolean>
@@ -326,17 +262,6 @@ function ServerMonetization:PromptGamePassByNameAsync(player: Player, name: stri
 				producer.secureAddGamePass(name)
 			end
 
-			if name == "DoubleCash" then
-				local state = producer:getState()
-				local rebirth: number = state.player and state.player.rebirth or 0
-				local passes: { [string]: boolean } = state.monetization and state.monetization.passes or {}
-				local nextPasses: { [string]: boolean } = table.clone(passes)
-				nextPasses[name] = true
-
-				local newMultiplier: number = RebirthConfig.ComputeMultiplier(rebirth, nextPasses)
-				producer.secureSetCashMultiplier(newMultiplier)
-			end
-
 			grantGamePassItem(player, producer, name)
 		end
 		resolve(status)
@@ -406,6 +331,7 @@ function ServerMonetization:PromptGamePassByDataAsync(
 		local id: number = type(set) == "number" and set or set.id
 		if not id then
 			reject(`Id property not found in "{set}"`)
+
 			return
 		end
 
@@ -423,6 +349,7 @@ function ServerMonetization:PromptDevProductByDataAsync(
 		local id: number = type(set) == "number" and set or set.id
 		if not id then
 			reject(`Id property not found in "{set}"`)
+
 			return
 		end
 

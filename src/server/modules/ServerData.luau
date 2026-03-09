@@ -1,4 +1,3 @@
-local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -11,7 +10,6 @@ local ProfileService = require(ReplicatedStorage.package.ProfileService)
 local ProfileTypes = require(ReplicatedStorage.shared.reflex.ProfileTypes)
 local Promise = require(ReplicatedStorage.package.Promise)
 local Reflex = require(ReplicatedStorage.package.Reflex)
-local RodsConfig = require(ReplicatedStorage.shared.config.RodsConfig)
 local Signal = require(ReplicatedStorage.package.Signal)
 local gameProfile = require(ReplicatedStorage.shared.reflex.gameProfile)
 local playerProfile = require(ReplicatedStorage.shared.reflex.playerProfile)
@@ -73,152 +71,8 @@ local gameStoreReady: { [Player]: boolean } = {}
 
 local PlayerReady = GetBridge("PlayerReady")
 
-local PLAYTIME_TICK_SECONDS: number = 10
-local AUTO_FISH_RESUME_ENABLED_ATTRIBUTE: string = "AutoFishingResumeEnabled"
-local AUTO_FISH_RESUME_POSITION_ATTRIBUTE: string = "AutoFishingResumePosition"
-local AUTO_FISH_RESUME_CAST_ATTRIBUTE: string = "AutoFishingResumeCastPosition"
-local AUTO_FISH_RESUME_LOOK_ATTRIBUTE: string = "AutoFishingResumeLookVector"
-local AUTO_FISH_RESUME_BASE_RELATIVE_CAST_ATTRIBUTE: string = "AutoFishingResumeBaseRelativeCastPosition"
-local BARRIER_COLLISION_MODEL_NAME: string = "BarrierCollision"
-
-local function packVector3(position: Vector3): { [string]: number }
-	return {
-		x = position.X,
-		y = position.Y,
-		z = position.Z,
-	}
-end
-
-local function isFishingRodTool(tool: Instance): boolean
-	if not tool:IsA("Tool") then
-		return false
-	end
-
-	if CollectionService:HasTag(tool, "FishingRod") or tool.Name == "FishingRod" then
-		return true
-	end
-
-	local rodIdAttr: any = tool:GetAttribute("CurrentRodId") or tool:GetAttribute("RodId")
-	if type(rodIdAttr) == "string" and RodsConfig[rodIdAttr] ~= nil then
-		return true
-	end
-
-	return RodsConfig[tool.Name] ~= nil
-end
-
-local function getEquippedRodTool(player: Player): Tool?
-	local character: Model? = player.Character
-	if not character then
-		return
-	end
-
-	for _index: number, child: Instance in character:GetChildren() do
-		if isFishingRodTool(child) then
-			return child :: Tool
-		end
-	end
-
-	return
-end
-
-local function getBarrierBounds(barrier: Instance): (CFrame?, Vector3?)
-	local collisionModel: Instance? = barrier:FindFirstChild(BARRIER_COLLISION_MODEL_NAME)
-	if collisionModel and collisionModel:IsA("Model") then
-		return collisionModel:GetBoundingBox()
-	end
-
-	if barrier:IsA("Model") then
-		return barrier:GetBoundingBox()
-	end
-
-	if barrier:IsA("BasePart") then
-		return barrier.CFrame, barrier.Size
-	end
-
-	local modelCandidate: Instance? = barrier:FindFirstChildWhichIsA("Model", true)
-	if modelCandidate then
-		return (modelCandidate :: Model):GetBoundingBox()
-	end
-
-	local partCandidate: Instance? = barrier:FindFirstChildWhichIsA("BasePart", true)
-	if partCandidate then
-		local part: BasePart = partCandidate :: any
-
-		return part.CFrame, part.Size
-	end
-
-	return
-end
-
-local function isPointInsideBarrier(barrier: Instance, point: Vector3): boolean
-	local orientation: CFrame?, size: Vector3? = getBarrierBounds(barrier)
-	if not orientation or not size then
-		return false
-	end
-
-	local localPoint: Vector3 = orientation:PointToObjectSpace(point)
-
-	return math.abs(localPoint.X) <= size.X / 2 and math.abs(localPoint.Z) <= size.Z / 2
-end
-
-local function isPointInsideBaseModel(baseModel: Model, point: Vector3): boolean
-	local baseRoot: Instance? = baseModel:FindFirstChild("Base") or baseModel
-	local floorsContainer: Instance? = baseRoot and baseRoot:FindFirstChild("Floors") or baseRoot
-	local sawBarrier: boolean = false
-	if floorsContainer then
-		for _index: number, floor: Instance in floorsContainer:GetChildren() do
-			local barrier: Instance? = floor:FindFirstChild("Barrier", true)
-			if barrier then
-				sawBarrier = true
-
-				if isPointInsideBarrier(barrier, point) then
-					return true
-				end
-			end
-		end
-	end
-
-	local globalBarrier: Instance? = baseModel:FindFirstChild("Barrier", true)
-	if globalBarrier then
-		sawBarrier = true
-
-		if isPointInsideBarrier(globalBarrier, point) then
-			return true
-		end
-	end
-
-	if not sawBarrier then
-		local baseCFrame: CFrame, baseSize: Vector3 = baseModel:GetBoundingBox()
-		local localPoint: Vector3 = baseCFrame:PointToObjectSpace(point)
-		return math.abs(localPoint.X) <= baseSize.X / 2 and math.abs(localPoint.Z) <= baseSize.Z / 2
-	end
-
-	return false
-end
-
-local function findBaseModelAtPoint(point: Vector3): Model?
-	local maps: Instance? = workspace:FindFirstChild("Maps")
-	local bases: Instance? = maps and maps:FindFirstChild("Bases")
-	if not bases then
-		bases = workspace:FindFirstChild("Bases")
-	end
-	if not bases then
-		return
-	end
-
-	for _index: number, baseModel: Instance in bases:GetChildren() do
-		if baseModel:IsA("Model") and isPointInsideBaseModel(baseModel, point) then
-			return baseModel
-		end
-	end
-
-	return
-end
-
 local DATASTORE_KEY: string = GameConfig.data.datastoreKey
-local function getPlayerKey(userId: number): string
-	return GameConfig.data.playerKeyPattern:format(userId)
-end
+local PLAYTIME_TICK_SECONDS: number = 10
 
 local ReplicateStore = Instance.new("RemoteEvent")
 ReplicateStore.Name = "ReplicateStore"
@@ -235,6 +89,10 @@ GetPlayerData.Parent = ReplicatedStorage
 local GetGameData = Instance.new("RemoteFunction")
 GetGameData.Name = "GetGameData"
 GetGameData.Parent = ReplicatedStorage
+
+local function getPlayerKey(userId: number): string
+	return GameConfig.data.playerKeyPattern:format(userId)
+end
 
 GetPlayerData.OnServerInvoke = function(player: Player): ...any
 	local existingProfile: ServerPlayerProfile? = ServerData:GetPlayerProfile(player)
@@ -443,127 +301,7 @@ end
 function ServerData:PlayerRemoving(player: Player): ()
 	local profile: ServerPlayerProfile? = self.profiles[player]
 	if not profile then
-		gameStoreReady[player] = nil
-
 		return
-	end
-
-	local resumeEnabled: boolean = player:GetAttribute("AutoFishing") == true
-		or player:GetAttribute(AUTO_FISH_RESUME_ENABLED_ATTRIBUTE) == true
-	if resumeEnabled and not getEquippedRodTool(player) then
-		resumeEnabled = false
-	end
-
-	local resumePosition: { [string]: number }?
-	local resumeCastPosition: { [string]: number }?
-	local resumeLookVector: { [string]: number }?
-	local resumeBaseRelativePosition: { [string]: number }?
-	local resumeBaseRelativeLookVector: { [string]: number }?
-	local resumeBaseRelativeCastPosition: { [string]: number }?
-	local rootBasePivot: CFrame?
-
-	if resumeEnabled then
-		local character: Model? = player.Character
-		local root: BasePart? = character and character:FindFirstChild("HumanoidRootPart") :: any
-		if root and root:IsA("BasePart") then
-			resumePosition = packVector3(root.Position)
-			resumeLookVector = packVector3(root.CFrame.LookVector)
-
-			local baseModel: Model? = findBaseModelAtPoint(root.Position)
-			if baseModel then
-				local basePivot: CFrame = baseModel:GetPivot()
-				rootBasePivot = basePivot
-				resumeBaseRelativePosition = packVector3(basePivot:PointToObjectSpace(root.Position))
-				resumeBaseRelativeLookVector = packVector3(basePivot:VectorToObjectSpace(root.CFrame.LookVector))
-			end
-		end
-	end
-
-	if resumeEnabled and not resumePosition then
-		local resumePositionAny: any = player:GetAttribute(AUTO_FISH_RESUME_POSITION_ATTRIBUTE)
-		if typeof(resumePositionAny) == "Vector3" then
-			resumePosition = packVector3(resumePositionAny)
-		end
-	end
-
-	local resumeCastAny: any = player:GetAttribute(AUTO_FISH_RESUME_CAST_ATTRIBUTE)
-	if resumeEnabled and typeof(resumeCastAny) == "Vector3" then
-		resumeCastPosition = packVector3(resumeCastAny)
-	end
-
-	local resumeLookAny: any = player:GetAttribute(AUTO_FISH_RESUME_LOOK_ATTRIBUTE)
-	if resumeEnabled and not resumeLookVector and typeof(resumeLookAny) == "Vector3" then
-		resumeLookVector = packVector3(resumeLookAny)
-	end
-
-	if resumeEnabled and rootBasePivot and resumeCastPosition and not resumeBaseRelativeCastPosition then
-		local castVector = Vector3.new(resumeCastPosition.x, resumeCastPosition.y, resumeCastPosition.z)
-		resumeBaseRelativeCastPosition = packVector3(rootBasePivot:PointToObjectSpace(castVector))
-	end
-
-	if resumeEnabled and resumePosition and not resumeBaseRelativePosition then
-		local resumePositionAny: any = player:GetAttribute(AUTO_FISH_RESUME_POSITION_ATTRIBUTE)
-		local positionVector: Vector3 = typeof(resumePositionAny) == "Vector3" and resumePositionAny
-			or Vector3.new(resumePosition.x, resumePosition.y, resumePosition.z)
-
-		local baseModel: Model? = findBaseModelAtPoint(positionVector)
-		if baseModel then
-			local basePivot: CFrame = baseModel:GetPivot()
-			resumeBaseRelativePosition = packVector3(basePivot:PointToObjectSpace(positionVector))
-
-			if resumeLookVector then
-				local lookVector: Vector3 = Vector3.new(resumeLookVector.x, resumeLookVector.y, resumeLookVector.z)
-				resumeBaseRelativeLookVector = packVector3(basePivot:VectorToObjectSpace(lookVector))
-			end
-
-			if resumeCastPosition then
-				local castVector: Vector3 =
-					Vector3.new(resumeCastPosition.x, resumeCastPosition.y, resumeCastPosition.z)
-				resumeBaseRelativeCastPosition = packVector3(basePivot:PointToObjectSpace(castVector))
-			end
-		end
-	end
-
-	if resumeEnabled and resumeCastPosition and not resumeBaseRelativeCastPosition then
-		local resumeCastVector: Vector3 = Vector3.new(resumeCastPosition.x, resumeCastPosition.y, resumeCastPosition.z)
-		local baseModel: Model? = findBaseModelAtPoint(resumeCastVector)
-		if baseModel then
-			local basePivot: CFrame = baseModel:GetPivot()
-			resumeBaseRelativeCastPosition = packVector3(basePivot:PointToObjectSpace(resumeCastVector))
-		end
-	end
-
-	if resumeEnabled and not resumeBaseRelativeCastPosition then
-		local baseRelativeCastAny: any = player:GetAttribute(AUTO_FISH_RESUME_BASE_RELATIVE_CAST_ATTRIBUTE)
-		if typeof(baseRelativeCastAny) == "Vector3" then
-			resumeBaseRelativeCastPosition = packVector3(baseRelativeCastAny)
-		end
-	end
-
-	if (profile.producer :: any).secureSetAutoFishResumeState then
-		if resumeEnabled and resumePosition then
-			Logger.print(
-				`Auto fishing resume saved player={player.Name} pos=({math.floor(resumePosition.x + 0.5)}, {math.floor(
-					resumePosition.y + 0.5
-				)}, {math.floor(resumePosition.z + 0.5)}) cast={tostring(resumeCastPosition ~= nil)}`
-			);
-			(profile.producer :: any).secureSetAutoFishResumeState(
-				true,
-				resumePosition,
-				resumeCastPosition,
-				resumeLookVector,
-				resumeBaseRelativePosition,
-				resumeBaseRelativeLookVector,
-				resumeBaseRelativeCastPosition
-			)
-		else
-			Logger.print(
-				`Auto fishing resume cleared player={player.Name} auto={tostring(player:GetAttribute("AutoFishing"))} resumeAttr={tostring(
-					player:GetAttribute(AUTO_FISH_RESUME_ENABLED_ATTRIBUTE)
-				)}`
-			);
-			(profile.producer :: any).secureSetAutoFishResumeState(false)
-		end
 	end
 
 	profile.producer.secureSetLastSeenTimestamp()
@@ -665,6 +403,7 @@ function ServerData:Init(): ()
 		local isSecureAction: number? = data.name:find("^secure")
 		if isSecureAction then
 			Logger.warn("Player tried to replicate secure reflex action", data.name)
+
 			return
 		end
 
@@ -687,6 +426,7 @@ function ServerData:Init(): ()
 		local isSecureAction: number? = data.name:find("^secure")
 		if isSecureAction then
 			Logger.warn("Player tried to replicate secure reflex action", data.name)
+
 			return
 		end
 

@@ -63,6 +63,9 @@
 				"SoundToClone": {
 					"$className": "Sound"
 				}
+			},
+			"BackgroundMusic": {
+				"$className": "SoundGroup"
 			}
 		},
 		"TestService": {

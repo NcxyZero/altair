@@ -183,7 +183,7 @@ local function InitTag(required: unknown): ()
 	required.tagclasses = {}
 
 	local function addInstance(instance: Instance): ()
-		-- print(table.concat(instance:GetTags(), ", "), " | ", instance:GetFullName())
+		--print(table.concat(instance:GetTags(), ", "), " | ", instance:GetFullName())
 
 		local class: unknown = new(instance, path)
 		if not class then

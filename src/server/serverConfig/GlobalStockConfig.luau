@@ -92,32 +92,19 @@ local globalStockConfig: GlobalStockConfig = {
 	},
 
 	stocks = {
-		LimitedSlot1 = {
-			minItems = 1,
-			maxItems = 1,
-			restockInterval = 0,
-			items = {
-				{
-					name = "Blackstone Rod",
-					chance = 100,
-					minAmount = 500,
-					maxAmount = 500,
-				},
-			},
-		},
-		LimitedSlot2 = {
-			minItems = 1,
-			maxItems = 1,
-			restockInterval = 0,
-			items = {
-				{
-					name = "El Gran Maja",
-					chance = 100,
-					minAmount = 1000,
-					maxAmount = 1000,
-				},
-			},
-		},
+		-- LimitedSlot1 = {
+		-- 	minItems = 1,
+		-- 	maxItems = 1,
+		-- 	restockInterval = 0,
+		-- 	items = {
+		-- 		{
+		-- 			name = "Example",
+		-- 			chance = 100,
+		-- 			minAmount = 500,
+		-- 			maxAmount = 500,
+		-- 		},
+		-- 	},
+		-- },
 	},
 }
 

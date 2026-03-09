@@ -21,6 +21,7 @@ Button3DAnimation.__index = Button3DAnimation
 Button3DAnimation.type = "tag"
 Button3DAnimation.tag = script.Name
 
+local BUTTON_CAN_COLLIDE: boolean = false
 local PRESS_DEPTH_MULTIPLIER: number = 0.5
 local PRESS_TIME: number = 0.08
 local RELEASE_TIME: number = 0.3
@@ -34,6 +35,10 @@ function Button3DAnimation.new(instance: BasePart, path: any): Button3DAnimation
 	self.shrinkTween = nil
 	self.growTween = nil
 	self.growColorTween = nil
+
+	if instance:IsA("BasePart") then
+		instance.CanCollide = BUTTON_CAN_COLLIDE
+	end
 
 	return self
 end

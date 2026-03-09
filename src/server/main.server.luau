@@ -64,7 +64,7 @@ for _index: number, folder: Folder in folders do
 			continue
 		end
 
-		if typeof(required) ~= "table" then
+		if type(required) ~= "table" then
 			continue
 		end
 

@@ -1,17 +1,12 @@
-local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 
-local BasicJumpAnimation = require(ReplicatedStorage.shared.modules.BasicJumpAnimation)
 local ClientData = require(ReplicatedStorage.client.modules.ClientData)
 local CooldownManager = require(ReplicatedStorage.shared.modules.CooldownManager)
-local FishConfig = require(ReplicatedStorage.shared.config.FishConfig)
 local GetBridge = require(ReplicatedStorage.util.GetBridge)
-local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
 local Logger = require(ReplicatedStorage.util.Logger)
 local MonetizationConfig = require(ReplicatedStorage.shared.config.MonetizationConfig)
 local OpenGui = require(ReplicatedStorage.util.OpenGui)
-local RodsConfig = require(ReplicatedStorage.shared.config.RodsConfig)
 local TagManager = require(ReplicatedStorage.shared.modules.TagManager)
 
 local LockBridge = GetBridge("LockBridge")
@@ -38,7 +33,7 @@ end
 
 LockBridge:Connect(onLockBridge)
 
-local function getLimitedItemEntry(name: string?, productName: string?): (string?, any?)
+local function _getLimitedItemEntry(name: string?, productName: string?): (string?, any?)
 	local itemsConfig = MonetizationConfig.products and MonetizationConfig.products.Items
 	local data: any = itemsConfig and itemsConfig.data
 	if type(data) ~= "table" then
@@ -73,7 +68,7 @@ local function getLimitedItemEntry(name: string?, productName: string?): (string
 	return
 end
 
-local function getOfferName(entry: any?): string?
+local function _getOfferName(entry: any?): string?
 	local offers: any = entry and (entry.offer or entry.offers)
 	if type(offers) == "string" and offers ~= "" then
 		return offers
@@ -90,24 +85,7 @@ local function getOfferName(entry: any?): string?
 	return
 end
 
-local function isLimitedRodEntry(itemKey: string?, entry: any?): boolean
-	if not itemKey or not entry then
-		return false
-	end
-
-	local isLimited: boolean = entry.limited == true or entry.Limited == true
-	if not isLimited then
-		return false
-	end
-
-	if FishConfig[itemKey] then
-		return false
-	end
-
-	return RodsConfig[itemKey] ~= nil
-end
-
-local function isOfferOwned(offerName: string?): boolean
+local function _isOfferOwned(offerName: string?): boolean
 	if not offerName then
 		return false
 	end
@@ -147,6 +125,7 @@ local function safeRequireUiModule(uiName: string, actionName: string): any?
 	local ok: boolean, result: any = xpcall(require, Logger.warn, moduleScript)
 	if not ok then
 		Logger.warn(`Failed to require UI module "{uiName}" for action {actionName}: {result}`)
+
 		return
 	end
 
@@ -229,19 +208,6 @@ local RaycastActions = {
 
 		local productName: string? = instance:GetAttribute("RaycastActionArg") :: any
 		local isGamePass: boolean = instance:GetAttribute("IsGamePass") == true
-		if not isGamePass then
-			local itemKey: string?, entry: any? = getLimitedItemEntry(name, productName)
-			if isLimitedRodEntry(itemKey, entry) then
-				local offerName: string? = getOfferName(entry)
-				if isOfferOwned(offerName) then
-					if CollectionService:HasTag(instance, "RaycastDetect") then
-						CollectionService:RemoveTag(instance, "RaycastDetect")
-					end
-
-					return
-				end
-			end
-		end
 
 		if not CooldownManager:IsReady("PromptPurchase") then
 			return

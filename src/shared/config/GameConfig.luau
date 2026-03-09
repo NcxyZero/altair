@@ -25,7 +25,18 @@ export type GameConfig = {
 		onScreenOutputMinRole: string, --tbd
 	},
 	game: {
-		--
+		eventPromptId: string,
+		limitedItems: {
+			[string]: {
+				itemKey: string,
+				amount: number,
+			},
+		},
+		publicGame: {
+			placeId: number,
+			universeId: number,
+			groupId: number,
+		},
 	},
 	roles: {
 		[string]: {
@@ -53,7 +64,7 @@ local gameConfig: GameConfig = {
 		resetButtonDisabled = false,
 	},
 	data = {
-		datastoreKey = "DEV1",
+		datastoreKey = "DEV",
 		playerKeyPattern = "%d",
 		playerProfileInvokeTimeout = 30,
 	},
@@ -64,7 +75,18 @@ local gameConfig: GameConfig = {
 		onScreenOutputMinRole = "admin", --tbd
 	},
 	game = {
-		--
+		eventPromptId = "",
+		limitedItems = {
+			LimitedSlot1 = {
+				itemKey = "Example",
+				amount = 500,
+			},
+		},
+		publicGame = {
+			placeId = 0,
+			universeId = 0,
+			groupId = 0,
+		},
 	},
 	roles = {
 		admin = {
@@ -73,4 +95,4 @@ local gameConfig: GameConfig = {
 	},
 }
 
-return table.freeze(gameConfig)
+return gameConfig
