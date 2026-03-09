@@ -1,0 +1,5 @@
+# Cursor Rules
+
+- Always open and follow `.junie/guidelines.md` before making any changes.
+- Treat `.junie/guidelines.md` as the canonical source for development, style, and tooling requirements.
+- If any instruction is unclear, ask for clarification before proceeding.

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Auto-generates typed profiles for Reflex by scanning src/shared/reflex
 # Output: src/shared/reflex/ProfileTypes.luau
 

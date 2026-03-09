@@ -1,55 +1,81 @@
 #!/bin/bash
+set -euo pipefail
 
-if command -v aftman >/dev/null; then
-    echo "You've already installed aftman on your PC"
+# Installs Rokit (rojo-rbx/rokit) instead of Aftman, then runs your usual tool steps.
+
+if command -v rokit >/dev/null 2>&1; then
+    echo "You've already installed rokit on your PC"
 else
-    GITHUB_API_URL="https://api.github.com/repos/LPGhatguy/aftman/releases/latest"
+    REPO="rojo-rbx/rokit"
+    GITHUB_API_URL="https://api.github.com/repos/${REPO}/releases/latest"
 
-    mkdir -p "$DOWNLOAD_DIR"
+    # Detect OS
+    OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+    case "$OS" in
+        darwin) OS="macos" ;;
+        linux) OS="linux" ;;
+        cygwin*|mingw*|msys*) OS="windows" ;;
+        *)
+            echo "Unsupported OS: $OS"
+            exit 1
+            ;;
+    esac
 
-    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        PLATFORM="linux"
-        EXT=""
-    elif [[ "$OSTYPE" == "darwin"* ]]; then
-        PLATFORM="macos"
-        EXT=""
-    elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
-        PLATFORM="windows"
-        EXT=".exe"
-    else
-        echo "Unsupported OS: $OSTYPE"
+    # Detect arch
+    ARCH="$(uname -m)"
+    case "$ARCH" in
+        x86_64|x86-64) ARCH="x86_64" ;;
+        arm64|aarch64) ARCH="aarch64" ;;
+        *)
+            echo "Unsupported architecture: $ARCH"
+            exit 1
+            ;;
+    esac
+
+    # Get latest tag (e.g. v1.2.0)
+    RELEASE_JSON="$(curl -sSf -H "X-GitHub-Api-Version: 2022-11-28" "$GITHUB_API_URL")"
+    TAG="$(echo "$RELEASE_JSON" | grep -oP '"tag_name"\s*:\s*"\Kv[^"]+')"
+
+    if [[ -z "${TAG:-}" ]]; then
+        echo "Failed to determine latest rokit release tag."
         exit 1
     fi
 
-    rm $HOME/aftman.zip
-    rm ./aftman$EXT
-
-    RELEASE_INFO=$(curl -s "$GITHUB_API_URL")
-    echo "$RELEASE_INFO"
-
-    LATEST_RELEASE=$(echo "$RELEASE_INFO" | grep -oP "(?<=browser_download_url\": \")[^\"]*${PLATFORM}[^\"]*")
-    echo "$LATEST_RELEASE"
-
-    if [[ -z "$LATEST_RELEASE" ]]; then
-    echo "Failed to find a release for $PLATFORM."
-    exit 1
-    fi
-    AFTMAN_PATH="$HOME/aftman$EXT"
-
-    echo "Downloading aftman from $LATEST_RELEASE..."
-    curl -L "$LATEST_RELEASE" -o "$HOME/aftman.zip"
-    unzip $HOME/aftman.zip
-
-    if [[ "$PLATFORM" != "windows" ]]; then
-        chmod +x ./aftman
-        ./aftman self-install
-    else
-        ./aftman.exe self-install
+    VERSION="${TAG#v}"
+    EXT=""
+    BIN="rokit"
+    if [[ "$OS" == "windows" ]]; then
+        EXT=".exe"
+        BIN="rokit.exe"
     fi
 
-    rm $HOME/aftman.zip
-    rm ./aftman$EXT
-    line_to_add='export PATH=$PATH:~/.aftman/bin'
+    ASSET="rokit-${VERSION}-${OS}-${ARCH}.zip"
+    URL="https://github.com/${REPO}/releases/download/${TAG}/${ASSET}"
+
+    TMPDIR="$(mktemp -d)"
+    cleanup() { rm -rf "$TMPDIR"; }
+    trap cleanup EXIT
+
+    echo "Downloading rokit from $URL..."
+    curl -L -o "$TMPDIR/rokit.zip" "$URL"
+
+    # Extract only the binary from the zip (the official zips contain rokit/rokit.exe at root)
+    unzip -o -q "$TMPDIR/rokit.zip" "$BIN" -d "$TMPDIR"
+
+    if [[ ! -f "$TMPDIR/$BIN" ]]; then
+        echo "Downloaded archive did not contain expected binary: $BIN"
+        exit 1
+    fi
+
+    if [[ "$OS" != "windows" ]]; then
+        chmod +x "$TMPDIR/$BIN"
+    fi
+
+    echo "Running rokit self-install..."
+    "$TMPDIR/$BIN" self-install
+
+    # Ensure PATH includes Rokit's bin directory
+    line_to_add='export PATH=$PATH:~/.rokit/bin'
 
     if [ -f "$HOME/.bashrc" ]; then
         if ! grep -Fxq "$line_to_add" "$HOME/.bashrc"; then
@@ -59,11 +85,16 @@ else
         echo "$line_to_add" > "$HOME/.bashrc"
     fi
 
-    source ~/.bashrc
+    # Load PATH for current shell (best effort)
+    # shellcheck disable=SC1090
+    source "$HOME/.bashrc" || true
 fi
 
-aftman install
-source ~/.bashrc
+# Equivalent flow to your old script:
+rokit install
+# shellcheck disable=SC1090
+source "$HOME/.bashrc" || true
 ./update.sh
-source ~/.bashrc
+# shellcheck disable=SC1090
+source "$HOME/.bashrc" || true
 rojo plugin install

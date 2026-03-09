@@ -18,6 +18,9 @@ sourcemap.json
 # Environment variables
 .env
 
+# Node dependencies (MCP tools)
+**/node_modules/
+
 # Code coverage
 coverage.out
 

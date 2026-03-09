@@ -57,6 +57,7 @@
 			}
 		},
 		"SoundService": {
+			"$ignoreUnknownInstances": true,
 			"$className": "SoundService",
 			"SFX": {
 				"$className": "Folder",
