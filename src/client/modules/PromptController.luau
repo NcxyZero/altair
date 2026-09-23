@@ -62,7 +62,7 @@ function PromptController:CreatePrompt(instance: Instance): ()
 		return
 	end
 
-	local action: ((Instance, Player?) -> ())? = PromptActions[actionName]
+	local action: ((Instance, boolean?) -> boolean?)? = PromptActions[actionName]
 	if not action then
 		Logger.warn(
 			`No PromptAction found in PromptActions config for name "{actionName}" on PromptDetect instance "{instance}"`
@@ -71,7 +71,7 @@ function PromptController:CreatePrompt(instance: Instance): ()
 		return
 	end
 
-	local actionHandler: (Instance, Player?) -> () = action :: (Instance, Player?) -> ()
+	local actionHandler: (Instance, boolean?) -> boolean? = action :: (Instance, boolean?) -> boolean?
 
 	local host: (BasePart | Attachment)? = getPromptHost(instance)
 	if not host then
@@ -106,8 +106,8 @@ function PromptController:CreatePrompt(instance: Instance): ()
 	end
 
 	local recordMaid: Maid.Maid = Maid.new()
-	recordMaid:GiveTask(prompt.Triggered:Connect(function(player: Player): ()
-		actionHandler(instance, player)
+	recordMaid:GiveTask(prompt.Triggered:Connect(function(_player: Player): ()
+		actionHandler(instance)
 	end))
 
 	self.promptRecords[instance] = {
