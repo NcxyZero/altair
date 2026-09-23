@@ -98,6 +98,8 @@ function ObjectPoolManager:Register(
 	category: string?,
 	reset: ((inst: Instance) -> ())?
 ): ()
+	self:Clear(key, category)
+
 	local pool: Pool = ensurePool(self, key, category)
 
 	if typeof(source) == "Instance" then
@@ -115,19 +117,25 @@ end
 
 function ObjectPoolManager:Acquire(key: string, category: string?, parent: Instance?): Instance?
 	local pool: Pool = ensurePool(self, key, category)
-	if pool.size == 0 then
+	local instance: Instance?
+
+	if pool.size > 0 then
+		instance = pool.free[pool.size]
+		pool.free[pool.size] = nil
+		pool.size -= 1
+	else
+		instance = createFromPool(pool)
+	end
+
+	if not instance then
 		return
 	end
 
-	local inst: Instance = pool.free[pool.size] :: Instance
-	pool.free[pool.size] = nil
-	pool.size -= 1
-
 	if parent then
-		inst.Parent = parent
+		instance.Parent = parent
 	end
 
-	return inst
+	return instance
 end
 
 function ObjectPoolManager:Release(key: string, instance: Instance, category: string?): ()
@@ -155,14 +163,37 @@ function ObjectPoolManager:Clear(key: string, category: string?): ()
 		return
 	end
 
+	local pool: Pool = categoryMap[key]
+	if not pool then
+		return
+	end
+
 	categoryMap[key] = nil
+
+	for _index: number, instance: Instance in pool.free do
+		instance:Destroy()
+	end
+
+	table.clear(pool.free)
+	pool.size = 0
 end
 
 function ObjectPoolManager:ClearAll(category: string?): ()
 	if not category then
-		self.pools = {}
+		for categoryName: string in self.pools do
+			self:ClearAll(categoryName)
+		end
 
 		return
+	end
+
+	local categoryMap: { [string]: Pool } = self.pools[category]
+	if not categoryMap then
+		return
+	end
+
+	for key: string in categoryMap do
+		self:Clear(key, category)
 	end
 
 	self.pools[category] = nil

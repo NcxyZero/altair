@@ -222,8 +222,11 @@ local function InitTag(required: unknown): ()
 
 	local function removeInstance(instance: Instance): ()
 		local class: unknown = tagInstances[instance] and tagInstances[instance][tag]
+		local classIndex: number? = class and table.find(required.tagclasses, class) or nil
 
-		table.remove(required.tagclasses, table.find(required.tagclasses, class))
+		if classIndex then
+			table.remove(required.tagclasses, classIndex)
+		end
 
 		if required.tagclass == class then
 			required.tagclass = select(2, next(required.tagclasses))
@@ -236,6 +239,16 @@ local function InitTag(required: unknown): ()
 
 		if path.tag[instance] then
 			path.tag[instance][tag] = nil
+			if not next(path.tag[instance]) then
+				path.tag[instance] = nil
+			end
+		end
+
+		if tagInstances[instance] then
+			tagInstances[instance][tag] = nil
+			if not next(tagInstances[instance]) then
+				tagInstances[instance] = nil
+			end
 		end
 	end
 
@@ -303,6 +316,14 @@ end
 
 Players.PlayerRemoving:Connect(function(player: Player): ()
 	for _index: number, class: unknown in path.controller do
+		task.spawn(function(): ()
+			if class.PlayerRemoving then
+				class:PlayerRemoving(player)
+			end
+		end)
+	end
+
+	for _index: number, class: unknown in path.other do
 		task.spawn(function(): ()
 			if class.PlayerRemoving then
 				class:PlayerRemoving(player)

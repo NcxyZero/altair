@@ -38,8 +38,8 @@ The `ServerData` module (`src/server/modules/ServerData.luau`) manages server-si
 
 The module sets up the following remote events and functions for communication with clients:
 
-- `ReplicateStore` - For replicating player data changes
-- `ReplicateGameStore` - For replicating game data changes
+- `ReplicateStore` - For server-to-client player changes and explicitly registered client preference actions
+- `ReplicateGameStore` - For server-to-client game data changes
 - `GetPlayerData` - For clients to get their player data
 - `GetGameData` - For clients to get game data
 
@@ -52,14 +52,14 @@ The `ClientData` module (`src/client/modules/ClientData.luau`) manages client-si
 - Loading player data from the server
 - Mirroring server-side player data
 - Providing access to player data through a producer pattern
-- Replicating player data changes to the server
+- Requesting explicitly registered preference changes from the server
 
 ### Client-Side Game Data Management
 
 - Loading game data from the server
 - Mirroring server-side game data
 - Providing access to game data through a producer pattern
-- Replicating game data changes to the server
+- Applying server-originated game data changes locally
 
 ### Client-Specific Data Management
 
@@ -100,12 +100,12 @@ ServerData.gameProducer:setActivePlayers(10)
 ```luau
 -- Get player data
 ClientData:GetPlayerProducerAsync():andThen(function(producer)
-    -- Use player data
-    local coins = producer:getState().coins
-    print("I have", coins, "coins")
+    -- Read authoritative player data
+    local money = producer:getState().player.money
+    print("I have", money)
 
-    -- Modify player data
-    producer.addCoins(100)
+    -- Registered preference setters are validated again by the server
+    producer.setMusicVolume(0.8)
 end)
 
 -- Get game data
@@ -131,13 +131,17 @@ ClientData.clientProducer.setLocalSetting("musicVolume", 0.8)
 2. The server creates a producer for the player's data
 3. The client requests the player's data from the server
 4. The client creates a producer for the player's data
-5. When the server or client modifies the data, the changes are replicated to the other side
-6. When a player leaves, the server saves their data to the datastore
+5. Server actions replicate to the client
+6. Registered client preference actions are validated and applied by the server
+7. When a player leaves, the server saves their data to the datastore
 
 ## Security Considerations
 
-- Secure actions (prefixed with "secure") cannot be replicated from the client to the server
-- The server validates all data received from clients
+- Client-originated actions are denied unless a profile exports them through `CLIENT_ACTIONS`
+- Every registered action validates its argument count, types, and allowed ranges on the server
+- Prefixes such as `secure` are naming conventions, not authorization controls
+- Gameplay, inventory, progression, and monetization changes use dedicated server-validated bridges
+- The game producer is read-only on clients and has no client-to-server replication handler
 - The server handles data persistence, ensuring data is saved properly
 
 ## Implementation Details

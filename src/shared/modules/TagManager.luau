@@ -7,7 +7,7 @@ export type TagManager = {
 	path: InitializerTypes.ServerPath | InitializerTypes.ClientPath,
 	GetTagTable: (self: TagManager, instance: Instance) -> { [string]: unknown }?,
 	GetTagClass: (self: TagManager, instance: Instance, tagName: string) -> unknown?,
-	GetLocalTagCollection: (self: TagManager) -> { [Instance]: unknown }?,
+	GetLocalTagCollection: (self: TagManager) -> { [Instance]: { [string]: unknown } }?,
 	FindLocalTagClass: (self: TagManager, tagName: string) -> unknown?,
 }
 
@@ -43,7 +43,7 @@ function TagManager:GetTagClass(instance: Instance, tagName: string): unknown?
 	return classes[tagName]
 end
 
-function TagManager:GetLocalTagCollection(): { [Instance]: unknown }?
+function TagManager:GetLocalTagCollection(): { [Instance]: { [string]: unknown } }?
 	if not self.path then
 		Logger.errorStack("No self.path found for TagManager! This should never happen.")
 
@@ -54,15 +54,16 @@ function TagManager:GetLocalTagCollection(): { [Instance]: unknown }?
 end
 
 function TagManager:FindLocalTagClass(tagName: string): unknown?
-	local collection: { [Instance]: unknown }? = self:GetLocalTagCollection()
+	local collection: { [Instance]: { [string]: unknown } }? = self:GetLocalTagCollection()
 	if not collection then
 		return
 	end
 
 	local current: Instance? = next(collection)
 	while current do
-		local class: any = collection[current]
-		if class and class.tag == tagName then
+		local classes: { [string]: unknown } = collection[current]
+		local class: unknown? = classes[tagName]
+		if class then
 			return class
 		end
 

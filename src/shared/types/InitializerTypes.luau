@@ -26,9 +26,10 @@ export type ClientPath = {
 	module: {
 		[string]: unknown,
 	},
-	local_tag: {
+	other: {
 		[string]: unknown,
 	},
+	local_tag: { [Instance]: { [string]: unknown } },
 	tag: {
 		[string]: unknown,
 	},
@@ -49,6 +50,9 @@ export type ServerPath = {
 		[string]: unknown,
 	},
 	module: {
+		[string]: unknown,
+	},
+	other: {
 		[string]: unknown,
 	},
 	tag: {

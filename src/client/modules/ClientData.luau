@@ -4,6 +4,7 @@ local sharedFolder: Folder = ReplicatedStorage:WaitForChild("shared") :: Folder
 local _typesFolder: Folder = sharedFolder:WaitForChild("types") :: Folder
 local reflexFolder: Folder = sharedFolder:WaitForChild("reflex") :: Folder
 
+local ClientActionRegistry = require(ReplicatedStorage.shared.reflex.ClientActionRegistry)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
 local Logger = require(ReplicatedStorage.util.Logger)
@@ -60,8 +61,8 @@ local ClientData: Default = {
 	gameDataLoadedSignal = Signal.new(),
 } :: Default
 
+local clientActions: ClientActionRegistry.Registry = ClientActionRegistry.Build(getProfileModules())
 local playerDataQueue: number = 0
-local gameDataQueue: number = 0
 
 local function CreateClientProducer(data: any): Reflex.Producer<any, any>
 	local producer: Reflex.Producer<any, any> = Reflex.createProducer(data, {})
@@ -130,10 +131,14 @@ function ClientData:Init(): ()
 						return dispatch(...)
 					end
 
-					ReplicatedStorage:WaitForChild("ReplicateStore"):FireServer({
+					local payload: { [string]: any } = {
 						name = name,
 						arguments = { ... },
-					})
+					}
+					local actionName: string? = ClientActionRegistry.Resolve(clientActions, payload)
+					if actionName then
+						ReplicatedStorage:WaitForChild("ReplicateStore"):FireServer(payload)
+					end
 
 					return dispatch(...)
 				end
@@ -166,27 +171,7 @@ function ClientData:Init(): ()
 			return loadGameData()
 		end
 
-		local replicateMiddleware = function(): ()
-			return function(dispatch: (...any) -> (...any) -> any, name: string): (...any) -> any
-				return function(...: any): (...any) -> any
-					if gameDataQueue >= 1 then
-						gameDataQueue -= 1
-
-						return dispatch(...)
-					end
-
-					ReplicatedStorage:WaitForChild("ReplicateGameStore"):FireServer({
-						name = name,
-						arguments = { ... },
-					})
-
-					return dispatch(...)
-				end
-			end
-		end
-
 		self.gameProducer = gameProfile.CreateProducer(gameData)
-		self.gameProducer:applyMiddleware(replicateMiddleware)
 		self.isGameDataLoaded = true
 		self.gameDataLoadedSignal:Fire()
 
@@ -242,8 +227,6 @@ function ClientData:Init(): ()
 
 			return
 		end
-
-		gameDataQueue += 1
 
 		action(unpack(data.arguments))
 	end)

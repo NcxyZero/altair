@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local ClientActionRegistry = require(ReplicatedStorage.shared.reflex.ClientActionRegistry)
 local Reflex = require(ReplicatedStorage.package.Reflex)
 
 export type Producer = Reflex.Producer<State, Actions>
@@ -20,6 +21,15 @@ type Actions = {
 	toggleFPS: () -> State,
 	setShowFPS: (show: boolean) -> State,
 	resetSettings: () -> State,
+}
+
+local CLIENT_ACTIONS: { [string]: ClientActionRegistry.Validator } = {
+	resetSettings = ClientActionRegistry.NoArguments,
+	setGraphicsQuality = ClientActionRegistry.NumberArguments(1, 10),
+	setMusicVolume = ClientActionRegistry.NumberArguments(0, 1),
+	setSFXVolume = ClientActionRegistry.NumberArguments(0, 1),
+	setShowFPS = ClientActionRegistry.BooleanArguments,
+	setUIScale = ClientActionRegistry.NumberArguments(0.5, 2),
 }
 
 local DEFAULT_STATE: State = {
@@ -88,6 +98,7 @@ function CreateProducer(initialState: State): Producer
 end
 
 return {
+	CLIENT_ACTIONS = CLIENT_ACTIONS,
 	CreateProducer = CreateProducer,
 	DEFAULT_STATE = DEFAULT_STATE,
 }

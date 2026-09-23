@@ -10,6 +10,7 @@ The `modules` folder can contain the following module types, auto-detected by na
 
 - `controller` – logic modules initialized on the client, supporting lifecycle callbacks.
 - `module` – standard shared utility modules.
+- `other` – shared singleton utilities that may opt into `PlayerRemoving`.
 - `tag` – modules bound to instances tagged via `CollectionService`.
 - `local_tag` – similar to `tag`, but filtered for instances relevant only to the local player.
 
@@ -50,6 +51,7 @@ Tags are connected using `CollectionService`:
 
 - `tag` modules respond globally.
 - `local_tag` modules only react to instances belonging to the local player or their character.
+- One instance may own multiple `local_tag` classes; each tag keeps an independent lifecycle.
 - When an instance with the specified tag is added, the module's `new(instance)` function is called and stored.
 - When removed, if the class instance has a `Destroy()` method, it is called.
 
@@ -70,6 +72,10 @@ All `ScreenGui` instances in `PlayerGui` have `ResetOnSpawn` set to `false` unle
 - `RunService.PreSimulation`
 - `RunService.PreRender`
 - `PlayerGui.ChildAdded`
+
+Client singleton utilities with `type = "other"` receive
+`PlayerRemoving(self, player)` when implemented. This stays limited to player
+cleanup; other lifecycle callbacks remain controller/tag contracts.
 
 ---
 

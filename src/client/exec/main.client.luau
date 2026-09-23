@@ -210,8 +210,11 @@ local function InitTag(required: unknown): ()
 
 	local function removeInstance(instance: Instance): ()
 		local class: unknown = tagInstances[instance] and tagInstances[instance][tag]
+		local classIndex: number? = class and table.find(required.tagclasses, class) or nil
 
-		table.remove(required.tagclasses, table.find(required.tagclasses, class))
+		if classIndex then
+			table.remove(required.tagclasses, classIndex)
+		end
 
 		if required.tagclass == class then
 			required.tagclass = select(2, next(required.tagclasses))
@@ -224,6 +227,16 @@ local function InitTag(required: unknown): ()
 
 		if path.tag[instance] then
 			path.tag[instance][tag] = nil
+			if not next(path.tag[instance]) then
+				path.tag[instance] = nil
+			end
+		end
+
+		if tagInstances[instance] then
+			tagInstances[instance][tag] = nil
+			if not next(tagInstances[instance]) then
+				tagInstances[instance] = nil
+			end
 		end
 	end
 
@@ -269,7 +282,10 @@ local function InitLocalTag(required: unknown): ()
 		end
 		tagInstances[instance][tag] = class
 
-		path.local_tag[instance] = class
+		if not path.local_tag[instance] then
+			path.local_tag[instance] = {}
+		end
+		path.local_tag[instance][tag] = class
 
 		if not required.tagclass then
 			required.tagclass = class
@@ -328,8 +344,11 @@ local function InitLocalTag(required: unknown): ()
 
 	local function removeInstance(instance: Instance): ()
 		local class: unknown = tagInstances[instance] and tagInstances[instance][tag]
+		local classIndex: number? = class and table.find(required.tagclasses, class) or nil
 
-		table.remove(required.tagclasses, table.find(required.tagclasses, class))
+		if classIndex then
+			table.remove(required.tagclasses, classIndex)
+		end
 
 		if required.tagclass == class then
 			required.tagclass = select(2, next(required.tagclasses))
@@ -354,7 +373,19 @@ local function InitLocalTag(required: unknown): ()
 			end
 		end
 
-		path.local_tag[instance] = nil
+		if path.local_tag[instance] then
+			path.local_tag[instance][tag] = nil
+			if not next(path.local_tag[instance]) then
+				path.local_tag[instance] = nil
+			end
+		end
+
+		if tagInstances[instance] then
+			tagInstances[instance][tag] = nil
+			if not next(tagInstances[instance]) then
+				tagInstances[instance] = nil
+			end
+		end
 	end
 
 	CollectionService:GetInstanceAddedSignal(tag):Connect(addInstance)
@@ -423,8 +454,24 @@ for _index: number, required: unknown in load do
 	end
 end
 
+local function ForEachLocalTagClass(callback: (unknown) -> ()): ()
+	for _instance: Instance, classes: { [string]: unknown } in path.local_tag do
+		for _tag: string, class: unknown in classes do
+			callback(class)
+		end
+	end
+end
+
 Players.PlayerRemoving:Connect(function(player: Player): ()
 	for _index: number, class: unknown in path.controller do
+		task.spawn(function(): ()
+			if class.PlayerRemoving then
+				class:PlayerRemoving(player)
+			end
+		end)
+	end
+
+	for _index: number, class: unknown in path.other do
 		task.spawn(function(): ()
 			if class.PlayerRemoving then
 				class:PlayerRemoving(player)
@@ -442,13 +489,13 @@ Players.PlayerRemoving:Connect(function(player: Player): ()
 		end
 	end
 
-	for _instance: Instance, class: unknown in path.local_tag do
+	ForEachLocalTagClass(function(class: unknown): ()
 		task.spawn(function(): ()
 			if class and class.PlayerRemoving then
 				class:PlayerRemoving(player)
 			end
 		end)
-	end
+	end)
 end)
 
 Players.PlayerAdded:Connect(function(player: Player): ()
@@ -470,13 +517,13 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 		end
 	end
 
-	for _instance: Instance, class: unknown in path.local_tag do
+	ForEachLocalTagClass(function(class: unknown): ()
 		task.spawn(function(): ()
 			if class and class.PlayerAdded then
 				class:PlayerAdded(player)
 			end
 		end)
-	end
+	end)
 
 	player.CharacterAdded:Connect(function(character: Model): ()
 		for _index: number, class: unknown in path.controller do
@@ -497,13 +544,13 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 			end
 		end
 
-		for _instance: Instance, class: unknown in path.local_tag do
+		ForEachLocalTagClass(function(class: unknown): ()
 			task.defer(function(): ()
 				if class and class.CharacterAdded then
 					class:CharacterAdded(player, character)
 				end
 			end)
-		end
+		end)
 
 		local humanoid: Humanoid = character:WaitForChild("Humanoid")
 
@@ -524,13 +571,13 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 				end
 			end
 
-			for _instance: Instance, class: unknown in path.local_tag do
+			ForEachLocalTagClass(function(class: unknown): ()
 				task.defer(function(): ()
 					if class and class.AnyDied then
 						class:AnyDied(player, character)
 					end
 				end)
-			end
+			end)
 		end)
 	end)
 
@@ -553,13 +600,13 @@ Players.PlayerAdded:Connect(function(player: Player): ()
 			end
 		end
 
-		for _instance: Instance, class: unknown in path.local_tag do
+		ForEachLocalTagClass(function(class: unknown): ()
 			task.defer(function(): ()
 				if class and class.AnyCharacterAppearanceLoaded then
 					class:AnyCharacterAppearanceLoaded(player, character)
 				end
 			end)
-		end
+		end)
 	end)
 end)
 
@@ -582,13 +629,13 @@ LocalPlayer.CharacterAdded:Connect(function(character: Model): ()
 		end
 	end
 
-	for _instance: Instance, class: unknown in path.local_tag do
+	ForEachLocalTagClass(function(class: unknown): ()
 		task.defer(function(): ()
 			if class and class.CharacterAdded then
 				class:CharacterAdded(character)
 			end
 		end)
-	end
+	end)
 
 	local humanoid: Humanoid = character:WaitForChild("Humanoid")
 
@@ -611,20 +658,20 @@ LocalPlayer.CharacterAdded:Connect(function(character: Model): ()
 			end
 		end
 
-		for _instance: Instance, class: unknown in path.local_tag do
+		ForEachLocalTagClass(function(class: unknown): ()
 			task.defer(function(): ()
 				if class and class.Died then
 					class:Died(character)
 				end
 			end)
-		end
+		end)
 	end)
 end)
 
 LocalPlayer.CharacterAppearanceLoaded:Connect(function(character: Model): ()
 	for _index: number, class: unknown in path.controller do
 		task.spawn(function(): ()
-			if class.CharacterAdded then
+			if class.CharacterAppearanceLoaded then
 				class:CharacterAppearanceLoaded(character)
 			end
 		end)
@@ -633,20 +680,20 @@ LocalPlayer.CharacterAppearanceLoaded:Connect(function(character: Model): ()
 	for _instance: Instance, classes: { unknown } in path.tag do
 		for _index: number, class: unknown in classes do
 			task.defer(function(): ()
-				if class.CharacterAdded then
+				if class.CharacterAppearanceLoaded then
 					class:CharacterAppearanceLoaded(character)
 				end
 			end)
 		end
 	end
 
-	for _instance: Instance, class: unknown in path.local_tag do
+	ForEachLocalTagClass(function(class: unknown): ()
 		task.defer(function(): ()
-			if class and class.CharacterAdded then
+			if class and class.CharacterAppearanceLoaded then
 				class:CharacterAppearanceLoaded(character)
 			end
 		end)
-	end
+	end)
 end)
 
 RunService.Heartbeat:Connect(function(delta: number): ()
@@ -667,13 +714,13 @@ RunService.Heartbeat:Connect(function(delta: number): ()
 		end
 	end
 
-	for _instance: Instance, class: unknown in path.local_tag do
+	ForEachLocalTagClass(function(class: unknown): ()
 		task.defer(function(): ()
 			if class and class.Physics then
 				class:Physics(delta)
 			end
 		end)
-	end
+	end)
 end)
 
 RunService.PreSimulation:Connect(function(delta: number): ()
@@ -695,13 +742,13 @@ RunService.PreSimulation:Connect(function(delta: number): ()
 		end
 	end
 
-	for _instance: Instance, class: unknown in path.local_tag do
+	ForEachLocalTagClass(function(class: unknown): ()
 		task.defer(function(): ()
 			if class and class.Stepped then
 				class:Stepped(delta)
 			end
 		end)
-	end
+	end)
 end)
 
 RunService.PreRender:Connect(function(delta: number): ()
@@ -723,13 +770,13 @@ RunService.PreRender:Connect(function(delta: number): ()
 		end
 	end
 
-	for _instance: Instance, class: unknown in path.local_tag do
+	ForEachLocalTagClass(function(class: unknown): ()
 		task.defer(function(): ()
 			if class and class.Render then
 				class:Render(delta)
 			end
 		end)
-	end
+	end)
 end)
 
 for _index: number, ui: ScreenGui in LocalPlayer.PlayerGui:GetChildren() do

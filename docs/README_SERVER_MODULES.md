@@ -10,6 +10,7 @@ Modules are loaded from the `modules` folder and categorized based on the `.type
 
 - `controller` – Core server-side logic that reacts to player and game events.
 - `module` – Generic modules/utilities.
+- `other` – Shared singleton utilities that may opt into `PlayerRemoving`.
 - `tag` – Tag-bound modules initialized via `CollectionService`.
 
 Modules with `"template"` in their name are ignored.
@@ -68,6 +69,19 @@ The system listens to:
 - `Humanoid.Died`
 
 For each event, the system calls matching lifecycle methods in all controllers and tag classes (if implemented).
+
+Server-side singleton utilities with `type = "other"` receive
+`PlayerRemoving(self, player)` when implemented. This is intentionally limited
+to player cleanup; other lifecycle callbacks remain controller/tag contracts.
+
+`ObjectPoolManager` is shared by server and client. `Acquire` reuses a free
+instance or creates one from the registered template/factory when exhausted;
+`Size` counts only free instances. An unregistered pool cannot create instances.
+`Clear` and `ClearAll` destroy free instances and remove registrations, while
+leaving templates and checked-out instances under the caller's ownership.
+`Register` replaces an existing pool and destroys its old free instances.
+Return each acquired instance exactly once to its original key/category before
+clearing or replacing that pool; destroy any still checked-out instances yourself.
 
 ---
 

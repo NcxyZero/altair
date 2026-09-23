@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local ClientActionRegistry = require(ReplicatedStorage.shared.reflex.ClientActionRegistry)
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
 local GetBridge = require(ReplicatedStorage.util.GetBridge)
 local IsValidUTF8 = require(ReplicatedStorage.util.IsValidUTF8)
@@ -66,11 +67,14 @@ ServerData.type = "controller"
 ServerData.profiles = {}
 ServerData.playerDataLoadedEvent = Signal.new()
 
+local clientActions: ClientActionRegistry.Registry = ClientActionRegistry.Build(getProfileModules())
 local loadingProfiles: { [Player]: boolean } = {}
 local gameStoreReady: { [Player]: boolean } = {}
+local rejectedActionWarningAt: { [Player]: number } = {}
 
 local PlayerReady = GetBridge("PlayerReady")
 
+local CLIENT_ACTION_WARNING_INTERVAL: number = 5
 local DATASTORE_KEY: string = GameConfig.data.datastoreKey
 local PLAYTIME_TICK_SECONDS: number = 10
 
@@ -92,6 +96,50 @@ GetGameData.Parent = ReplicatedStorage
 
 local function getPlayerKey(userId: number): string
 	return GameConfig.data.playerKeyPattern:format(userId)
+end
+
+local function warnRejectedClientAction(player: Player, reason: string): ()
+	local currentTime: number = os.clock()
+	local previousWarning: number = rejectedActionWarningAt[player] or -math.huge
+	if currentTime - previousWarning < CLIENT_ACTION_WARNING_INTERVAL then
+		return
+	end
+
+	rejectedActionWarningAt[player] = currentTime
+
+	Logger.warn(`Rejected client profile action for {player.Name}: {reason}`)
+end
+
+local function handleClientProfileAction(player: Player, payload: unknown): ()
+	local actionName: string?, arguments: ClientActionRegistry.Arguments?, rejectionReason: string? =
+		ClientActionRegistry.Resolve(clientActions, payload)
+	if not actionName or not arguments then
+		warnRejectedClientAction(player, rejectionReason or "invalid_payload")
+
+		return
+	end
+
+	local profile: ServerPlayerProfile? = ServerData:GetPlayerProfile(player)
+	if not profile then
+		warnRejectedClientAction(player, "profile_not_loaded")
+
+		return
+	end
+
+	local action: any = (profile.producer :: any)[actionName]
+	if type(action) ~= "function" then
+		warnRejectedClientAction(player, "registered_action_missing")
+
+		return
+	end
+
+	profile.nextActionIsReplicated = true
+	local success: boolean = pcall(action, unpack(arguments))
+	profile.nextActionIsReplicated = false
+
+	if not success then
+		warnRejectedClientAction(player, "action_execution_failed")
+	end
 end
 
 GetPlayerData.OnServerInvoke = function(player: Player): ...any
@@ -299,6 +347,8 @@ function ServerData:PlayerAdded(player: Player): ()
 end
 
 function ServerData:PlayerRemoving(player: Player): ()
+	rejectedActionWarningAt[player] = nil
+
 	local profile: ServerPlayerProfile? = self.profiles[player]
 	if not profile then
 		return
@@ -367,16 +417,9 @@ function ServerData:Init(): ()
 
 	self.gameProducer = gameProfile.CreateProducer(gameProfile.DEFAULT_STATE)
 
-	local nextActionIsReplicated: boolean = false
-
 	local replicateMiddleware: Reflex.Middleware = function(): ((...any) -> any, string) -> (...any) -> any
 		return function(dispatch: (...any) -> any, name: string): (...any) -> any
 			return function(...: any): any
-				if nextActionIsReplicated then
-					nextActionIsReplicated = false
-					return dispatch(...)
-				end
-
 				local payload = {
 					name = name,
 					arguments = { ... },
@@ -395,44 +438,7 @@ function ServerData:Init(): ()
 
 	self.gameProducer:applyMiddleware(replicateMiddleware)
 
-	ReplicateStore.OnServerEvent:Connect(function(player: Player, data: { name: string, [string]: any }): ()
-		if type(data) ~= "table" then
-			return
-		end
-
-		local isSecureAction: number? = data.name:find("^secure")
-		if isSecureAction then
-			Logger.warn("Player tried to replicate secure reflex action", data.name)
-
-			return
-		end
-
-		local profile: ServerPlayerProfile? = self:GetPlayerProfile(player)
-		if not profile then
-			return
-		end
-
-		profile.nextActionIsReplicated = true
-		do
-			(profile.producer :: any)[data.name](unpack(data.arguments))
-		end
-	end)
-
-	ReplicateGameStore.OnServerEvent:Connect(function(_player: Player, data: { name: string, [string]: any }): ()
-		if type(data) ~= "table" then
-			return
-		end
-
-		local isSecureAction: number? = data.name:find("^secure")
-		if isSecureAction then
-			Logger.warn("Player tried to replicate secure reflex action", data.name)
-
-			return
-		end
-
-		nextActionIsReplicated = true
-		self.gameProducer[data.name](unpack(data.arguments))
-	end)
+	ReplicateStore.OnServerEvent:Connect(handleClientProfileAction)
 
 	for _index: number, player: Player in Players:GetPlayers() do
 		task.spawn(function(): ()
