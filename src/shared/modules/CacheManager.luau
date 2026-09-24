@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local Logger = require(ReplicatedStorage.util.Logger)
+local Promise = require(ReplicatedStorage.package.Promise)
 local WithoutPlayer = require(ReplicatedStorage.util.WithoutPlayer)
 
 export type CacheEntry = {
@@ -45,6 +46,8 @@ export type CacheManagerClient = {
 
 export type CacheManager = CacheManagerServer & CacheManagerClient
 
+type PendingComputations = { [string]: { [string]: Promise.TypedPromise<any> } }
+
 type CacheMethods = {
 	Clear: (self: CacheManager, player: Player?, key: string, category: string?) -> (),
 	ClearAll: (self: CacheManager, player: Player?, category: string?) -> (),
@@ -68,6 +71,9 @@ local CacheMethods: CacheMethods = {
 	defaultCategory = "default",
 } :: CacheMethods
 
+local clientPendingComputations: PendingComputations = {}
+local serverPendingComputations: { [Player]: PendingComputations } = {}
+
 local function getTtl(ttl: number?): number
 	local configured: number = GameConfig.core.cacheTimeout
 	return ttl and ttl > 0 and ttl or configured
@@ -83,9 +89,7 @@ local function computeWithRetry(compute: () -> any): (boolean, any)
 	repeat
 		local ok: boolean, value: any = xpcall(function(): any
 			return compute()
-		end, function(err: string): ()
-			Logger.warn(err)
-		end)
+		end, Logger.warn)
 
 		if ok then
 			return true, value
@@ -134,6 +138,41 @@ local function getContainer(self: CacheManager, player: Player?, category: strin
 	return container
 end
 
+local function getPendingComputations(player: Player?, create: boolean): PendingComputations?
+	if not player then
+		return clientPendingComputations
+	end
+
+	local pendingComputations: PendingComputations = serverPendingComputations[player]
+	if not pendingComputations and create then
+		pendingComputations = {}
+		serverPendingComputations[player] = pendingComputations
+	end
+
+	return pendingComputations
+end
+
+local function getPendingContainer(
+	self: CacheManager,
+	player: Player?,
+	category: string?,
+	create: boolean
+): { [string]: Promise.TypedPromise<any> }?
+	local pendingComputations: PendingComputations = getPendingComputations(player, create) :: PendingComputations
+	if not pendingComputations then
+		return
+	end
+
+	local categoryName: string = category or self.defaultCategory
+	local pendingContainer: { [string]: Promise.TypedPromise<any> } = pendingComputations[categoryName]
+	if not pendingContainer and create then
+		pendingContainer = {}
+		pendingComputations[categoryName] = pendingContainer
+	end
+
+	return pendingContainer
+end
+
 function CacheMethods.Set(
 	self: CacheManager,
 	player: Player?,
@@ -145,6 +184,12 @@ function CacheMethods.Set(
 	local container: { [string]: CacheEntry } = getContainer(self, player, category)
 	local expireAt: number = os.clock() + getTtl(ttl)
 	container[key] = { value = value, expireAt = expireAt }
+
+	local pendingContainer: { [string]: Promise.TypedPromise<any> }? =
+		getPendingContainer(self, player, category, false)
+	if pendingContainer then
+		pendingContainer[key] = nil
+	end
 end
 
 function CacheMethods.Get(self: CacheManager, player: Player?, key: string, category: string?): any?
@@ -177,13 +222,40 @@ function CacheMethods.GetOrCompute(
 		return entry.value
 	end
 
-	local ok: boolean, value: any = computeWithRetry(compute)
-	if not ok then
-		return
+	local pendingContainer: { [string]: Promise.TypedPromise<any> } =
+		getPendingContainer(self, player, category, true) :: { [string]: Promise.TypedPromise<any> }
+	local pending: Promise.TypedPromise<any> = pendingContainer[key]
+	if not pending then
+		local newPending: Promise.TypedPromise<any>
+		newPending = Promise.defer(function(resolve: (any) -> (), reject: () -> ()): ()
+			local success: boolean, value: any = computeWithRetry(compute)
+			if success then
+				resolve(value)
+			else
+				reject()
+			end
+		end):andThen(function(value: any): any
+			if pendingContainer[key] == newPending then
+				pendingContainer[key] = nil
+				container[key] = { value = value, expireAt = os.clock() + getTtl(ttl) }
+			end
+
+			return value
+		end, function(): Promise.TypedPromise<any>
+			if pendingContainer[key] == newPending then
+				pendingContainer[key] = nil
+			end
+
+			return Promise.reject()
+		end)
+		pendingContainer[key] = newPending
+		pending = newPending
 	end
 
-	local expireAt: number = os.clock() + getTtl(ttl)
-	container[key] = { value = value, expireAt = expireAt }
+	local success: boolean, value: any = pending:await()
+	if not success then
+		return
+	end
 
 	return value
 end
@@ -215,6 +287,12 @@ function CacheMethods.Clear(self: CacheManager, player: Player?, key: string, ca
 	if container then
 		container[key] = nil
 	end
+
+	local pendingContainer: { [string]: Promise.TypedPromise<any> }? =
+		getPendingContainer(self, player, category, false)
+	if pendingContainer then
+		pendingContainer[key] = nil
+	end
 end
 
 function CacheMethods.ClearAll(self: CacheManager, player: Player?, category: string?): ()
@@ -222,9 +300,11 @@ function CacheMethods.ClearAll(self: CacheManager, player: Player?, category: st
 		if player then
 			local server: CacheManagerServer = self
 			server.caches[player] = nil
+			serverPendingComputations[player] = nil
 		else
 			local client: CacheManagerClient = self
 			client.caches = {}
+			table.clear(clientPendingComputations)
 		end
 
 		return
@@ -234,6 +314,11 @@ function CacheMethods.ClearAll(self: CacheManager, player: Player?, category: st
 		getCategories(self, player, false) :: { [string]: { [string]: CacheEntry } }
 	if categories then
 		categories[category] = nil
+	end
+
+	local pendingComputations: PendingComputations = getPendingComputations(player, false) :: PendingComputations
+	if pendingComputations then
+		pendingComputations[category] = nil
 	end
 end
 
@@ -253,6 +338,7 @@ local CacheClient: CacheManagerClient = setmetatable({
 
 function CacheServer.PlayerRemoving(self: CacheManagerServer, player: Player): ()
 	self.caches[player] = nil
+	serverPendingComputations[player] = nil
 end
 
 return (RunService:IsServer() and CacheServer or CacheClient) :: CacheManager

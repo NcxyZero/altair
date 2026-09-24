@@ -8,9 +8,7 @@ local Maid = require(ReplicatedStorage.package.Maid)
 local PromptActions = require(ReplicatedStorage.client.clientConfig.PromptActions)
 
 export type PromptRecord = {
-	created: boolean,
 	maid: Maid.Maid,
-	prompt: ProximityPrompt,
 }
 
 export type PromptController = {
@@ -111,15 +109,11 @@ function PromptController:CreatePrompt(instance: Instance): ()
 	end))
 
 	self.promptRecords[instance] = {
-		created = created,
 		maid = recordMaid,
-		prompt = prompt,
 	}
 
-	self.maid:GiveTask(recordMaid)
-
 	if created then
-		self.maid:GiveTask(prompt)
+		recordMaid:GiveTask(prompt)
 	end
 
 	table.insert(self.promptInstances, instance)
@@ -133,10 +127,6 @@ function PromptController:RemovePrompt(instance: Instance): ()
 
 	record.maid:DoCleaning()
 
-	if record.created and record.prompt then
-		record.prompt:Destroy()
-	end
-
 	local index: number? = table.find(self.promptInstances, instance)
 	if index then
 		table.remove(self.promptInstances, index)
@@ -146,6 +136,8 @@ function PromptController:RemovePrompt(instance: Instance): ()
 end
 
 function PromptController:Init(): ()
+	self:Destroy()
+
 	self.maid = Maid.new()
 	self.promptInstances = {}
 	self.promptRecords = {}
@@ -167,7 +159,8 @@ function PromptController:Init(): ()
 end
 
 function PromptController:Destroy(): ()
-	for _index: number, instance: Instance in self.promptInstances do
+	while self.promptInstances[1] do
+		local instance: Instance = self.promptInstances[1]
 		self:RemovePrompt(instance)
 	end
 
