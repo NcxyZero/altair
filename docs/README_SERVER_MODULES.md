@@ -74,6 +74,15 @@ Server-side singleton utilities with `type = "other"` receive
 `PlayerRemoving(self, player)` when implemented. This is intentionally limited
 to player cleanup; other lifecycle callbacks remain controller/tag contracts.
 
+`CacheManager`, `QueueManager`, `CooldownManager`, and `Conditions` each share
+one implementation table between their server and client interfaces. Internal
+methods take `player: Player?`; server calls pass the player directly, while
+the typed `WithoutPlayer` adapter inserts `nil` for client calls. Adapters are
+created when the module loads and preserve optional arguments and return values.
+Public server/client signatures and their exported intersection types remain
+unchanged. Mutable state belongs to each interface, not its shared method table;
+server state stays isolated per player, with `PlayerRemoving` on the server only.
+
 `ObjectPoolManager` is shared by server and client. `Acquire` reuses a free
 instance or creates one from the registered template/factory when exhausted;
 `Size` counts only free instances. An unregistered pool cannot create instances.

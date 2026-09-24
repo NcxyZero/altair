@@ -2,8 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
-
-local isServer: boolean = RunService:IsServer()
+local WithoutPlayer = require(ReplicatedStorage.util.WithoutPlayer)
 
 export type Queue = {
 	list: { [number]: any },
@@ -12,33 +11,47 @@ export type Queue = {
 }
 
 export type QueueManagerServer = {
-	path: InitializerTypes.ServerPath,
-	defaultCategory: string,
-	queues: { [Player]: { [string]: { [string]: Queue } } },
-	Enqueue: (self: QueueManager, player: Player, key: string, value: any, category: string?) -> (),
-	Dequeue: (self: QueueManager, player: Player, key: string, category: string?) -> any?,
-	Peek: (self: QueueManager, player: Player, key: string, category: string?) -> any?,
-	Size: (self: QueueManager, player: Player, key: string, category: string?) -> number,
 	Clear: (self: QueueManager, player: Player, key: string, category: string?) -> (),
 	ClearAll: (self: QueueManager, player: Player, category: string?) -> (),
+	Dequeue: (self: QueueManager, player: Player, key: string, category: string?) -> any?,
+	Enqueue: (self: QueueManager, player: Player, key: string, value: any, category: string?) -> (),
+	Peek: (self: QueueManager, player: Player, key: string, category: string?) -> any?,
 	PlayerRemoving: (self: QueueManager, player: Player) -> (),
+	Size: (self: QueueManager, player: Player, key: string, category: string?) -> number,
+	path: InitializerTypes.ServerPath,
+	queues: { [Player]: { [string]: { [string]: Queue } } },
+	defaultCategory: string,
 }
 
 export type QueueManagerClient = {
-	path: InitializerTypes.ClientPath,
-	defaultCategory: string,
-	queues: { [string]: { [string]: Queue } },
-	Enqueue: (self: QueueManager, key: string, value: any, category: string?) -> (),
-	Dequeue: (self: QueueManager, key: string, category: string?) -> any?,
-	Peek: (self: QueueManager, key: string, category: string?) -> any?,
-	Size: (self: QueueManager, key: string, category: string?) -> number,
 	Clear: (self: QueueManager, key: string, category: string?) -> (),
 	ClearAll: (self: QueueManager, category: string?) -> (),
+	Dequeue: (self: QueueManager, key: string, category: string?) -> any?,
+	Enqueue: (self: QueueManager, key: string, value: any, category: string?) -> (),
+	Peek: (self: QueueManager, key: string, category: string?) -> any?,
+	Size: (self: QueueManager, key: string, category: string?) -> number,
+	path: InitializerTypes.ClientPath,
+	queues: { [string]: { [string]: Queue } },
+	defaultCategory: string,
 }
 
 export type QueueManager = QueueManagerServer & QueueManagerClient
 
-local defaultCategory: string = "default"
+type QueueMethods = {
+	Clear: (self: QueueManager, player: Player?, key: string, category: string?) -> (),
+	ClearAll: (self: QueueManager, player: Player?, category: string?) -> (),
+	Dequeue: (self: QueueManager, player: Player?, key: string, category: string?) -> any?,
+	Enqueue: (self: QueueManager, player: Player?, key: string, value: any, category: string?) -> (),
+	Peek: (self: QueueManager, player: Player?, key: string, category: string?) -> any?,
+	Size: (self: QueueManager, player: Player?, key: string, category: string?) -> number,
+	defaultCategory: string,
+	type: string,
+}
+
+local QueueMethods: QueueMethods = {
+	type = "other",
+	defaultCategory = "default",
+} :: QueueMethods
 
 local function newQueue(): Queue
 	return {
@@ -75,73 +88,56 @@ local function compactQueue(queue: Queue): ()
 	queue.head = 1
 end
 
-local QueueMeta = {
-	type = "other",
-	defaultCategory = defaultCategory,
-}
+local function getCategories(self: QueueManager, player: Player?, create: boolean): { [string]: { [string]: Queue } }?
+	if not player then
+		local client: QueueManagerClient = self
 
-local QueueServer: QueueManagerServer = table.clone(QueueMeta) :: any
-local QueueClient: QueueManagerClient = table.clone(QueueMeta) :: any
-
-QueueServer.queues = {}
-QueueClient.queues = {}
-
-local function getServerQueue(self: QueueManagerServer, player: Player, category: string?, key: string): Queue
-	local playerMap: { [string]: { [string]: Queue } } = self.queues[player]
-	if not playerMap then
-		playerMap = {}
-		self.queues[player] = playerMap
+		return client.queues
 	end
 
+	local server: QueueManagerServer = self
+	local categories: { [string]: { [string]: Queue } } = server.queues[player]
+	if not categories and create then
+		categories = {}
+		server.queues[player] = categories
+	end
+
+	return categories
+end
+
+local function getContainer(self: QueueManager, player: Player?, category: string?): { [string]: Queue }
+	local categories: { [string]: { [string]: Queue } } =
+		getCategories(self, player, true) :: { [string]: { [string]: Queue } }
 	local categoryName: string = category or self.defaultCategory
-	local categoryMap: { [string]: Queue } = playerMap[categoryName]
-	if not categoryMap then
-		categoryMap = {}
-		playerMap[categoryName] = categoryMap
+	local container: { [string]: Queue } = categories[categoryName]
+	if not container then
+		container = {}
+		categories[categoryName] = container
 	end
 
-	local queue = categoryMap[key]
+	return container
+end
+
+local function getQueue(self: QueueManager, player: Player?, category: string?, key: string): Queue
+	local container: { [string]: Queue } = getContainer(self, player, category)
+	local queue: Queue = container[key]
 	if not queue then
 		queue = newQueue()
-		categoryMap[key] = queue
+		container[key] = queue
 	end
 
 	return queue
 end
 
-local function getClientQueue(self: QueueManagerClient, category: string?, key: string): Queue
-	local categoryName: string = category or self.defaultCategory
-	local categoryMap: { [string]: Queue } = self.queues[categoryName]
-	if not categoryMap then
-		categoryMap = {}
-		self.queues[categoryName] = categoryMap
-	end
-
-	local queue = categoryMap[key]
-	if not queue then
-		queue = newQueue()
-		categoryMap[key] = queue
-	end
-
-	return queue
-end
-
-function QueueServer:Enqueue(player: Player, key: string, value: any, category: string?): ()
-	local queue: Queue = getServerQueue(self, player, category, key)
+function QueueMethods.Enqueue(self: QueueManager, player: Player?, key: string, value: any, category: string?): ()
+	local queue: Queue = getQueue(self, player, category, key)
 	local index: number = queue.head + queue.size
 	queue.list[index] = value
 	queue.size += 1
 end
 
-function QueueClient:Enqueue(key: string, value: any, category: string?): ()
-	local queue: Queue = getClientQueue(self, category, key)
-	local index: number = queue.head + queue.size
-	queue.list[index] = value
-	queue.size += 1
-end
-
-function QueueServer:Dequeue(player: Player, key: string, category: string?): any?
-	local queue: Queue = getServerQueue(self, player, category, key)
+function QueueMethods.Dequeue(self: QueueManager, player: Player?, key: string, category: string?): any?
+	local queue: Queue = getQueue(self, player, category, key)
 	if queue.size == 0 then
 		return
 	end
@@ -156,24 +152,8 @@ function QueueServer:Dequeue(player: Player, key: string, category: string?): an
 	return value
 end
 
-function QueueClient:Dequeue(key: string, category: string?): any?
-	local queue: Queue = getClientQueue(self, category, key)
-	if queue.size == 0 then
-		return
-	end
-
-	local value = queue.list[queue.head]
-	queue.list[queue.head] = nil
-	queue.head += 1
-	queue.size -= 1
-
-	compactQueue(queue)
-
-	return value
-end
-
-function QueueServer:Peek(player: Player, key: string, category: string?): any?
-	local queue: Queue = getServerQueue(self, player, category, key)
+function QueueMethods.Peek(self: QueueManager, player: Player?, key: string, category: string?): any?
+	local queue: Queue = getQueue(self, player, category, key)
 	if queue.size == 0 then
 		return
 	end
@@ -181,77 +161,61 @@ function QueueServer:Peek(player: Player, key: string, category: string?): any?
 	return queue.list[queue.head]
 end
 
-function QueueClient:Peek(key: string, category: string?): any?
-	local queue: Queue = getClientQueue(self, category, key)
-	if queue.size == 0 then
-		return
-	end
-
-	return queue.list[queue.head]
-end
-
-function QueueServer:Size(player: Player, key: string, category: string?): number
-	local queue: Queue = getServerQueue(self, player, category, key)
+function QueueMethods.Size(self: QueueManager, player: Player?, key: string, category: string?): number
+	local queue: Queue = getQueue(self, player, category, key)
 
 	return queue.size
 end
 
-function QueueClient:Size(key: string, category: string?): number
-	local queue: Queue = getClientQueue(self, category, key)
-
-	return queue.size
-end
-
-function QueueServer:Clear(player: Player, key: string, category: string?): ()
-	local playerMap: { [string]: { [string]: Queue } } = self.queues[player]
-	if not playerMap then
+function QueueMethods.Clear(self: QueueManager, player: Player?, key: string, category: string?): ()
+	local categories: { [string]: { [string]: Queue } } =
+		getCategories(self, player, false) :: { [string]: { [string]: Queue } }
+	if not categories then
 		return
 	end
 
-	local categoryName: string = category or self.defaultCategory
-	local categoryMap: { [string]: Queue } = playerMap[categoryName]
-	if not categoryMap then
-		return
+	local container: { [string]: Queue } = categories[category or self.defaultCategory]
+	if container then
+		container[key] = nil
 	end
-
-	categoryMap[key] = nil
 end
 
-function QueueClient:Clear(key: string, category: string?): ()
-	local categoryName: string = category or self.defaultCategory
-	local categoryMap: { [string]: Queue } = self.queues[categoryName]
-	if not categoryMap then
-		return
-	end
-
-	categoryMap[key] = nil
-end
-
-function QueueServer:ClearAll(player: Player, category: string?): ()
+function QueueMethods.ClearAll(self: QueueManager, player: Player?, category: string?): ()
 	if not category then
-		self.queues[player] = nil
+		if player then
+			local server: QueueManagerServer = self
+			server.queues[player] = nil
+		else
+			local client: QueueManagerClient = self
+			client.queues = {}
+		end
 
 		return
 	end
 
-	local playerMap = self.queues[player]
-	if playerMap then
-		playerMap[category] = nil
+	local categories: { [string]: { [string]: Queue } } =
+		getCategories(self, player, false) :: { [string]: { [string]: Queue } }
+	if categories then
+		categories[category] = nil
 	end
 end
 
-function QueueClient:ClearAll(category: string?): ()
-	if not category then
-		self.queues = {}
+local QueueServer: QueueManagerServer = setmetatable({
+	queues = {},
+}, { __index = QueueMethods }) :: any
 
-		return
-	end
+local QueueClient: QueueManagerClient = setmetatable({
+	Clear = WithoutPlayer(QueueMethods.Clear),
+	ClearAll = WithoutPlayer(QueueMethods.ClearAll),
+	Dequeue = WithoutPlayer(QueueMethods.Dequeue),
+	Enqueue = WithoutPlayer(QueueMethods.Enqueue),
+	Peek = WithoutPlayer(QueueMethods.Peek),
+	Size = WithoutPlayer(QueueMethods.Size),
+	queues = {},
+}, { __index = QueueMethods }) :: any
 
-	self.queues[category] = nil
-end
-
-function QueueServer:PlayerRemoving(player: Player): ()
+function QueueServer.PlayerRemoving(self: QueueManagerServer, player: Player): ()
 	self.queues[player] = nil
 end
 
-return (isServer and QueueServer or QueueClient) :: QueueManager
+return (RunService:IsServer() and QueueServer or QueueClient) :: QueueManager

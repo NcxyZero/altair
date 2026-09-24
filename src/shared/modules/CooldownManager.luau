@@ -2,91 +2,95 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
-
-local isServer: boolean = RunService:IsServer()
+local WithoutPlayer = require(ReplicatedStorage.util.WithoutPlayer)
 
 export type CooldownManagerServer = {
-	path: InitializerTypes.ServerPath,
-	defaultCategory: string,
-	cooldowns: { [Player]: { [string]: { [string]: number } } },
-	Set: (self: CooldownManager, player: Player, key: string, duration: number, category: string?) -> (),
-	IsReady: (self: CooldownManager, player: Player, key: string, category: string?) -> boolean,
-	GetRemaining: (self: CooldownManager, player: Player, key: string, category: string?) -> number,
 	Clear: (self: CooldownManager, player: Player, key: string, category: string?) -> (),
 	ClearAll: (self: CooldownManager, player: Player, category: string?) -> (),
+	GetRemaining: (self: CooldownManager, player: Player, key: string, category: string?) -> number,
+	IsReady: (self: CooldownManager, player: Player, key: string, category: string?) -> boolean,
 	PlayerRemoving: (self: CooldownManager, player: Player) -> (),
+	Set: (self: CooldownManager, player: Player, key: string, duration: number, category: string?) -> (),
+	cooldowns: { [Player]: { [string]: { [string]: number } } },
+	path: InitializerTypes.ServerPath,
+	defaultCategory: string,
 }
 
 export type CooldownManagerClient = {
-	path: InitializerTypes.ClientPath,
-	defaultCategory: string,
-	cooldowns: { [string]: { [string]: number } },
-	Set: (self: CooldownManager, key: string, duration: number, category: string?) -> (),
-	IsReady: (self: CooldownManager, key: string, category: string?) -> boolean,
-	GetRemaining: (self: CooldownManager, key: string, category: string?) -> number,
 	Clear: (self: CooldownManager, key: string, category: string?) -> (),
 	ClearAll: (self: CooldownManager, category: string?) -> (),
+	GetRemaining: (self: CooldownManager, key: string, category: string?) -> number,
+	IsReady: (self: CooldownManager, key: string, category: string?) -> boolean,
+	Set: (self: CooldownManager, key: string, duration: number, category: string?) -> (),
+	cooldowns: { [string]: { [string]: number } },
+	path: InitializerTypes.ClientPath,
+	defaultCategory: string,
 }
 
 export type CooldownManager = CooldownManagerServer & CooldownManagerClient
 
-local defaultCategory: string = "default"
-
-local CooldownMeta = {
-	type = "other",
-	defaultCategory = defaultCategory,
+type CooldownMethods = {
+	Clear: (self: CooldownManager, player: Player?, key: string, category: string?) -> (),
+	ClearAll: (self: CooldownManager, player: Player?, category: string?) -> (),
+	GetRemaining: (self: CooldownManager, player: Player?, key: string, category: string?) -> number,
+	IsReady: (self: CooldownManager, player: Player?, key: string, category: string?) -> boolean,
+	Set: (self: CooldownManager, player: Player?, key: string, duration: number, category: string?) -> (),
+	defaultCategory: string,
+	type: string,
 }
 
-local CooldownServer: CooldownManagerServer = table.clone(CooldownMeta) :: any
-local CooldownClient: CooldownManagerClient = table.clone(CooldownMeta) :: any
+local CooldownMethods: CooldownMethods = {
+	type = "other",
+	defaultCategory = "default",
+} :: CooldownMethods
 
-CooldownServer.cooldowns = {}
-CooldownClient.cooldowns = {}
+local function getCategories(
+	self: CooldownManager,
+	player: Player?,
+	create: boolean
+): { [string]: { [string]: number } }?
+	if not player then
+		local client: CooldownManagerClient = self
 
-local function getServerCategoryContainer(
-	self: CooldownManagerServer,
-	player: Player,
+		return client.cooldowns
+	end
+
+	local server: CooldownManagerServer = self
+	local categories: { [string]: { [string]: number } } = server.cooldowns[player]
+	if not categories and create then
+		categories = {}
+		server.cooldowns[player] = categories
+	end
+
+	return categories
+end
+
+local function getContainer(self: CooldownManager, player: Player?, category: string?): { [string]: number }
+	local categories: { [string]: { [string]: number } } =
+		getCategories(self, player, true) :: { [string]: { [string]: number } }
+	local categoryName: string = category or self.defaultCategory
+	local container: { [string]: number } = categories[categoryName]
+	if not container then
+		container = {}
+		categories[categoryName] = container
+	end
+
+	return container
+end
+
+function CooldownMethods.Set(
+	self: CooldownManager,
+	player: Player?,
+	key: string,
+	duration: number,
 	category: string?
-): { [string]: number }
-	local playerMap: { [string]: { [string]: number } } = self.cooldowns[player]
-	if not playerMap then
-		playerMap = {}
-		self.cooldowns[player] = playerMap
-	end
-
-	local categoryName: string = category or self.defaultCategory
-	local categoryMap: { [string]: number } = playerMap[categoryName]
-	if not categoryMap then
-		categoryMap = {}
-		playerMap[categoryName] = categoryMap
-	end
-
-	return categoryMap
-end
-
-local function getClientCategoryContainer(self: CooldownManagerClient, category: string?): { [string]: number }
-	local categoryName: string = category or self.defaultCategory
-	local categoryMap: { [string]: number } = self.cooldowns[categoryName]
-	if not categoryMap then
-		categoryMap = {}
-		self.cooldowns[categoryName] = categoryMap
-	end
-
-	return categoryMap
-end
-
-function CooldownServer:Set(player: Player, key: string, duration: number, category: string?): ()
-	local container: { [string]: number } = getServerCategoryContainer(self, player, category)
+): ()
+	local container: { [string]: number } = getContainer(self, player, category)
 	container[key] = os.clock() + duration
 end
 
-function CooldownClient:Set(key: string, duration: number, category: string?): ()
-	local container: { [string]: number } = getClientCategoryContainer(self, category)
-	container[key] = os.clock() + duration
-end
-
-function CooldownServer:IsReady(player: Player, key: string, category: string?): boolean
-	local container: { [string]: number } = getServerCategoryContainer(self, player, category)
+function CooldownMethods.IsReady(self: CooldownManager, player: Player?, key: string, category: string?): boolean
+	local container: { [string]: number } = getContainer(self, player, category)
 	local expire: number? = container and container[key]
 	if not expire then
 		return true
@@ -95,18 +99,8 @@ function CooldownServer:IsReady(player: Player, key: string, category: string?):
 	return os.clock() >= expire
 end
 
-function CooldownClient:IsReady(key: string, category: string?): boolean
-	local container: { [string]: number } = getClientCategoryContainer(self, category)
-	local expire: number? = container and container[key]
-	if not expire then
-		return true
-	end
-
-	return os.clock() >= expire
-end
-
-function CooldownServer:GetRemaining(player: Player, key: string, category: string?): number
-	local container: { [string]: number } = getServerCategoryContainer(self, player, category)
+function CooldownMethods.GetRemaining(self: CooldownManager, player: Player?, key: string, category: string?): number
+	local container: { [string]: number } = getContainer(self, player, category)
 	local expire: number? = container[key]
 	if not expire then
 		return 0
@@ -120,56 +114,54 @@ function CooldownServer:GetRemaining(player: Player, key: string, category: stri
 	return remaining
 end
 
-function CooldownClient:GetRemaining(key: string, category: string?): number
-	local container: { [string]: number } = getClientCategoryContainer(self, category)
-	local expire: number? = container[key]
-	if not expire then
-		return 0
+function CooldownMethods.Clear(self: CooldownManager, player: Player?, key: string, category: string?): ()
+	local categories: { [string]: { [string]: number } } =
+		getCategories(self, player, false) :: { [string]: { [string]: number } }
+	if not categories then
+		return
 	end
 
-	local remaining: number = expire - os.clock()
-	if remaining <= 0 then
-		return 0
+	local container: { [string]: number } = categories[category or self.defaultCategory]
+	if container then
+		container[key] = nil
 	end
-
-	return remaining
 end
 
-function CooldownServer:Clear(player: Player, key: string, category: string?): ()
-	local container: { [string]: number } = getServerCategoryContainer(self, player, category)
-	container[key] = nil
-end
-
-function CooldownClient:Clear(key: string, category: string?): ()
-	local container: { [string]: number } = getClientCategoryContainer(self, category)
-	container[key] = nil
-end
-
-function CooldownServer:ClearAll(player: Player, category: string?): ()
+function CooldownMethods.ClearAll(self: CooldownManager, player: Player?, category: string?): ()
 	if not category then
-		self.cooldowns[player] = nil
+		if player then
+			local server: CooldownManagerServer = self
+			server.cooldowns[player] = nil
+		else
+			local client: CooldownManagerClient = self
+			client.cooldowns = {}
+		end
 
 		return
 	end
 
-	local playerMap: { [string]: { [string]: number } } = self.cooldowns[player]
-	if playerMap then
-		playerMap[category] = nil
+	local categories: { [string]: { [string]: number } } =
+		getCategories(self, player, false) :: { [string]: { [string]: number } }
+	if categories then
+		categories[category] = nil
 	end
 end
 
-function CooldownClient:ClearAll(category: string?): ()
-	if not category then
-		self.cooldowns = {}
+local CooldownServer: CooldownManagerServer = setmetatable({
+	cooldowns = {},
+}, { __index = CooldownMethods }) :: any
 
-		return
-	end
+local CooldownClient: CooldownManagerClient = setmetatable({
+	Clear = WithoutPlayer(CooldownMethods.Clear),
+	ClearAll = WithoutPlayer(CooldownMethods.ClearAll),
+	GetRemaining = WithoutPlayer(CooldownMethods.GetRemaining),
+	IsReady = WithoutPlayer(CooldownMethods.IsReady),
+	Set = WithoutPlayer(CooldownMethods.Set),
+	cooldowns = {},
+}, { __index = CooldownMethods }) :: any
 
-	self.cooldowns[category] = nil
-end
-
-function CooldownServer:PlayerRemoving(player: Player): ()
+function CooldownServer.PlayerRemoving(self: CooldownManagerServer, player: Player): ()
 	self.cooldowns[player] = nil
 end
 
-return (isServer and CooldownServer or CooldownClient) :: CooldownManager
+return (RunService:IsServer() and CooldownServer or CooldownClient) :: CooldownManager

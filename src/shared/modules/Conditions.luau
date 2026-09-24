@@ -2,8 +2,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
-
-local isServer: boolean = RunService:IsServer()
+local ProfileTypes = require(ReplicatedStorage.shared.reflex.ProfileTypes)
+local WithoutPlayer = require(ReplicatedStorage.util.WithoutPlayer)
 
 export type ConditionsServer = {
 	path: InitializerTypes.ServerPath,
@@ -17,7 +17,16 @@ export type ConditionsClient = {
 
 export type Conditions = ConditionsServer & ConditionsClient
 
-local Conditions = {
+type ConditionsMethods = {
+	CheckCondition: (self: Conditions, player: Player?, conditionType: string, value: any) -> boolean,
+	type: string,
+}
+
+local ConditionsMethods: ConditionsMethods = {
+	type = "other",
+} :: ConditionsMethods
+
+local conditions: { [string]: (ProfileTypes.PlayerProducer, any, Player?) -> boolean } = {
 	offers = function(producer, name: string): boolean
 		return producer:getState().monetization.offers[name]
 	end,
@@ -31,22 +40,20 @@ local Conditions = {
 	end,
 }
 
-local ConditionsMeta = {
-	type = "other",
-}
-local ConditionsServer: ConditionsServer = table.clone(ConditionsMeta) :: any
-local ConditionsClient: ConditionsClient = table.clone(ConditionsMeta) :: any
+function ConditionsMethods.CheckCondition(self: Conditions, player: Player?, conditionType: string, value: any): boolean
+	local producer: ProfileTypes.PlayerProducer
+	if player then
+		producer = self.path.controller.ServerData:GetPlayerProducerAsync(player):expect()
+	else
+		producer = self.path.controller.ClientData:GetPlayerProducerAsync():expect()
+	end
 
-function ConditionsServer:CheckCondition(player: Player, conditionType: string, value: any): boolean
-	local producer = self.path.controller.ServerData:GetPlayerProducerAsync(player):expect()
-
-	return Conditions[conditionType](producer, value, player)
+	return conditions[conditionType](producer, value, player)
 end
 
-function ConditionsClient:CheckCondition(conditionType: string, value: any): boolean
-	local producer = self.path.controller.ClientData:GetPlayerProducerAsync():expect()
+local ConditionsServer: ConditionsServer = setmetatable({}, { __index = ConditionsMethods }) :: any
+local ConditionsClient: ConditionsClient = setmetatable({
+	CheckCondition = WithoutPlayer(ConditionsMethods.CheckCondition),
+}, { __index = ConditionsMethods }) :: any
 
-	return Conditions[conditionType](producer, value)
-end
-
-return (isServer and ConditionsServer or ConditionsClient) :: Conditions
+return (RunService:IsServer() and ConditionsServer or ConditionsClient) :: Conditions
