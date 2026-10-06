@@ -39,16 +39,18 @@ local DEFAULT_STATE: State = {
 function CreateProducer(initialState: State): Producer
 	local producer: Producer = Reflex.createProducer(initialState, {
 		secureAddGamePass = function(oldState: State, name: string): State
-			local state = table.clone(oldState)
+			local state: State = table.clone(oldState)
+			state.passes = table.clone(oldState.passes)
 			state.passes[name] = true
 
 			return state
 		end,
 
 		secureAddOffer = function(oldState: State, name: string): State
-			local state = table.clone(oldState)
+			local state: State = table.clone(oldState)
+			state.offers = table.clone(oldState.offers)
 
-			if state.offers[name] or GameConfig.core.monetizationOfferCreationAllowed then
+			if state.offers[name] ~= nil or GameConfig.core.monetizationOfferCreationAllowed then
 				state.offers[name] = true
 			else
 				Logger.error(

@@ -52,6 +52,15 @@ reported as failures without kicking that player or waiting indefinitely.
 The command uses the existing Admin permission hook and automatic command
 registration. It does not depend on a `secureResetData` producer action.
 
+The same persistence and reset flow covers `settings`, `inventory`, `player`,
+and `monetization` discovered from this project's own profile modules.
+`settingsProfile.CLIENT_ACTIONS` registers the supported preference setters
+and their validators. Extra PaintPictures preferences and its painting/tutorial
+profiles are game-specific features rather than requirements of this data layer.
+Monetization grants clone their nested ownership tables before updating them;
+an existing offer with value `false` is a configured, unowned offer and can be
+granted without enabling arbitrary offer creation.
+
 ### Server-Side Game Data Management
 
 - Managing game-wide data (e.g., server start time, active players)
