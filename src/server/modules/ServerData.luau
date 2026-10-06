@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ClientActionRegistry = require(ReplicatedStorage.shared.reflex.ClientActionRegistry)
+local DeepClone = require(ReplicatedStorage.util.DeepClone)
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
 local GetBridge = require(ReplicatedStorage.util.GetBridge)
 local IsValidUTF8 = require(ReplicatedStorage.util.IsValidUTF8)
@@ -56,6 +57,8 @@ export type Default = {
 	WaitForPlayerProfile: (self: Default, player: Player) -> Promise.TypedPromise<ServerPlayerProfile>,
 	GetPlayerProducerAsync: (self: Default, player: Player) -> Promise.TypedPromise<ProfileTypes.PlayerProducer>,
 	GetGameProducerAsync: (self: Default) -> Promise.TypedPromise<gameProfile.Producer>,
+	ResetPlayerData: (self: Default, player: Player) -> boolean,
+	SyncPlayerProfile: (self: Default, player: Player) -> boolean,
 	PlayerAdded: (self: Default, player: Player) -> (),
 	PlayerRemoving: (self: Default, player: Player) -> (),
 	Init: (self: Default) -> (),
@@ -67,6 +70,8 @@ ServerData.type = "controller"
 ServerData.profiles = {}
 ServerData.playerDataLoadedEvent = Signal.new()
 
+local CLIENT_ACTION_WARNING_INTERVAL: number = 5
+
 local clientActions: ClientActionRegistry.Registry = ClientActionRegistry.Build(getProfileModules())
 local loadingProfiles: { [Player]: boolean } = {}
 local gameStoreReady: { [Player]: boolean } = {}
@@ -74,7 +79,6 @@ local rejectedActionWarningAt: { [Player]: number } = {}
 
 local PlayerReady = GetBridge("PlayerReady")
 
-local CLIENT_ACTION_WARNING_INTERVAL: number = 5
 local DATASTORE_KEY: string = GameConfig.data.datastoreKey
 local PLAYTIME_TICK_SECONDS: number = 10
 
@@ -106,7 +110,6 @@ local function warnRejectedClientAction(player: Player, reason: string): ()
 	end
 
 	rejectedActionWarningAt[player] = currentTime
-
 	Logger.warn(`Rejected client profile action for {player.Name}: {reason}`)
 end
 
@@ -142,6 +145,44 @@ local function handleClientProfileAction(player: Player, payload: unknown): ()
 	end
 end
 
+local function getSaveableData(profile: ServerPlayerProfile): Data
+	local combinedState: any = profile.producer:getState()
+	local saveableData: { [string]: { [string]: any } } = {}
+	local exceptions: { [string]: { string } } = {}
+
+	for key: string, module: any in getProfileModules() do
+		if module.SAVE_EXCEPTIONS then
+			exceptions[key] = module.SAVE_EXCEPTIONS
+		end
+	end
+
+	for sliceName: string, stateSlice: { [string]: any } in combinedState do
+		if not table.find(profile.slices, sliceName) then
+			continue
+		end
+
+		local data: { [string]: any } = {}
+		local sliceExceptions: { string } = exceptions[sliceName] or {}
+		for key: string, value: any in stateSlice do
+			if table.find(sliceExceptions, key) ~= nil then
+				continue
+			end
+
+			if typeof(value) == "string" and not IsValidUTF8(value) then
+				continue
+			end
+
+			data[key] = value
+		end
+
+		saveableData[sliceName] = data
+	end
+
+	saveableData.player.lastSeen = DateTime.now().UnixTimestamp
+
+	return saveableData :: any
+end
+
 GetPlayerData.OnServerInvoke = function(player: Player): ...any
 	local existingProfile: ServerPlayerProfile? = ServerData:GetPlayerProfile(player)
 	if not existingProfile then
@@ -175,6 +216,46 @@ end
 
 function ServerData:GetPlayerProfile(player: Player): ServerPlayerProfile?
 	return self.profiles[player]
+end
+
+function ServerData:SyncPlayerProfile(player: Player): boolean
+	local profile: ServerPlayerProfile? = self.profiles[player]
+	if not profile then
+		return false
+	end
+
+	profile.profileStore.Data = getSaveableData(profile)
+
+	return true
+end
+
+function ServerData:ResetPlayerData(player: Player): boolean
+	local profile: ServerPlayerProfile? = self.profiles[player]
+	if not profile then
+		return false
+	end
+
+	local profileModules: { [string]: any } = getProfileModules()
+	local resetState: { [string]: any } = {}
+
+	for _index: number, sliceName: string in profile.slices do
+		local profileModule: any = if sliceName == "player" then playerProfile else profileModules[sliceName]
+		if not profileModule or not profileModule.DEFAULT_STATE then
+			Logger.warn(`ResetPlayerData: No default state found for the {sliceName} profile`)
+
+			return false
+		end
+
+		resetState[sliceName] = DeepClone(profileModule.DEFAULT_STATE)
+	end
+
+	resetState.player.userId = player.UserId
+	resetState.player.lastSeen = workspace:GetServerTimeNow() // 1
+
+	local producer: any = profile.producer
+	producer:setState(resetState)
+
+	return self:SyncPlayerProfile(player)
 end
 
 function ServerData:WaitForPlayerProfile(player: Player): Promise.TypedPromise<ServerPlayerProfile>
@@ -342,6 +423,7 @@ function ServerData:PlayerAdded(player: Player): ()
 	player:SetAttribute("DataLoaded", true)
 
 	profile.producer.secureFirstTime()
+	self:SyncPlayerProfile(player)
 
 	loadingProfiles[player] = nil
 end
@@ -355,44 +437,7 @@ function ServerData:PlayerRemoving(player: Player): ()
 	end
 
 	profile.producer.secureSetLastSeenTimestamp()
-
-	local combinedState = profile.producer:getState()
-
-	local saveableData = {}
-	local exceptions = {}
-
-	for key: string, module in getProfileModules() do
-		if module.SAVE_EXCEPTIONS then
-			exceptions[key] = module.SAVE_EXCEPTIONS
-		end
-	end
-
-	for sliceName, stateSlice in combinedState do
-		local data = {}
-
-		if not table.find(profile.slices, sliceName) then
-			continue
-		end
-
-		local sliceExceptions = exceptions[sliceName] or {}
-		for key, value in stateSlice do
-			if table.find(sliceExceptions, key) ~= nil then
-				continue
-			end
-
-			if typeof(value) == "string" and not IsValidUTF8(value) then
-				continue
-			end
-
-			data[key] = value
-		end
-
-		saveableData[sliceName] = data
-	end
-
-	saveableData.player.lastOnline = math.floor(workspace:GetServerTimeNow())
-
-	profile.profileStore.Data = saveableData :: any
+	self:SyncPlayerProfile(player)
 	profile.profileStore:Release()
 	self.profiles[player] = nil
 	gameStoreReady[player] = nil
@@ -401,6 +446,19 @@ end
 function ServerData:Init(): ()
 	PlayerReady:Connect(function(player: Player): ()
 		ServerData:GetPlayerProducerAsync(player):expect().setPlayerReady()
+	end)
+
+	task.spawn(function(): ()
+		while true do
+			task.wait(GameConfig.data.playerProfileSyncInterval)
+
+			for player: Player in self.profiles do
+				local success: boolean, errorMessage: any = pcall(self.SyncPlayerProfile, self, player)
+				if not success then
+					Logger.warn(`Failed to synchronize profile data for {player.Name}: {errorMessage}`)
+				end
+			end
+		end
 	end)
 
 	task.spawn(function(): ()

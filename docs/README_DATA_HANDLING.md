@@ -28,6 +28,30 @@ The `ServerData` module (`src/server/modules/ServerData.luau`) manages server-si
 - Providing access to player data through a producer pattern
 - Replicating player data changes to the client
 
+### Persistent Profile Synchronization and Reset
+
+Reflex is the authoritative runtime state. ProfileService autosaves its own
+`profileStore.Data`; it does not read the producer automatically.
+`ServerData:SyncPlayerProfile(player)` copies the current persistent slices into
+that table, applies `SAVE_EXCEPTIONS`, skips invalid top-level UTF-8 strings,
+and refreshes the saved `player.lastSeen` without changing the live timestamp.
+
+Synchronization runs after profile initialization, every
+`GameConfig.data.playerProfileSyncInterval` seconds (30 by default), and before
+departure releases the profile. One server-wide loop handles active profiles
+and logs individual synchronization failures. Actual DataStore writes remain
+owned by ProfileService. With healthy writes and normal scheduling, a sudden
+crash can still lose approximately the synchronization interval plus its
+staggered 30-second autosave cycle; DataStore failures can extend that window.
+
+The existing Admin Cmdr command `Reset <players>` calls
+`ServerData:ResetPlayerData(player)` to restore every persistent slice to a deep
+copy of its own `DEFAULT_STATE`, then synchronizes the profile and kicks each
+successfully reset player. `Reset me` resets the executor. Missing profiles are
+reported as failures without kicking that player or waiting indefinitely.
+The command uses the existing Admin permission hook and automatic command
+registration. It does not depend on a `secureResetData` producer action.
+
 ### Server-Side Game Data Management
 
 - Managing game-wide data (e.g., server start time, active players)
@@ -60,6 +84,10 @@ The `ClientData` module (`src/client/modules/ClientData.luau`) manages client-si
 - Mirroring server-side game data
 - Providing access to game data through a producer pattern
 - Applying server-originated game data changes locally
+
+Global replication received while `GetGameData` is loading is queued and
+replayed in order after the initial snapshot, before `gameDataLoadedSignal`
+fires. The remote subscriptions belong to the controller's `Maid`.
 
 ### Client-Specific Data Management
 
@@ -133,7 +161,8 @@ ClientData.clientProducer.setLocalSetting("musicVolume", 0.8)
 4. The client creates a producer for the player's data
 5. Server actions replicate to the client
 6. Registered client preference actions are validated and applied by the server
-7. When a player leaves, the server saves their data to the datastore
+7. The server periodically synchronizes persistent producer state into ProfileService data for autosave
+8. When a player leaves, the server synchronizes their latest state and releases the profile for its final save
 
 ## Security Considerations
 
@@ -157,6 +186,8 @@ The `ServerData` module is implemented as a controller in the Altair project's m
 - `WaitForPlayerProfile` - A function to wait for a player's profile to be loaded
 - `GetPlayerProducerAsync` - A function to get the player producer asynchronously
 - `GetGameProducerAsync` - A function to get the game producer asynchronously
+- `SyncPlayerProfile` - Copies current persistent state into ProfileService data
+- `ResetPlayerData` - Resets every persistent slice and synchronizes the active profile
 - `PlayerAdded` - A function called when a player joins
 - `PlayerRemoving` - A function called when a player leaves
 - `Init` - A function called when the module is initialized

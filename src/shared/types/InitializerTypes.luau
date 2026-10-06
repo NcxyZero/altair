@@ -10,6 +10,7 @@ export type ServerPlayerProfile = {
 	profileStore: Reflex.Producer<any, any> & { Data: ProfileTypes.PlayerState },
 	producer: ProfileTypes.PlayerProducer,
 	nextActionIsReplicated: boolean,
+	slices: { string },
 }
 
 export type ClientPath = {
@@ -46,6 +47,8 @@ export type ServerPath = {
 				player: Player
 			) -> Promise.TypedPromise<ProfileTypes.PlayerProducer>,
 			GetGameProducerAsync: (self: unknown) -> Promise.TypedPromise<gameProfile.Producer>,
+			ResetPlayerData: (self: unknown, player: Player) -> boolean,
+			SyncPlayerProfile: (self: unknown, player: Player) -> boolean,
 		},
 		[string]: unknown,
 	},

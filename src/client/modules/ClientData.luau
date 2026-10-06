@@ -8,6 +8,7 @@ local ClientActionRegistry = require(ReplicatedStorage.shared.reflex.ClientActio
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
 local Logger = require(ReplicatedStorage.util.Logger)
+local Maid = require(ReplicatedStorage.package.Maid)
 local MergeDictionaries = require(ReplicatedStorage.util.MergeDictionaries)
 local ProfileTypes = require(ReplicatedStorage.shared.reflex.ProfileTypes)
 local Promise = require(ReplicatedStorage.package.Promise)
@@ -35,21 +36,24 @@ local function getProfileModules(): { [string]: any }
 end
 
 export type Default = {
-	index: number,
-	type: string,
-	path: InitializerTypes.ClientPath,
-	clientProducer: clientProfile.Producer,
-	playerProducer: ProfileTypes.PlayerProducer,
-	gameProducer: gameProfile.Producer,
-	isPlayerDataLoaded: boolean,
-	isGameDataLoaded: boolean,
-	playerDataLoadedSignal: Signal.Signal<()>,
-	gameDataLoadedSignal: Signal.Signal<()>,
-	GetPlayerProducerAsync: (self: Default) -> Promise.TypedPromise<ProfileTypes.PlayerProducer>,
+	ApplyGameReplication: (self: Default, data: { [string]: any }) -> (),
 	GetClientProducerAsync: (self: Default) -> Promise.TypedPromise<clientProfile.Producer>,
 	GetGameProducerAsync: (self: Default) -> Promise.TypedPromise<gameProfile.Producer>,
-	PlayerAdded: (self: Default, player: Player) -> (),
+	GetPlayerProducerAsync: (self: Default) -> Promise.TypedPromise<ProfileTypes.PlayerProducer>,
 	Init: (self: Default) -> (),
+	PlayerAdded: (self: Default, player: Player) -> (),
+	pendingGameReplications: { { [string]: any } },
+	index: number,
+	isGameDataLoaded: boolean,
+	isPlayerDataLoaded: boolean,
+	type: string,
+	clientProducer: clientProfile.Producer,
+	gameProducer: gameProfile.Producer,
+	path: InitializerTypes.ClientPath,
+	playerProducer: ProfileTypes.PlayerProducer,
+	gameDataLoadedSignal: Signal.Signal<()>,
+	maid: Maid.Maid,
+	playerDataLoadedSignal: Signal.Signal<()>,
 }
 
 local ClientData: Default = {
@@ -59,6 +63,8 @@ local ClientData: Default = {
 	isGameDataLoaded = false,
 	playerDataLoadedSignal = Signal.new(),
 	gameDataLoadedSignal = Signal.new(),
+	maid = Maid.new(),
+	pendingGameReplications = {},
 } :: Default
 
 local clientActions: ClientActionRegistry.Registry = ClientActionRegistry.Build(getProfileModules())
@@ -112,7 +118,38 @@ function ClientData:PlayerAdded(player: Player): ()
 	end
 end
 
+function ClientData:ApplyGameReplication(data: { [string]: any }): ()
+	if type(data) ~= "table" then
+		return
+	end
+
+	if not self.isGameDataLoaded then
+		table.insert(self.pendingGameReplications, data)
+
+		return
+	end
+
+	local actionNameAny: any = data.name
+	local actionName: string? = type(actionNameAny) == "string" and actionNameAny or nil
+	if not actionName or type(data.arguments) ~= "table" then
+		return
+	end
+
+	local action: any = self.gameProducer[actionName]
+	if type(action) ~= "function" then
+		Logger.warn("Unknown game action:", actionName)
+
+		return
+	end
+
+	action(unpack(data.arguments))
+end
+
 function ClientData:Init(): ()
+	self.maid:DoCleaning()
+
+	table.clear(self.pendingGameReplications)
+
 	self.clientProducer = CreateClientProducer(clientProfile.DEFAULT_STATE)
 
 	local function loadPlayerData(): ()
@@ -173,63 +210,53 @@ function ClientData:Init(): ()
 
 		self.gameProducer = gameProfile.CreateProducer(gameData)
 		self.isGameDataLoaded = true
+
+		for _index: number, data: { [string]: any } in self.pendingGameReplications do
+			self:ApplyGameReplication(data)
+		end
+
+		table.clear(self.pendingGameReplications)
+
 		self.gameDataLoadedSignal:Fire()
 
 		return
 	end
 
-	ReplicatedStorage:WaitForChild("ReplicateStore").OnClientEvent
-		:Connect(function(data: { name: string, arguments: { any } }): ()
-			if type(data) ~= "table" then
-				return
-			end
+	self.maid:GiveTask(
+		ReplicatedStorage:WaitForChild("ReplicateStore").OnClientEvent
+			:Connect(function(data: { name: string, arguments: { any } }): ()
+				if type(data) ~= "table" then
+					return
+				end
 
-			if not self.isPlayerDataLoaded then
-				return
-			end
+				if not self.isPlayerDataLoaded then
+					return
+				end
 
-			local actionNameAny: any = data.name
-			local actionName: string? = type(actionNameAny) == "string" and actionNameAny or nil
-			if not actionName then
-				return
-			end
+				local actionNameAny: any = data.name
+				local actionName: string? = type(actionNameAny) == "string" and actionNameAny or nil
+				if not actionName then
+					return
+				end
 
-			local action: any = self.playerProducer[actionName]
-			if type(action) ~= "function" then
-				Logger.warn("Unknown action:", actionName)
+				local action: any = self.playerProducer[actionName]
+				if type(action) ~= "function" then
+					Logger.warn("Unknown action:", actionName)
 
-				return
-			end
+					return
+				end
 
-			playerDataQueue += 1
+				playerDataQueue += 1
 
-			action(unpack(data.arguments))
+				action(unpack(data.arguments))
+			end)
+	)
+
+	self.maid:GiveTask(
+		ReplicatedStorage:WaitForChild("ReplicateGameStore").OnClientEvent:Connect(function(data: { [string]: any }): ()
+			self:ApplyGameReplication(data)
 		end)
-
-	ReplicatedStorage:WaitForChild("ReplicateGameStore").OnClientEvent:Connect(function(data: { [string]: any }): ()
-		if type(data) ~= "table" then
-			return
-		end
-
-		if not self.isGameDataLoaded then
-			return
-		end
-
-		local actionNameAny: any = data.name
-		local actionName: string? = type(actionNameAny) == "string" and actionNameAny or nil
-		if not actionName then
-			return
-		end
-
-		local action: any = self.gameProducer[actionName]
-		if type(action) ~= "function" then
-			Logger.warn("Unknown game action:", actionName)
-
-			return
-		end
-
-		action(unpack(data.arguments))
-	end)
+	)
 
 	loadPlayerData()
 	loadGameData()

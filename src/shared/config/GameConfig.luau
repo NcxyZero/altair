@@ -17,6 +17,7 @@ export type GameConfig = {
 		datastoreKey: string,
 		playerKeyPattern: string,
 		playerProfileInvokeTimeout: number,
+		playerProfileSyncInterval: number,
 	},
 	debug: {
 		loggerShowInGame: boolean,
@@ -67,6 +68,7 @@ local gameConfig: GameConfig = {
 		datastoreKey = "DEV",
 		playerKeyPattern = "%d",
 		playerProfileInvokeTimeout = 30,
+		playerProfileSyncInterval = 30,
 	},
 	debug = {
 		loggerShowInGame = false,
