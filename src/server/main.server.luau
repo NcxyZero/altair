@@ -5,7 +5,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
+local Bifrost = require(ReplicatedStorage.package.Bifrost)
 local GetBridge = require(ReplicatedStorage.util.GetBridge)
+local GetFunctionBridge = require(ReplicatedStorage.util.GetFunctionBridge)
 local Logger = require(ReplicatedStorage.util.Logger)
 local Promise = require(ReplicatedStorage.package.Promise)
 local ServerInitConfig = require(ServerScriptService.server.serverConfig.ServerInitConfig)
@@ -13,6 +15,12 @@ local ServerInitConfig = require(ServerScriptService.server.serverConfig.ServerI
 local replicateToServer = Instance.new("RemoteFunction")
 replicateToServer.Name = "_GetBridgeFunction"
 replicateToServer.Parent = ReplicatedStorage
+
+local replicateToServerFunction = Bifrost.FunctionBridge("_REPLICATE_BRIDGE_FUNCTION")
+
+replicateToServerFunction:OnInvoke(function(_player: Player, name: string)
+	GetFunctionBridge(name)
+end)
 
 replicateToServer.OnServerInvoke = function(_player: Player, name: string): ()
 	GetBridge(name) -- error handling for client if server doesn't have bridge

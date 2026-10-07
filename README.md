@@ -11,7 +11,7 @@ Altair is a Roblox game project that follows a modular architecture with control
 - Modular architecture with controllers and modules
 - Tag-based system for game objects
 - State management using Reflex
-- Networking with Bridgenet2
+- Networking with Bridgenet2/Bifrost
 - Data persistence with ProfileService
 
 ## Prerequisites
@@ -180,6 +180,7 @@ The project uses the following main dependencies:
 
 - BezierTweens — For smooth animation curves
 - Bridgenet2 — For networking
+- Bifrost - for networking (IN TESTS)
 - CameraShaker — For camera effects
 - Cmdr — A command console for Roblox
 - Fastcast — For raycasting/projectile simulation

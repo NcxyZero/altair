@@ -10,6 +10,7 @@ shared-packages = "game.ReplicatedStorage.package"
 [dependencies]
 BezierTweens = "max-bacon/bezier-tweens@1.2.1"
 Bridgenet2 = "ncxyzero/bridgenet2-fork@1.1.5"
+Bifrost = "ncxyzero/bifrost@0.0.2"
 CameraShaker = "brittonfischer/camerashaker@0.1.0"
 Cmdr = "evaera/cmdr@=1.12.0"
 Fastcast = "solarhorizon/fastcast@13.2.1"
