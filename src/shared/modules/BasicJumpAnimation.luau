@@ -2,9 +2,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
-local GetInstanceCFrame = require(ReplicatedStorage.util.GetInstanceCFrame)
+local GetInstanceCFrame = require(ReplicatedStorage.util.Core.GetInstanceCFrame)
 local Maid = require(ReplicatedStorage.package.Maid)
-local SetInstanceCFrame = require(ReplicatedStorage.util.SetInstanceCFrame)
+local SetInstanceCFrame = require(ReplicatedStorage.util.Core.SetInstanceCFrame)
 
 export type BasicJumpAnimation = {
 	type: string,

@@ -3,10 +3,10 @@ local MemoryStoreService = game:GetService("MemoryStoreService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local BuildStockConfigUtil = require(ReplicatedStorage.util.BuildStockConfig)
+local BuildStockConfigUtil = require(ReplicatedStorage.util.Core.BuildStockConfig)
 local GlobalStockConfig = require(ServerScriptService.server.serverConfig.GlobalStockConfig)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
-local Logger = require(ReplicatedStorage.util.Logger)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 local Maid = require(ReplicatedStorage.package.Maid)
 
 export type StockItem = {

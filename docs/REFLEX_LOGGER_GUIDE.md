@@ -8,10 +8,10 @@ The Altair project uses Reflex for state management and provides a simple Logger
 
 ## Logger Utility
 
-The Logger utility (`ReplicatedStorage.util.Logger`) provides simple logging functions that only work in Studio mode:
+The Logger utility (`ReplicatedStorage.util.Core.Logger`) provides simple logging functions that only work in Studio mode:
 
 ```luau
-local Logger = require(ReplicatedStorage.util.Logger)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 
 Logger.print("Example message")             -- Prints a message
 Logger.warn("Warning message")              -- Prints a warning

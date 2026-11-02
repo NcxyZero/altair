@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ClientData = require(ReplicatedStorage.client.modules.ClientData)
-local GetBridge = require(ReplicatedStorage.util.GetBridge)
+local GetBridge = require(ReplicatedStorage.util.Core.GetBridge)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local Maid = require(ReplicatedStorage.package.Maid)
 

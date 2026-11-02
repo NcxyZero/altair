@@ -3,12 +3,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
-local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
-local Logger = require(ReplicatedStorage.util.Logger)
+local LocalPlayer = require(ReplicatedStorage.util.Core.LocalPlayer)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 local Promise = require(ReplicatedStorage.package.Promise)
 local RaycastActions = require(ReplicatedStorage.client.clientConfig.RaycastActions)
 local TagManager = require(ReplicatedStorage.shared.modules.TagManager)
-local WaitForGameToLoad = require(ReplicatedStorage.util.WaitForGameToLoad)
+local WaitForGameToLoad = require(ReplicatedStorage.util.Core.WaitForGameToLoad)
 
 export type Default = {
 	index: number?,

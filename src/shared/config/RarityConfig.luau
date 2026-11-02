@@ -1,6 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local ConvertToSentenceCase = require(ReplicatedStorage.util.ConvertToSentenceCase)
+local ConvertToSentenceCase = require(ReplicatedStorage.util.Core.ConvertToSentenceCase)
 
 export type RarityConfig = {
 	colors: { [string]: Color3 },

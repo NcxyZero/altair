@@ -1,6 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Logger = require(ReplicatedStorage.util.Logger)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 
 local MonetizationExecs = {
 	offers = {

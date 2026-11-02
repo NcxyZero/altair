@@ -1,9 +1,9 @@
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local CreatePrompt = require(ReplicatedStorage.util.CreatePrompt)
+local CreatePrompt = require(ReplicatedStorage.util.Core.CreatePrompt)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
-local Logger = require(ReplicatedStorage.util.Logger)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 local Maid = require(ReplicatedStorage.package.Maid)
 local PromptActions = require(ReplicatedStorage.client.clientConfig.PromptActions)
 

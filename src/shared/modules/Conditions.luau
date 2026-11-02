@@ -3,7 +3,7 @@ local RunService = game:GetService("RunService")
 
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local ProfileTypes = require(ReplicatedStorage.shared.reflex.ProfileTypes)
-local WithoutPlayer = require(ReplicatedStorage.util.WithoutPlayer)
+local WithoutPlayer = require(ReplicatedStorage.util.Core.WithoutPlayer)
 
 export type ConditionsServer = {
 	path: InitializerTypes.ServerPath,

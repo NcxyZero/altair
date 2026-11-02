@@ -12,7 +12,7 @@ Returns a cached instance of a `BridgeNet2` bridge (server or client) by name. E
 
 ### 📦 Location
 
-`ReplicatedStorage.util.GetBridge`
+`ReplicatedStorage.util.Core.GetBridge`
 
 ### ✅ Usage
 
@@ -20,7 +20,7 @@ Returns a cached instance of a `BridgeNet2` bridge (server or client) by name. E
 
 ```luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local GetSignal = require(ReplicatedStorage.util.GetSignal)
+local GetSignal = require(ReplicatedStorage.util.Core.GetSignal)
 
 local mySignal = GetSignal("MySignal")
 mySignal:Fire("Hello, World!")
@@ -34,7 +34,7 @@ end)
 
 ```luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local GetBridge = require(ReplicatedStorage.util.GetBridge)
+local GetBridge = require(ReplicatedStorage.util.Core.GetBridge)
 
 local myBridge = GetBridge("MyBridge")
 
@@ -49,7 +49,7 @@ myBridge:Fire("Hello, World!")
 
 ```luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local GetBridge = require(ReplicatedStorage.util.GetBridge)
+local GetBridge = require(ReplicatedStorage.util.Core.GetBridge)
 
 local myBridge = GetBridge("MyBridge")
 

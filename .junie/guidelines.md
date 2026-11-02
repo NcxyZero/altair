@@ -42,7 +42,7 @@ The project structure is defined in `default.project.json` as follows:
 
 - `src/preload` → ReplicatedFirst
 - `src/shared` → ReplicatedStorage.shared
-- `src/util` → ReplicatedStorage.util
+- `src/util` → ReplicatedStorage.util (`Core/` for core utilities, one folder per installed package)
 - `src/server` → ServerScriptService.server
 - `src/client` → ReplicatedStorage.client
 - `Packages` → ReplicatedStorage.package (Wally packages)
@@ -69,7 +69,9 @@ The actual structure of the project is:
     - `model/` - Data models
     - `reflex/` - Reflex state management
     - `types/` - Type definitions
-  - `util/` - Utility functions
+  - `util/` - Utility folders only
+    - `Core/` - Core utility functions used by Altair itself
+    - `<Package>/` - Installed utility packages
 - `Packages/` - Client and shared Wally packages
 - `ServerPackages/` - Server-only Wally packages
 
@@ -306,6 +308,15 @@ local result: string? = isValid and computeResult() or nil
   1. Add it to `wally.toml`
   2. Run `bash update.sh` to install it
   3. The dependency will be available in the `Packages` directory
+
+### Utility Dependencies
+
+- `src/util` contains only folders; core utilities (used by Altair itself) live in `src/util/Core` and are required as `require(ReplicatedStorage.util.Core.<Module>)`
+- Do not add general-purpose utilities to `src/util/Core`, and do not put loose modules directly in `src/util`
+- Extra utilities are installed from the repositories in `altair-dependencies.toml` (default: `altair-utils`) with `bash require-dependency.sh <Package>` or `.\require-dependency.ps1 <Package>`
+- Installed packages are placed in `src/util/<Package>/` and required as `require(ReplicatedStorage.util.<Package>.<Module>)`
+- Before writing a new utility, check whether a package already provides it (`bash require-dependency.sh --list`)
+- New general-purpose utilities belong in a package in `altair-utils`, see `docs/dependencies/CREATING_DEPENDENCIES.md`
 
 ### State Management
 

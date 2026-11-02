@@ -2,7 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local ClientData = require(ReplicatedStorage.client.modules.ClientData)
-local ConvertCurrency = require(ReplicatedStorage.util.ConvertCurrency)
+local ConvertCurrency = require(ReplicatedStorage.util.Core.ConvertCurrency)
 local EffectGuiConfig = require(ReplicatedStorage.shared.config.EffectGuiConfig)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local Maid = require(ReplicatedStorage.package.Maid)

@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local DeepClone = require(ReplicatedStorage.util.DeepClone)
-local IsPlayerOnMobile = require(ReplicatedStorage.util.IsPlayerOnMobile)
+local DeepClone = require(ReplicatedStorage.util.Core.DeepClone)
+local IsPlayerOnMobile = require(ReplicatedStorage.util.Core.IsPlayerOnMobile)
 local Reflex = require(ReplicatedStorage.package.Reflex)
 
 export type Producer = Reflex.Producer<State, Actions>

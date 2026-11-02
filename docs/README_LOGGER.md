@@ -6,7 +6,7 @@ The `Logger` module provides safe debug-only logging functions designed for use 
 
 ## 📦 Location
 
-`ReplicatedStorage.util.Logger`
+`ReplicatedStorage.util.Core.Logger`
 
 ---
 
@@ -20,7 +20,7 @@ The logger automatically prefixes each message with the calling file (and line w
 
 ```luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Logger = require(ReplicatedStorage.util.Logger)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 
 Logger.print("Example print")
 Logger.warn("Example warn")

@@ -2,7 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Maid = require(ReplicatedStorage.package.Maid)
-local SFX = require(ReplicatedStorage.util.SFX)
+local SFX = require(ReplicatedStorage.util.Core.SFX)
 
 local BUTTON_SIZE_MULTIPLIER: number = 0.9
 local HOVER_SIZE_MULTIPLIER: number = 1.05

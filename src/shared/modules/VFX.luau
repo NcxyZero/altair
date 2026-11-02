@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local CalculateTargetMass = require(ReplicatedStorage.util.CalculateTargetMass)
+local CalculateTargetMass = require(ReplicatedStorage.util.Core.CalculateTargetMass)
 
 local VFX = {}
 

@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local ConvertCurrency = require(ReplicatedStorage.util.ConvertCurrency)
+local ConvertCurrency = require(ReplicatedStorage.util.Core.ConvertCurrency)
 local ServerData = require(ServerScriptService.server.modules.ServerData)
 
 return function(_context, players: { Player }, amount: number): string

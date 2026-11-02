@@ -2,7 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local Maid = require(ReplicatedStorage.package.Maid)
-local OpenGui = require(ReplicatedStorage.util.OpenGui)
+local OpenGui = require(ReplicatedStorage.util.Core.OpenGui)
 local TagManager = require(ReplicatedStorage.shared.modules.TagManager)
 
 export type Default = {

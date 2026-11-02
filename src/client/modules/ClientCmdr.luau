@@ -3,7 +3,7 @@ local RunService = game:GetService("RunService")
 
 local Cmdr = require(ReplicatedStorage:WaitForChild("CmdrClient") :: any)
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
-local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
+local LocalPlayer = require(ReplicatedStorage.util.Core.LocalPlayer)
 
 local roleData: { groupId: number?, rank: number } = GameConfig.roles[GameConfig.cmdr.role]
 local requiredGroup: number = roleData.groupId or game.CreatorType == Enum.CreatorType.Group and game.CreatorId or 0

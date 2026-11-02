@@ -1,8 +1,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Bridgenet2 = require(ReplicatedStorage.package.Bridgenet2)
-local ConvertHexToInt = require(ReplicatedStorage.util.ConvertHexToInt)
-local GetBridge = require(ReplicatedStorage.util.GetBridge)
+local ConvertHexToInt = require(ReplicatedStorage.util.Core.ConvertHexToInt)
+local GetBridge = require(ReplicatedStorage.util.Core.GetBridge)
 
 local bridge = GetBridge("Notification")
 

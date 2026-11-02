@@ -1,0 +1,6 @@
+install-path = "src/util"
+
+[[repository]]
+name = "altair-utils"
+url = "https://github.com/NcxyZero/altair-utils"
+branch = "main"

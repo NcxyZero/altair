@@ -6,10 +6,10 @@ local reflexFolder: Folder = sharedFolder:WaitForChild("reflex") :: Folder
 
 local ClientActionRegistry = require(ReplicatedStorage.shared.reflex.ClientActionRegistry)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
-local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
-local Logger = require(ReplicatedStorage.util.Logger)
+local LocalPlayer = require(ReplicatedStorage.util.Core.LocalPlayer)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 local Maid = require(ReplicatedStorage.package.Maid)
-local MergeDictionaries = require(ReplicatedStorage.util.MergeDictionaries)
+local MergeDictionaries = require(ReplicatedStorage.util.Core.MergeDictionaries)
 local ProfileTypes = require(ReplicatedStorage.shared.reflex.ProfileTypes)
 local Promise = require(ReplicatedStorage.package.Promise)
 local Reflex = require(ReplicatedStorage.package.Reflex)

@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local ConvertToTextTime = require(ReplicatedStorage.util.ConvertToTextTime)
-local GetBridge = require(ReplicatedStorage.util.GetBridge)
+local ConvertToTextTime = require(ReplicatedStorage.util.Core.ConvertToTextTime)
+local GetBridge = require(ReplicatedStorage.util.Core.GetBridge)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local Maid = require(ReplicatedStorage.package.Maid)
 

@@ -3,9 +3,9 @@ local RunService = game:GetService("RunService")
 
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
-local Logger = require(ReplicatedStorage.util.Logger)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 local Promise = require(ReplicatedStorage.package.Promise)
-local WithoutPlayer = require(ReplicatedStorage.util.WithoutPlayer)
+local WithoutPlayer = require(ReplicatedStorage.util.Core.WithoutPlayer)
 
 export type CacheEntry = {
 	value: any,

@@ -3,10 +3,10 @@ local SoundService = game:GetService("SoundService")
 
 local ClientData = require(ReplicatedStorage.client.modules.ClientData)
 local CooldownManager = require(ReplicatedStorage.shared.modules.CooldownManager)
-local GetBridge = require(ReplicatedStorage.util.GetBridge)
-local Logger = require(ReplicatedStorage.util.Logger)
+local GetBridge = require(ReplicatedStorage.util.Core.GetBridge)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 local MonetizationConfig = require(ReplicatedStorage.shared.config.MonetizationConfig)
-local OpenGui = require(ReplicatedStorage.util.OpenGui)
+local OpenGui = require(ReplicatedStorage.util.Core.OpenGui)
 local TagManager = require(ReplicatedStorage.shared.modules.TagManager)
 
 local LockBridge = GetBridge("LockBridge")

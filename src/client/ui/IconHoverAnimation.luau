@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
-local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
+local LocalPlayer = require(ReplicatedStorage.util.Core.LocalPlayer)
 local Maid = require(ReplicatedStorage.package.Maid)
 
 local ICON_HOVER_SIZE_MULTIPLIER: number = 1.05

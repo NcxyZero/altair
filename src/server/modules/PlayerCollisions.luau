@@ -2,7 +2,7 @@ local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
-local Logger = require(ReplicatedStorage.util.Logger)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 
 local PlayerCollisions = {}
 PlayerCollisions.type = "controller"

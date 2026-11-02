@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
-local Logger = require(ReplicatedStorage.util.Logger)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 local MonetizationConfig = require(ReplicatedStorage.shared.config.MonetizationConfig)
 local Reflex = require(ReplicatedStorage.package.Reflex)
 

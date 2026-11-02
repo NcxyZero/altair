@@ -1,9 +1,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SocialService = game:GetService("SocialService")
 
-local CanSendGameInvite = require(ReplicatedStorage.util.CanSendGameInvite)
+local CanSendGameInvite = require(ReplicatedStorage.util.Core.CanSendGameInvite)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
-local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
+local LocalPlayer = require(ReplicatedStorage.util.Core.LocalPlayer)
 local Maid = require(ReplicatedStorage.package.Maid)
 
 export type InviteFriendsButton = {

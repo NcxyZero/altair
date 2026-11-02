@@ -2,7 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
-local WithoutPlayer = require(ReplicatedStorage.util.WithoutPlayer)
+local WithoutPlayer = require(ReplicatedStorage.util.Core.WithoutPlayer)
 
 export type CooldownManagerServer = {
 	Clear: (self: CooldownManager, player: Player, key: string, category: string?) -> (),

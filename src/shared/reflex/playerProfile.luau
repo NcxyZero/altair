@@ -1,6 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local ConvertCurrency = require(ReplicatedStorage.util.ConvertCurrency)
+local ConvertCurrency = require(ReplicatedStorage.util.Core.ConvertCurrency)
 local Reflex = require(ReplicatedStorage.package.Reflex)
 
 export type Producer = Reflex.Producer<State, Actions>

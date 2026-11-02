@@ -2,7 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 
 local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
-local Logger = require(ReplicatedStorage.util.Logger)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 
 local ResetButtonDisable = {}
 ResetButtonDisable.type = "controller"

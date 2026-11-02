@@ -8,8 +8,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 
 local ClientData = require(ReplicatedStorage:WaitForChild("client"):WaitForChild("modules"):WaitForChild("ClientData"))
-local GetBridge = require(ReplicatedStorage.util.GetBridge)
-local SetCharacterControlsEnabled = require(ReplicatedStorage.util.SetCharacterControlsEnabled)
+local GetBridge = require(ReplicatedStorage.util.Core.GetBridge)
+local SetCharacterControlsEnabled = require(ReplicatedStorage.util.Core.SetCharacterControlsEnabled)
 
 local LocalPlayer = Players.LocalPlayer
 

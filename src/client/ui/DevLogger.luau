@@ -7,11 +7,11 @@ local TextChatService = game:GetService("TextChatService")
 local TextService = game:GetService("TextService")
 local UserInputService = game:GetService("UserInputService")
 
-local CreateInstance = require(ReplicatedStorage.util.CreateInstance)
-local EscapeRichText = require(ReplicatedStorage.util.EscapeRichText)
-local IsPlayerOnMobile = require(ReplicatedStorage.util.IsPlayerOnMobile)
+local CreateInstance = require(ReplicatedStorage.util.Core.CreateInstance)
+local EscapeRichText = require(ReplicatedStorage.util.Core.EscapeRichText)
+local IsPlayerOnMobile = require(ReplicatedStorage.util.Core.IsPlayerOnMobile)
 local Signal = require(ReplicatedStorage.package.Signal)
-local WaitForGameToLoad = require(ReplicatedStorage.util.WaitForGameToLoad)
+local WaitForGameToLoad = require(ReplicatedStorage.util.Core.WaitForGameToLoad)
 
 export type DevLogger = {
 	__index: DevLogger,

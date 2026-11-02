@@ -3,8 +3,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local APIDictionaries = require(ReplicatedStorage.shared.types.APIDictionaries)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
-local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
-local Logger = require(ReplicatedStorage.util.Logger)
+local LocalPlayer = require(ReplicatedStorage.util.Core.LocalPlayer)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 local Maid = require(ReplicatedStorage.package.Maid)
 
 export type BuyDevProduct = {

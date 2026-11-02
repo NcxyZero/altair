@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Logger = require(ReplicatedStorage.util.Logger)
-local OpenGui = require(ReplicatedStorage.util.OpenGui)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
+local OpenGui = require(ReplicatedStorage.util.Core.OpenGui)
 local TagManager = require(ReplicatedStorage.shared.modules.TagManager)
 
 local function safeRequireUiModule(uiName: string, actionName: string): any?

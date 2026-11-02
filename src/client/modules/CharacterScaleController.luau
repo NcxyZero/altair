@@ -1,8 +1,8 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local GetBridge = require(ReplicatedStorage.util.GetBridge)
-local Logger = require(ReplicatedStorage.util.Logger)
+local GetBridge = require(ReplicatedStorage.util.Core.GetBridge)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 local Maid = require(ReplicatedStorage.package.Maid)
 
 export type CharacterScaleController = {

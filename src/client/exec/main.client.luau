@@ -5,10 +5,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local ClientInitConfig = require(ReplicatedStorage.client.clientConfig.ClientInitConfig)
-local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
-local Logger = require(ReplicatedStorage.util.Logger)
+local LocalPlayer = require(ReplicatedStorage.util.Core.LocalPlayer)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 local Maid = require(ReplicatedStorage.package.Maid)
-local OpenGui = require(ReplicatedStorage.util.OpenGui)
+local OpenGui = require(ReplicatedStorage.util.Core.OpenGui)
 local Promise = require(ReplicatedStorage.package.Promise)
 
 local sharedFolder: Folder = ReplicatedStorage:WaitForChild("shared") :: Folder

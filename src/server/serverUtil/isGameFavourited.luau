@@ -2,7 +2,7 @@ local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local APIDictionaries = require(ReplicatedStorage.shared.types.APIDictionaries)
-local Logger = require(ReplicatedStorage.util.Logger)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 
 local favouriteCache = {}
 local playerFavCheckCooldowns = {}

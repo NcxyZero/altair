@@ -6,9 +6,9 @@ local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Bifrost = require(ReplicatedStorage.package.Bifrost)
-local GetBridge = require(ReplicatedStorage.util.GetBridge)
-local GetFunctionBridge = require(ReplicatedStorage.util.GetFunctionBridge)
-local Logger = require(ReplicatedStorage.util.Logger)
+local GetBridge = require(ReplicatedStorage.util.Core.GetBridge)
+local GetFunctionBridge = require(ReplicatedStorage.util.Core.GetFunctionBridge)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 local Promise = require(ReplicatedStorage.package.Promise)
 local ServerInitConfig = require(ServerScriptService.server.serverConfig.ServerInitConfig)
 

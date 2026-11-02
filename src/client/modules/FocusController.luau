@@ -2,7 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ClientData = require(ReplicatedStorage.client.modules.ClientData)
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
-local LocalPlayer = require(ReplicatedStorage.util.LocalPlayer)
+local LocalPlayer = require(ReplicatedStorage.util.Core.LocalPlayer)
 local gameProfile = require(ReplicatedStorage.shared.reflex.gameProfile)
 
 export type Default = {

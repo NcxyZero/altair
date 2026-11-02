@@ -1,7 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
-local Logger = require(ReplicatedStorage.util.Logger)
+local Logger = require(ReplicatedStorage.util.Core.Logger)
 
 export type Default = {
 	index: number?,
