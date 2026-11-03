@@ -1,14 +1,23 @@
+local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
 local Maid = require(ReplicatedStorage.package.Maid)
 local SFX = require(ReplicatedStorage.util.Core.SFX)
 
+local ANIMATION_TARGET_ATTRIBUTE: string = "AnimationTarget" -- selects which GuiObject the animation scales
 local BUTTON_SIZE_MULTIPLIER: number = 0.9
+local CLICK_DURATION: number = 0.15 -- seconds the Pressed state lasts after Click()
 local HOVER_SIZE_MULTIPLIER: number = 1.05
+local PARENT_ANIMATION_TARGET: string = "Parent" -- AnimationTarget value that scales the parent GuiObject
+local PRESS_SOUND_ID: string = GameConfig.ui.buttonSounds and GameConfig.ui.buttonSounds.pressSoundId
+	or SFX.Sounds.InterfacePress -- optional GameConfig override
+local PRESS_VOLUME: number = GameConfig.ui.buttonSounds and GameConfig.ui.buttonSounds.pressVolume or 0.4 -- optional GameConfig override
 local TAG_NAME: string = script.Name
 
 export type ButtonAnimation = {
+	Click: (self: ButtonAnimation) -> (),
 	type: string,
 	tag: string,
 	instance: GuiButton,
@@ -38,13 +47,21 @@ function ButtonAnimation.new(instance: GuiButton): ButtonAnimation
 	local activeTweensByElement: { [GuiObject]: Tween } = {}
 
 	local function getElementsToAnimate(): { GuiObject }
-		local collection: { GuiObject } = { instance }
-		local parent: Instance? = instance.Parent
+		local animationTarget: GuiObject = instance
+		if instance:GetAttribute(ANIMATION_TARGET_ATTRIBUTE) == PARENT_ANIMATION_TARGET then
+			local parentTarget: Instance? = instance.Parent
+			if parentTarget and parentTarget:IsA("GuiObject") then
+				animationTarget = parentTarget
+			end
+		end
+
+		local collection: { GuiObject } = { animationTarget }
+		local parent: Instance? = animationTarget.Parent
 		local shadow: GuiObject? = (
-			instance:FindFirstChild(instance.Name .. "Shadow")
-			or instance:FindFirstChild(instance.Name .. "Background")
-			or (parent and parent:FindFirstChild(instance.Name .. "Shadow"))
-			or (parent and parent:FindFirstChild(instance.Name .. "Background"))
+			animationTarget:FindFirstChild(animationTarget.Name .. "Shadow")
+			or animationTarget:FindFirstChild(animationTarget.Name .. "Background")
+			or (parent and parent:FindFirstChild(animationTarget.Name .. "Shadow"))
+			or (parent and parent:FindFirstChild(animationTarget.Name .. "Background"))
 		) :: GuiObject
 		if shadow and shadow:IsA("GuiObject") and not shadow:HasTag(TAG_NAME) then
 			table.insert(collection, shadow)
@@ -98,7 +115,7 @@ function ButtonAnimation.new(instance: GuiButton): ButtonAnimation
 	local function onMouseDown(): ()
 		self.isMousePressed = true
 		applyCurrentState()
-		SFX.new(SFX.Sounds.InterfacePress, 0.4, false)
+		SFX.new(PRESS_SOUND_ID, PRESS_VOLUME, false)
 	end
 
 	local function onMouseUp(): ()
@@ -132,6 +149,18 @@ function ButtonAnimation.new(instance: GuiButton): ButtonAnimation
 	self.maid:GiveTask(instance.MouseEnter:Connect(onMouseEnter))
 	self.maid:GiveTask(instance.MouseLeave:Connect(onMouseLeave))
 	self.maid:GiveTask(instance:GetAttributeChangedSignal("Pressed"):Connect(onPressedAttributeChanged))
+	self.maid:GiveTask(function(): ()
+		for _element: GuiObject, tween: Tween in activeTweensByElement do
+			tween:Cancel()
+		end
+
+		for element: GuiObject, baseScale: number in originalScalesByElement do
+			local uiScale: UIScale? = element:FindFirstChild("UIScale") :: UIScale?
+			if uiScale then
+				uiScale.Scale = baseScale
+			end
+		end
+	end)
 
 	applyCurrentState()
 
@@ -141,5 +170,26 @@ end
 function ButtonAnimation:Destroy(): ()
 	self.maid:DoCleaning()
 end
+
+function ButtonAnimation:Click(): ()
+	self.instance:SetAttribute("Pressed", true)
+
+	self.maid.clickRelease = task.delay(CLICK_DURATION, function(): ()
+		self.instance:SetAttribute("Pressed", false)
+	end)
+
+	task.spawn(SFX.new, PRESS_SOUND_ID, PRESS_VOLUME, false)
+end
+
+task.spawn(function(): ()
+	local sound: Sound = Instance.new("Sound")
+	sound.SoundId = PRESS_SOUND_ID
+
+	pcall(function(): ()
+		ContentProvider:PreloadAsync({ sound })
+	end)
+
+	sound:Destroy()
+end)
 
 return ButtonAnimation

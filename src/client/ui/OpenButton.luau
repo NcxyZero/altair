@@ -8,6 +8,7 @@ local TagManager = require(ReplicatedStorage.shared.modules.TagManager)
 export type Default = {
 	instance: GuiButton,
 	maid: Maid.Maid,
+	openArg: string?,
 	path: InitializerTypes.ClientPath,
 	requestedTag: string?,
 	__index: Default,
@@ -22,6 +23,7 @@ OpenGuiButton.__index = OpenGuiButton
 OpenGuiButton.type = "local_tag"
 OpenGuiButton.tag = script.Name
 
+local OPEN_ARG_ATTR: string = "OpenArg" -- optional string passed to the window's OnOpen
 local TARGET_ATTR: string = "TargetTag"
 local TARGET_ATTR_ALT: string = "Target"
 
@@ -39,6 +41,7 @@ function OpenGuiButton.new(instance: GuiButton, path: InitializerTypes.ClientPat
 	self.path = path
 	self.maid = Maid.new()
 
+	instance.Active = true
 	instance.Selectable = true
 
 	local attr: any = instance:GetAttribute(TARGET_ATTR)
@@ -49,6 +52,11 @@ function OpenGuiButton.new(instance: GuiButton, path: InitializerTypes.ClientPat
 		self.requestedTag = attr
 	end
 
+	local openArg: any = instance:GetAttribute(OPEN_ARG_ATTR)
+	if type(openArg) == "string" then
+		self.openArg = openArg
+	end
+
 	if self.requestedTag then
 		self.maid:GiveTask(instance.MouseButton1Down:Connect(function(): ()
 			local targetClass: any = findTargetClass(self)
@@ -56,7 +64,7 @@ function OpenGuiButton.new(instance: GuiButton, path: InitializerTypes.ClientPat
 				return
 			end
 
-			OpenGui:Open(targetClass)
+			OpenGui:Open(targetClass, self.openArg)
 		end))
 	end
 

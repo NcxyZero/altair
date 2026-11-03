@@ -4,6 +4,19 @@ This document provides essential information for developers working on the proje
 
 Project guidelines take priority over any assistant modes or operational workflows that might otherwise request conflicting actions.
 
+## Required Working Context
+
+- After reading this file, always read `.junie/working-context.md` before inspecting or changing the project.
+- Treat `.junie/working-context.md` as a concise handoff of current work, decisions, constraints, and known temporary state. Verify time-sensitive statements against the code, documentation, and Git status before relying on them.
+- Update `.junie/working-context.md` after a substantial feature, architectural decision, change of direction, newly discovered constraint, or material change to the current dirty-worktree handoff.
+- Do not update it for trivial edits. Keep it short and remove or rewrite stale entries instead of appending an activity log.
+- Put stable system contracts and setup instructions in the appropriate `docs/` file. The working-context file should link to that documentation rather than duplicate it.
+- Never place secrets, credentials, personal data, raw logs, commit-by-commit history, or exhaustive file diffs in the working-context file.
+- For a fresh or explicitly requested workspace setup, follow `docs/AI_SETUP.md` and keep its setup metadata truthful. Do not mark skipped commands or unavailable integrations as completed.
+- For Roblox developer products, game passes, or other monetization Open Cloud work, follow `docs/MONETIZATION_OPEN_CLOUD.md`. Never infer the target universe or expose the `RobloxMonetization` key.
+- When the user says that instances are selected in Roblox Studio, immediately read the current Studio selection before other inspection or changes and report the exact DataModel paths so the user can safely deselect them. If names are duplicated, also record a stable distinguishing detail such as a child name or relevant attribute; do not assume the selection will remain available later in the task.
+- Treat selected or Workspace-only Roblox assets as authoring sources, not runtime dependencies. When gameplay code needs a reusable visual template, place the source asset under `ReplicatedStorage.shared.model` and clone or reference it there; do not make runtime behavior depend on an object remaining in `Workspace`.
+
 ## Build/Configuration Instructions
 
 ### Prerequisites
@@ -30,8 +43,8 @@ Project guidelines take priority over any assistant modes or operational workflo
 
    This script will:
 
-- Install `Rokit` when `rokit.toml` exists or `Aftman` when `aftman.toml` exists
-- Use the matching tool manager to install project tools defined in that file
+- Install `Rokit` when it is missing
+- Run `update.sh`, which installs the project tools defined in `rokit.toml` (`rokit install`)
 - Update dependencies using `Wally`
 
 ### Project Structure
@@ -45,6 +58,7 @@ The project structure is defined in `default.project.json` as follows:
 - `src/util` → ReplicatedStorage.util (`Core/` for core utilities, one folder per installed package)
 - `src/server` → ServerScriptService.server
 - `src/client` → ReplicatedStorage.client
+- `src/exec` → StarterPlayer.StarterPlayerScripts (client entry scripts only)
 - `Packages` → ReplicatedStorage.package (Wally packages)
 - `ServerPackages` → ServerScriptService.server_package (Wally server packages)
 
@@ -57,21 +71,23 @@ The actual structure of the project is:
     - `clientConfig/` - Client configuration
     - `modules/` - Client modules
     - `ui/` - User interface components
+  - `exec/` - Client entry scripts mapped only to StarterPlayerScripts
     - `main.client.luau` - Main client entry point
   - `server/` - Server-side code
     - `cmdr/` - Command scripts
-    - `config/` - Server configuration
     - `modules/` - Server modules
     - `serverConfig/` - Server configuration
+    - `serverUtil/` - Server-only utilities
     - `main.server.luau` - Main server entry point
   - `shared/` - Code shared between client and server
     - `config/` - Shared configuration
     - `model/` - Data models
+    - `modules/` - Shared modules and controllers loaded by both entry points
     - `reflex/` - Reflex state management
     - `types/` - Type definitions
   - `util/` - Utility folders only
     - `Core/` - Core utility functions used by Altair itself
-    - `<Package>/` - Installed utility packages
+    - `<Package>/` - Installed utility packages (Altair ships `Effects`, which `SettingsUI` requires)
 - `Packages/` - Client and shared Wally packages
 - `ServerPackages/` - Server-only Wally packages
 
@@ -97,6 +113,12 @@ The actual structure of the project is:
 
 3. **Open in `Roblox Studio`**: With the `Rojo` server running, connect to it from `Roblox Studio` using the `Rojo` plugin.
 
+When several `*.project.json` files exist, pass the same project to `serve.sh`,
+`update.sh`, `refresh-sourcemap.sh`, and `watch-sourcemap.sh`; each defaults to
+`default.project.json`. Stop the old Rojo session before changing projects,
+reconnect Studio, and start a fresh Play session. Keep Studio-owned map/UI/model
+assets; project files only map the agreed ScreenGui properties.
+
 ## Additional Development Information
 
 ### Code Style
@@ -110,6 +132,9 @@ The actual structure of the project is:
 
 - Do not remove unrelated changes when cleaning up before a commit
 
+- Store gameplay-tunable values in the appropriate existing configuration module. Use `GameConfig` for game-wide values instead of hardcoding them in controllers or UI modules.
+- Avoid unnecessary nesting. Prefer guard clauses, early returns, and `continue` so the main execution path stays flat and readable.
+
 - Use type annotations for function parameters and return values, for example: `local function foo(bar: string): boolean`, use `()` for functions that return nothing
 - Use `any`, `unknown`, or `never` when appropriate for types that can't be determined precisely
 - Type local variables at declaration (except for `game:GetService()` and `require()` calls)
@@ -120,7 +145,8 @@ The actual structure of the project is:
 - Use integer division (`//`) instead of regular division with `math.floor()` (e.g., use `value // 2` instead of `math.floor(value / 2)`)
 - Do not use multiple statements in one line
 - Do not use `.Touched()` event
-- Do not use `ValueBase` instances, you can only use `ObjectValue` as attributes doesn't handle objects, still prefer to not use it
+- For `GuiButton` input, use `MouseButton1Down` instead of `Activated`, because `Activated` is unreliable on some mobile devices.
+- Do not use `ValueBase` instances as gameplay state. Native Roblox `leaderstats` explicitly requested for the player list are the only exception; they must mirror authoritative server data and must never become the source of truth. Outside that exception, only use `ObjectValue` when attributes cannot represent an object, and still prefer not to use it.
 - Do not use the second argument in `Instance.new()`, it is deprecated. To set parent do this in a new line after assigning other properties. The order of assigning properties is: `Name`, rest of properties in alphabetical order, `Parent`
 - Do not use `.Chatted` event, it doesn't work with new Roblox chat. Use `TextChatService` instead
 - Do not create a chat command when the command is not specified to be for chat, then assume you are asked to create the Cmdr command
@@ -209,7 +235,7 @@ table.remove(set)
      5. Other variables without values are set at this moment. If the given variable always not are nil after setup on startup, do not add `?` to the type, otherwise you can
   7. Functions with proper type annotations
 - Use "controller" terminology instead of "service" for game system modules
-- Controller modules with `Init()` function should be initialized only by `main.client.luau` / `main.server.luau`, not by other modules
+- Controller modules with `Init()` function should be initialized only by `src/exec/main.client.luau` / `src/server/main.server.luau`, not by other modules
 - Do not call module's `Init()` function at the end of the module itself
 - Do not use abbreviations in variable names — use full, descriptive names for readability (e.g., use `player` instead of `plr`, `callback` instead of `cb`, `connection` instead of `conn`)
 - Prefer using `and`/`or` logical operators instead of `if-else` statements when appropriate for cleaner, more readable code
@@ -308,6 +334,7 @@ local result: string? = isValid and computeResult() or nil
   1. Add it to `wally.toml`
   2. Run `bash update.sh` to install it
   3. The dependency will be available in the `Packages` directory
+- Fixes to installed `Wally` packages are tracked in `patches/` and reapplied by `update.sh` through `scripts/apply-package-patches.sh`. Do not edit files under `Packages/` directly; when a patched package changes version, regenerate its patch
 
 ### Utility Dependencies
 
@@ -344,6 +371,6 @@ local result: string? = isValid and computeResult() or nil
 
 ### Common Issues
 
-1. **`Rokit`/`Aftman` not found**: Make sure to run `bash init.sh` and ensure that `~/.rokit/bin` (Rokit) or `~/.aftman/bin` (Aftman) is in your PATH. On macOS with zsh, check `~/.zshrc` or `~/.zprofile`; open a new terminal or run `source ~/.zshrc` after `init.sh`.
+1. **`Rokit` not found**: Make sure to run `bash init.sh` and ensure that `~/.rokit/bin` is in your PATH. On macOS with zsh, check `~/.zshrc` or `~/.zprofile`; open a new terminal or run `source ~/.zshrc` after `init.sh`.
 2. **`Wally` packages not found**: Run `bash update.sh` to install dependencies
 3. **`Rojo` connection issues**: Make sure the `Rojo` server is running (`bash serve.sh`) and that you have the `Rojo` plugin installed in `Roblox Studio`

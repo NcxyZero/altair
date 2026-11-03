@@ -5,7 +5,7 @@ Small sound playback helper that clones sounds from `SoundService` (optionally p
 ## Installation
 
 ```bash
-./require-dependency.sh Audio
+bash require-dependency.sh Audio
 ```
 
 ```powershell

@@ -37,9 +37,10 @@ Altair is a Roblox game project that follows a modular architecture with control
    ```
 
    This script will:
-   - Install Rokit when `rokit.toml` exists or Aftman when `aftman.toml` exists
-     - Use the matching tool manager to install project tools defined in that file
-     - Update dependencies using Wally
+
+   - Install Rokit when it is missing
+   - Run `update.sh`, which installs the project tools defined in `rokit.toml` (`rokit install`) and updates dependencies using Wally
+   - Install the Rojo Studio plugin
 
 ### Development Workflow
 
@@ -49,13 +50,15 @@ Altair is a Roblox game project that follows a modular architecture with control
    bash update.sh
    ```
 
+   `update.sh` also reapplies the tracked fixes in `patches/` to the installed Wally packages (`scripts/apply-package-patches.sh`) and stops when an installed package no longer matches its patch.
+
 2. **Serve the Project**: To sync your code with Roblox Studio, run:
 
    ```bash
    bash serve.sh
    ```
 
-   If you have multiple project files, specify which one to serve:
+   Without an argument it serves `default.project.json` (or the only `*.project.json`). If you have multiple project files, specify which one to serve:
 
    ```bash
    bash serve.sh <project-name>
@@ -63,10 +66,10 @@ Altair is a Roblox game project that follows a modular architecture with control
 
 3. **Open in Roblox Studio**: With the Rojo server running, connect to it from Roblox Studio using the Rojo plugin.
 
-4. **Install Utility Packages**: Only core utilities ship with Altair. Install extra ones (for example `Math`, `Camera`, `Audio`) from [altair-utils](https://github.com/NcxyZero/altair-utils) when you need them:
+4. **Install Utility Packages**: Altair ships its core utilities and the `Effects` package, which `SettingsUI` requires. Install extra ones (for example `Math`, `Camera`, `Audio`) from [altair-utils](https://github.com/NcxyZero/altair-utils) when you need them:
 
    ```bash
-   ./require-dependency.sh Math Camera
+   bash require-dependency.sh Math Camera
    ```
 
    ```powershell
@@ -74,6 +77,21 @@ Altair is a Roblox game project that follows a modular architecture with control
    ```
 
    See [Utility Dependencies](docs/dependencies/README.md) for details.
+
+When several `*.project.json` files exist, pass the same project name to `update.sh`, `refresh-sourcemap.sh`, and `watch-sourcemap.sh`; each defaults to `default.project.json`.
+
+UI instances and visual templates are authored and saved in the Studio place.
+Rojo maps `StarterGui` orientation and the agreed properties of `MainUI`; its
+authored contents stay in the place. Keep `src/shared/model/init.meta.json` with
+`ignoreUnknownInstances: true` and the same setting on `ReplicatedFirst` so
+Studio-owned templates survive connection. UI controller scripts under
+`src/client/ui` still sync normally.
+
+After changing these synchronization boundaries, stop the old Rojo server and
+start a fresh session with `bash serve.sh`, then reconnect the Studio plugin.
+Do not accept a pending diff from the old session. Save the place to retain UI,
+loading screens, and model templates; a Rojo build contains code and packages
+but is not a complete playable place without those authored assets.
 
 ### Luau LSP (red `require(...)` after creating a new file)
 
@@ -90,6 +108,9 @@ bash scaffold.sh
 
 # Direct command (with aliases)
 bash scaffold.sh sc MyNewController
+
+# Usage and targets
+bash scaffold.sh --help
 ```
 
 Available targets: `server-controller (sc)`, `server-tag (st)`, `client-controller (cc)`, `client-tag (ct)`, `client-local-tag (clt)`, `client-ui (ui)`.
@@ -106,6 +127,8 @@ bash refresh-sourcemap.sh
 bash watch-sourcemap.sh
 ```
 
+Both accept an optional project name (default `default.project.json`).
+
 ## Project Structure
 
 ### Defined in default.project.json
@@ -118,6 +141,7 @@ The project structure is defined in `default.project.json` as follows:
 - `src/server` → ServerScriptService.server
 - `ServerPackages` → ServerScriptService.server_package
 - `src/client` → ReplicatedStorage.client
+- `src/exec` → StarterPlayer.StarterPlayerScripts (client entry scripts only)
 - `Packages` → ReplicatedStorage.package (Wally packages)
 
 ### Actual Project Structure
@@ -129,31 +153,37 @@ The actual structure of the project is:
     - `clientConfig/` - Client configuration
     - `modules/` - Client modules
     - `ui/` - User interface components
+  - `exec/` - Client entry scripts mapped only to StarterPlayerScripts
     - `main.client.luau` - Main client entry point
   - `server/` - Server-side code
     - `cmdr/` - Command scripts
-    - `config/` - Server configuration
     - `modules/` - Server modules
     - `serverConfig/` - Server configuration
+    - `serverUtil/` - Server-only utilities
     - `main.server.luau` - Main server entry point
   - `shared/` - Code shared between client and server
     - `config/` - Shared configuration
     - `model/` - Data models
+    - `modules/` - Shared modules and controllers loaded by both entry points
     - `reflex/` - Reflex state management
     - `types/` - Type definitions
   - `util/` - Utility folders only
     - `Core/` - Core utility functions used by Altair itself
-    - `<Package>/` - Installed utility packages
+    - `<Package>/` - Installed utility packages (Altair ships `Effects`, which `SettingsUI` requires)
 - `Packages/` - Client and shared Wally packages
 - `ServerPackages/` - Server-only Wally packages
+- `patches/` - Tracked fixes reapplied to installed Wally packages by `update.sh`
+- `scripts/` - Shared shell helpers and `apply-package-patches.sh`
 
 ## Documentation
 
 Detailed documentation is available in the `docs/` directory:
 
+- [AI Workspace Setup](docs/AI_SETUP.md) — Checklist for an AI agent beginning or resuming work in this repository
 - [Client Modules](docs/README_CLIENT_MODULES.md) — Documentation for client-side modules
 - [Data Handling](docs/README_DATA_HANDLING.md) — Documentation for data handling in the project
 - [Logger](docs/README_LOGGER.md) — Documentation for the logging system
+- [Open Cloud Monetization](docs/MONETIZATION_OPEN_CLOUD.md) — Safe workflow for developer products and game passes through Roblox Open Cloud
 - [Preload](docs/README_PRELOAD.md) — Documentation for preloading functionality
 - [Reflex Producers](docs/README_REFLEX_PRODUCERS.md) — Documentation for Reflex producers (state management)
 - [Server Modules](docs/README_SERVER_MODULES.md) — Documentation for server-side modules
@@ -181,13 +211,13 @@ Comprehensive development guidelines are available in the `.junie/guidelines.md`
 - Use `luau-lsp.exe` to analyze files individually (do not analyze the entire workspace). Examples:
 
   ```text
-  .\luau-lsp.exe analyze src\client\main.client.luau
+  .\luau-lsp.exe analyze src\exec\main.client.luau
   .\luau-lsp.exe analyze src\server\main.server.luau
   ```
 
 - **Important**: Do not run `selene .` as it is not supported in this project environment. Instead, analyze files individually: `selene path/to/file.luau`
 
-- Important: After creating any new file, run `bash update.sh` before analyzing with `luau-lsp.exe` to ensure all dependencies and project structure are updated
+- Important: After creating any new file, run `bash refresh-sourcemap.sh` (or the full `bash update.sh`) before analyzing with `luau-lsp.exe` so that the sourcemap includes it
 - For functionality verification, use the existing type checking tools (`luau-lsp.exe` and `selene`)
 
 ## Dependencies
@@ -206,6 +236,7 @@ The project uses the following main dependencies:
 - Reflex — For state management
 - Signal — For event handling
 - SimpleSpline — For spline calculations
+- TopbarPlus — For topbar icons (for example the Cmdr button)
 - Lapis (server-only) — For server-side functionality
 
 Utility packages (non-Wally) are configured in `altair-dependencies.toml`, see [Utility Dependencies](docs/dependencies/README.md).
@@ -214,9 +245,10 @@ Utility packages (non-Wally) are configured in `altair-dependencies.toml`, see [
 
 ### Common Issues
 
-1. **Rokit/Aftman not found**: Make sure to run `bash init.sh` and ensure that `~/.rokit/bin` (Rokit) or `~/.aftman/bin` (Aftman) is in your PATH
+1. **Rokit not found**: Make sure to run `bash init.sh` and ensure that `~/.rokit/bin` is in your PATH
 2. **Wally packages not found**: Run `bash update.sh` to install dependencies
 3. **Rojo connection issues**: Make sure the Rojo server is running (`bash serve.sh`) and that you have the Rojo plugin installed in Roblox Studio
+4. **A package patch does not match**: `update.sh` stops when an installed Wally package version no longer matches its file in `patches/`. Regenerate that patch for the new version, or keep the previous package version in `wally.toml`
 
 ## License
 

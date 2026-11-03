@@ -5,7 +5,7 @@ Promise-based helpers: wrap a function so it returns a `Promise`, and wait for t
 ## Installation
 
 ```bash
-./require-dependency.sh Async
+bash require-dependency.sh Async
 ```
 
 ```powershell
@@ -94,7 +94,7 @@ end)
 
 ### `WaitForRespond`
 
-Server-to-client handshake over the `WaitForRespond` bridge from `GetBridge` (created when the module is required, which yields on the client). On the server, `Wait(id, player)` connects to the bridge, yields (polling with `task.wait`) until that player fires `id`, then fires `id` back to the player as an acknowledgement. `Respond(id, player?)` fires `id` to `player` on the server, or to the server from the client.
+Server-to-client handshake over the `WaitForRespond` bridge from `GetBridge` (created when the module is required, which yields on the client). The server must require `WaitForRespond` during startup, for example at the top of a server module, or the client's request for the bridge is not confirmed and its bridge sends and receives nothing. On the server, `Wait(id, player)` connects to the bridge, yields (polling with `task.wait`) until that player fires `id`, then fires `id` back to the player as an acknowledgement. `Respond(id, player?)` fires `id` to `player` on the server, or to the server from the client.
 
 ```luau
 WaitForRespond:Wait(id: string, player: Player): ()

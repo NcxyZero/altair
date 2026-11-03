@@ -5,7 +5,7 @@ Player-related helpers for reading launch data, checking whether a player favori
 ## Installation
 
 ```bash
-./require-dependency.sh Player
+bash require-dependency.sh Player
 ```
 
 ```powershell

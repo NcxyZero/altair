@@ -116,7 +116,7 @@ function PlayerNameplateController:Init(): ()
 	Players.PlayerAdded:Connect(hookPlayer)
 
 	Players.PlayerRemoving:Connect(function(player: Player): ()
-		local maid: Maid.Maid? = maidByPlayer[player]
+		local maid: Maid.Maid = maidByPlayer[player]
 		if maid then
 			maid:DoCleaning()
 			maidByPlayer[player] = nil

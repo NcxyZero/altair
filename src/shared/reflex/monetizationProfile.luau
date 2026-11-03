@@ -10,14 +10,18 @@ export type Producer = Reflex.Producer<State, Actions>
 export type State = {
 	passes: { [string]: boolean },
 	offers: { [string]: boolean },
+	purchaseIds: { string },
 	totalMoneyBought: number,
 }
 
 type Actions = {
 	secureAddGamePass: (name: string) -> State,
 	secureAddOffer: (name: string) -> State,
+	secureAddPurchaseId: (purchaseId: string) -> State,
 	secureAddTotalMoneyBought: (amount: number) -> State,
 }
+
+local MAXIMUM_PURCHASE_IDS: number = 50 -- granted receipt PurchaseIds kept per player; the oldest is dropped first
 
 local function fillGamePasses(): { [string]: boolean }
 	local gamePasses: { [string]: any } = table.clone(MonetizationConfig.passes)
@@ -33,6 +37,7 @@ local DEFAULT_STATE: State = {
 	offers = {
 		starterPack = false,
 	},
+	purchaseIds = {}, -- PurchaseIds of granted developer product receipts, so a re-delivered receipt is not granted twice
 	totalMoneyBought = 0,
 }
 
@@ -56,6 +61,29 @@ function CreateProducer(initialState: State): Producer
 				Logger.error(
 					`Attempt to create a monetization offer despite the game config entry disallowing it (the offer is missing in MonetizationConfig). Offer name: "{name}".`
 				)
+			end
+
+			return state
+		end,
+
+		-- Called by ServerMonetization in the same step as a receipt's grant, so the grant and its PurchaseId are saved together.
+		secureAddPurchaseId = function(oldState: State, purchaseId: string): State
+			if type(purchaseId) ~= "string" or purchaseId == "" then
+				return oldState
+			end
+
+			local purchaseIds: { string } = if type(oldState.purchaseIds) == "table" then oldState.purchaseIds else {}
+			if table.find(purchaseIds, purchaseId) then
+				return oldState
+			end
+
+			local state: State = table.clone(oldState)
+			state.purchaseIds = table.clone(purchaseIds)
+
+			table.insert(state.purchaseIds, purchaseId)
+
+			while #state.purchaseIds > MAXIMUM_PURCHASE_IDS do
+				table.remove(state.purchaseIds, 1)
 			end
 
 			return state

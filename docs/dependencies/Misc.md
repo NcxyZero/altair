@@ -5,7 +5,7 @@ Small general-purpose helpers: enum item lookup by name, a callable switch objec
 ## Installation
 
 ```bash
-./require-dependency.sh Misc
+bash require-dependency.sh Misc
 ```
 
 ```powershell

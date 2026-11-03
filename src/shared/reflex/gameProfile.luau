@@ -8,6 +8,7 @@ export type State = {
 	serverStartTime: number,
 	activePlayers: number,
 	focus: Player?,
+	limitedItems: { [string]: number },
 }
 
 type Actions = {
@@ -15,12 +16,14 @@ type Actions = {
 	incrementActivePlayers: () -> State,
 	decrementActivePlayers: () -> State,
 	secureFocusOn: (player: Player?) -> State,
+	secureSetStock: (itemKey: string, amount: number) -> State,
 }
 
 local DEFAULT_STATE: State = {
 	serverStartTime = os.time(),
 	activePlayers = 0,
 	focus = nil,
+	limitedItems = {},
 }
 
 function CreateProducer(initialState: State): Producer
@@ -52,6 +55,16 @@ function CreateProducer(initialState: State): Producer
 		secureFocusOn = function(oldState: State, player: Player?): State
 			local state = table.clone(oldState)
 			state.focus = player
+
+			return state
+		end,
+
+		secureSetStock = function(oldState: State, itemKey: string, amount: number): State
+			local limitedItems: { [string]: number } = table.clone(oldState.limitedItems)
+			limitedItems[itemKey] = math.max(0, (tonumber(amount) or 0) // 1)
+
+			local state: State = table.clone(oldState)
+			state.limitedItems = limitedItems
 
 			return state
 		end,

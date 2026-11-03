@@ -17,7 +17,7 @@ export type Default = {
 
 local ClientLocalTagTemplate: Default = {} :: Default
 ClientLocalTagTemplate.__index = ClientLocalTagTemplate
-ClientLocalTagTemplate.type = "tag"
+ClientLocalTagTemplate.type = "local_tag"
 ClientLocalTagTemplate.tag = script.Name
 
 function ClientLocalTagTemplate.new(instance: Instance, path: InitializerTypes.ClientPath): Default

@@ -9,6 +9,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local CreateInstance = require(ReplicatedStorage.util.Core.CreateInstance)
 local EscapeRichText = require(ReplicatedStorage.util.Core.EscapeRichText)
+local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
 local IsPlayerOnMobile = require(ReplicatedStorage.util.Core.IsPlayerOnMobile)
 local Signal = require(ReplicatedStorage.package.Signal)
 local WaitForGameToLoad = require(ReplicatedStorage.util.Core.WaitForGameToLoad)
@@ -26,7 +27,6 @@ export type DevLogger = {
 	Messages: { string },
 	LastRefresh: { [number]: number },
 	MessageDisplayTime: number,
-	GroupRankRequired: number,
 	ui: ScreenGui & {
 		ScrollingFrame: ScrollingFrame & {
 			UIListLayout: UIListLayout,
@@ -40,7 +40,7 @@ export type DevLogger = {
 	uiListLayout: UIListLayout,
 	textLabel: TextLabel,
 	loaded: boolean,
-	loadedSignal: Signal.Signal<>,
+	loadedSignal: Signal.Signal<()>,
 }
 
 local DevLogger: DevLogger = {} :: any
@@ -58,13 +58,28 @@ DevLogger.MessageColors = {
 DevLogger.Messages = {}
 DevLogger.LastRefresh = {}
 DevLogger.MessageDisplayTime = 10
-DevLogger.GroupRankRequired = 225
+
+local function getHighestGroupRank(userId: number, groupId: number): number
+	local membership: { IsMember: boolean, Roles: { { Rank: number } } } =
+		GroupService:GetRolesInGroupAsync(userId, groupId)
+	if not membership.IsMember then
+		return 0
+	end
+
+	local highestRank: number = 0
+	for _index: number, role: { Rank: number } in membership.Roles do
+		highestRank = math.max(highestRank, role.Rank)
+	end
+
+	return highestRank
+end
 
 function DevLogger:BuildGui(): ScreenGui
-	local screenGui: ScreenGui = CreateInstance("ScreenGui", Players.LocalPlayer.PlayerGui, "DevLogDisplay", {
+	local screenGui: ScreenGui = CreateInstance("ScreenGui", "DevLogDisplay", {
 		ZIndexBehavior = Enum.ZIndexBehavior.Global,
 		DisplayOrder = 100_000,
 		AutoLocalize = false,
+		Enabled = false,
 	})
 	local scrollingFrame: ScrollingFrame = CreateInstance("ScrollingFrame", screenGui, {
 		Active = false,
@@ -94,6 +109,8 @@ function DevLogger:BuildGui(): ScreenGui
 		TextYAlignment = Enum.TextYAlignment.Bottom,
 	})
 
+	screenGui.Parent = Players.LocalPlayer.PlayerGui
+
 	return screenGui
 end
 
@@ -109,7 +126,7 @@ function DevLogger:RefreshTextLog(): ()
 	end
 
 	local newString: string = getNewString()
-	while #newString >= 20000 or #self.Messages > 5 do
+	while #newString >= 20000 or #self.Messages > math.max(GameConfig.debug.onScreenOutputMaxLines // 1, 1) do
 		table.remove(self.Messages, 1)
 		table.remove(self.LastRefresh, 1)
 
@@ -186,11 +203,33 @@ function DevLogger:Hide(): ()
 end
 
 function DevLogger:Init(): ()
-	if
-		workspace:GetAttribute("SHOW_DEV_LOGS") == false
-		or Players.LocalPlayer:GetRankInGroupAsync(game.CreatorId) < self.GroupRankRequired
-	then
+	if workspace:GetAttribute("SHOW_DEV_LOGS") == false then
 		return
+	end
+
+	local roleName: string = GameConfig.debug.onScreenOutputMinRole
+	local roleData: { groupId: number?, rank: number } = GameConfig.roles[roleName]
+	if not roleData then
+		warn(`DevLogger: unknown minimum role "{roleName}"`)
+
+		return
+	end
+
+	local localPlayer: Player = Players.LocalPlayer
+	local isAllowlisted: boolean = table.find(GameConfig.cmdr.players, localPlayer.UserId) ~= nil
+	local isOwner: boolean = game.CreatorType == Enum.CreatorType.User and localPlayer.UserId == game.CreatorId
+	if not RunService:IsStudio() and not isOwner and not isAllowlisted then
+		local requiredGroup: number = roleData.groupId
+			or (game.CreatorType == Enum.CreatorType.Group and game.CreatorId)
+			or 0
+		if requiredGroup <= 0 then
+			return
+		end
+
+		local success: boolean, rankOrError: any = pcall(getHighestGroupRank, localPlayer.UserId, requiredGroup)
+		if not success or type(rankOrError) ~= "number" or rankOrError < roleData.rank then
+			return
+		end
 	end
 
 	self.loadedSignal = Signal.new()
@@ -201,7 +240,10 @@ function DevLogger:Init(): ()
 		self.uiListLayout = self.scrollingFrame:WaitForChild("UIListLayout")
 		self.textLabel = self.scrollingFrame:WaitForChild("TextLabel")
 
-		self.ui.Enabled = not IsPlayerOnMobile()
+		local showByEnvironment: boolean = if RunService:IsStudio()
+			then GameConfig.debug.onScreenOutputShowInStudio
+			else GameConfig.debug.onScreenOutputShowInGame
+		self.ui.Enabled = showByEnvironment and (not IsPlayerOnMobile() or GameConfig.debug.onScreenOutputShowOnMobile)
 		self.loaded = true
 		self.loadedSignal:Fire()
 
@@ -253,29 +295,10 @@ function DevLogger:Init(): ()
 	RunService.Stepped:Wait()
 	WaitForGameToLoad()
 
-	if game.CreatorType == Enum.CreatorType.Group then
-		local groupInfo = GroupService:GetGroupInfoAsync(game.CreatorId)
-		if not groupInfo then
-			return
-		end
-
-		local roles: { string } = {}
-		for _index: number, data in groupInfo.Roles do
-			if data.Rank < self.GroupRankRequired then
-				continue
-			end
-
-			table.insert(roles, data.Name)
-		end
-
-		self:HandleLog(
-			`The logger is visible to the specified roles: {table.concat(roles, ", ")}. On mobile devices, the console is hidden by default.`,
-			{ Value = 4 },
-			15
-		)
-	else
-		self:HandleLog(`The console is only visible to the game creator.`, { Value = 4 })
-	end
+	self:HandleLog(
+		`The developer log is available to the "{roleName}" role, the game creator and GameConfig.cmdr.players.`,
+		{ Value = 4 }
+	)
 end
 
 return DevLogger

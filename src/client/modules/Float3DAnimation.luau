@@ -1,5 +1,4 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes)
 local Maid = require(ReplicatedStorage.package.Maid)
@@ -7,11 +6,14 @@ local Maid = require(ReplicatedStorage.package.Maid)
 export type Float3DAnimation = {
 	amplitude: number,
 	basePivot: CFrame,
+	basePosition: Vector3,
+	fromBottom: boolean,
 	instance: PVInstance,
 	maid: Maid.Maid,
 	path: InitializerTypes.ClientPath,
 	progress: number,
 	speed: number,
+	synchronized: boolean,
 	tag: string,
 	type: string,
 	__index: Float3DAnimation,
@@ -37,28 +39,38 @@ function Float3DAnimation.new(instance: Instance, path: InitializerTypes.ClientP
 	self.instance = instance :: any
 	self.path = path
 	self.maid = Maid.new()
-	self.progress = math.random()
 	self.basePivot = self.instance:GetPivot()
+	self.basePosition = self.basePivot.Position
 	self.speed = self.instance:GetAttribute("Float3DSpeed") or DEFAULT_FLOAT_SPEED
 	self.amplitude = self.instance:GetAttribute("Float3DAmplitude") or DEFAULT_FLOAT_AMPLITUDE
-
-	self.maid:GiveTask(RunService.PreRender:Connect(function(delta: number): ()
-		self:Render(delta)
-	end))
+	self.fromBottom = self.instance:GetAttribute("Float3DFromBottom") == true
+	self.progress = self.fromBottom and 0 or math.random()
+	self.synchronized = self.instance:GetAttribute("Float3DSynchronized") == true
 
 	return self
 end
 
 function Float3DAnimation:Render(delta: number): ()
-	self.progress += delta * self.speed
+	if self.synchronized then
+		self.progress = workspace:GetServerTimeNow() * self.speed
+	else
+		self.progress += delta * self.speed
+	end
+
 	self.progress %= 2 * math.pi
 
-	local yOffset: number = math.sin(self.progress) * self.amplitude
-	self.instance:PivotTo(CFrame.new(0, yOffset, 0) * self.basePivot)
+	local yOffset: number = if self.fromBottom
+		then (1 - math.cos(self.progress)) * self.amplitude
+		else math.sin(self.progress) * self.amplitude
+	local currentPivot: CFrame = self.instance:GetPivot()
+	local currentRotation: CFrame = currentPivot - currentPivot.Position
+
+	self.instance:PivotTo(CFrame.new(self.basePosition + Vector3.yAxis * yOffset) * currentRotation)
 end
 
 function Float3DAnimation:Destroy(): ()
 	self.maid:DoCleaning()
+	self.instance:PivotTo(self.basePivot)
 end
 
 return Float3DAnimation

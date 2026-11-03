@@ -6,16 +6,29 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-refresh_sourcemap() {
-    echo "[$(date '+%H:%M:%S')] Regenerating sourcemap.json..."
-    rojo sourcemap default.project.json --output sourcemap.json
-    echo "[$(date '+%H:%M:%S')] sourcemap.json updated."
-}
-
-if [[ ! -f default.project.json ]]; then
-    echo "default.project.json not found in repo root." >&2
+if [[ $# -gt 1 ]]; then
+    echo "Usage: bash watch-sourcemap.sh [project-name|project.project.json]" >&2
     exit 1
 fi
+
+PROJECT_FILE="${1:-default.project.json}"
+if [[ "$PROJECT_FILE" != *.project.json ]]; then
+    PROJECT_FILE+=.project.json
+fi
+if [[ ! -f "$PROJECT_FILE" ]]; then
+    echo "Project file not found: $PROJECT_FILE" >&2
+    exit 1
+fi
+
+refresh_sourcemap() {
+    echo "[$(date '+%H:%M:%S')] Regenerating sourcemap.json..."
+    if ! bash "$SCRIPT_DIR/refresh-sourcemap.sh" "$PROJECT_FILE"; then
+        echo "[$(date '+%H:%M:%S')] sourcemap.json refresh failed." >&2
+        return 1
+    fi
+
+    echo "[$(date '+%H:%M:%S')] sourcemap.json updated."
+}
 
 case "$(uname -s)" in
     Darwin)
@@ -24,7 +37,8 @@ case "$(uname -s)" in
             exit 1
         fi
 
-        echo "Watching src/ and *.project.json (fswatch). Press Ctrl+C to stop."
+        refresh_sourcemap
+        echo "Watching src/ and *.project.json for $PROJECT_FILE (fswatch). Press Ctrl+C to stop."
 
         shopt -s nullglob
         watch_paths=( -r src )
@@ -33,12 +47,13 @@ case "$(uname -s)" in
         done
         shopt -u nullglob
 
+        # A failed refresh (for example a half-saved project file) must not stop the watcher; the first one above does.
         fswatch -l 0.3 -o "${watch_paths[@]}" | while read -r _; do
-            refresh_sourcemap
+            refresh_sourcemap || echo "[$(date '+%H:%M:%S')] Still watching for changes." >&2
         done
         ;;
     MINGW*|MSYS*|CYGWIN*)
-        exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./watch-sourcemap.ps1
+        exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./watch-sourcemap.ps1 -Project "$PROJECT_FILE"
         ;;
     *)
         echo "Automatic sourcemap watching is not supported on this platform." >&2

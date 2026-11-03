@@ -2,6 +2,10 @@
 /*.rbxl.lock
 /*.rbxlx.lock
 
+# Local Roblox place files and Rojo builds
+/*.rbxl
+/*.rbxlx
+
 # Wally lockfile
 wally.lock
 

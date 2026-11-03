@@ -5,7 +5,7 @@ Time helpers: format seconds as a clock string, build a UTC day id, get the seco
 ## Installation
 
 ```bash
-./require-dependency.sh Time
+bash require-dependency.sh Time
 ```
 
 ```powershell

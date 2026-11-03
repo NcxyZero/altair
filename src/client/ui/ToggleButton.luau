@@ -39,6 +39,7 @@ function ToggleGuiButton.new(instance: GuiButton, path: InitializerTypes.ClientP
 	self.path = path
 	self.maid = Maid.new()
 
+	instance.Active = true
 	instance.Selectable = true
 
 	local attr: any = instance:GetAttribute(TARGET_ATTR)

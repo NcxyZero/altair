@@ -1,0 +1,39 @@
+diff --git a/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/Shared/Registry.lua b/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/Shared/Registry.lua
+--- a/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/Shared/Registry.lua
++++ b/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/Shared/Registry.lua
+@@ -212,10 +212,22 @@ function Registry:GetCommands ()
+---- Returns an array of the names of all registered commands (not including aliases)
++--- Returns an array of the names and aliases of all registered commands.
+ function Registry:GetCommandNames ()
+ 	local commands = {}
++	local seen = {}
+ 
+ 	for _, command in pairs(self.CommandsArray) do
+-		table.insert(commands, command.Name)
++		local names = {command.Name}
++		for _, alias in pairs(command.Aliases or {}) do
++			table.insert(names, alias)
++		end
++
++		for _, name in pairs(names) do
++			local normalizedName = name:lower()
++			if not seen[normalizedName] then
++				seen[normalizedName] = true
++				table.insert(commands, name)
++			end
++		end
+ 	end
+ 
+ 	return commands
+ end
+diff --git a/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/CmdrClient/CmdrInterface/init.lua b/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/CmdrClient/CmdrInterface/init.lua
+--- a/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/CmdrClient/CmdrInterface/init.lua
++++ b/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/CmdrClient/CmdrInterface/init.lua
+@@ -125,6 +125,6 @@
+ 			local acItems = {exactMatch}
+ 			for _, cmd in pairs(Cmdr.Registry:GetCommandNames()) do
+-				if commandText:lower() == cmd:lower():sub(1, #commandText) and (exactMatch == nil or exactMatch[1] ~= commandText) then
++				if commandText:lower() == cmd:lower():sub(1, #commandText) and (exactMatch == nil or cmd:lower() ~= exactMatch[2]:lower()) then
+ 					local commandObject = Cmdr.Registry:GetCommand(cmd)
+ 					acItems[#acItems + 1] = {commandText, cmd, options = {
+ 						name = commandObject.Name;

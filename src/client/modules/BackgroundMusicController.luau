@@ -6,6 +6,7 @@ local InitializerTypes = require(ReplicatedStorage.shared.types.InitializerTypes
 local Logger = require(ReplicatedStorage.util.Core.Logger)
 local Maid = require(ReplicatedStorage.package.Maid)
 local ProfileTypes = require(ReplicatedStorage.shared.reflex.ProfileTypes)
+local settingsProfile = require(ReplicatedStorage.shared.reflex.settingsProfile)
 
 export type BackgroundMusicController = {
 	Init: (self: BackgroundMusicController) -> (),
@@ -14,6 +15,7 @@ export type BackgroundMusicController = {
 	StopCurrent: (self: BackgroundMusicController) -> (),
 	UpdateEnabled: (self: BackgroundMusicController, volume: number) -> (),
 	sounds: { Sound },
+	baseVolume: number,
 	currentIndex: number,
 	index: number?,
 	isEnabled: boolean,
@@ -27,6 +29,7 @@ export type BackgroundMusicController = {
 
 local BackgroundMusicController: BackgroundMusicController = {
 	sounds = {},
+	baseVolume = 0,
 	currentIndex = 0,
 	isEnabled = false,
 	type = "controller",
@@ -34,6 +37,10 @@ local BackgroundMusicController: BackgroundMusicController = {
 	playbackMaid = Maid.new(),
 } :: any
 
+local BASE_VOLUME_ATTRIBUTE: string = "BaseVolume" -- authored SoundGroup volume, recorded the first time the controller starts
+local DEFAULT_MUSIC_VOLUME: number = settingsProfile.DEFAULT_STATE.musicVolume -- settingsProfile default of musicVolume
+local MAXIMUM_GROUP_VOLUME: number = 10 -- highest SoundGroup volume Roblox accepts
+local MUSIC_ON_VOLUME: number = DEFAULT_MUSIC_VOLUME > 0 and DEFAULT_MUSIC_VOLUME or 1 -- musicVolume that plays the authored volume; SettingsUI stores it when GameMusic is switched on
 local SOUND_GROUP_NAME: string = "BackgroundMusic" -- included in default.config.json
 local MUSIC_SETTING_KEY: string = "musicVolume"
 
@@ -106,7 +113,13 @@ function BackgroundMusicController:PlayNext(): ()
 	end))
 end
 
+-- The setting scales the authored group volume, so the default musicVolume plays the music as authored.
 function BackgroundMusicController:UpdateEnabled(volume: number): ()
+	local soundGroup: SoundGroup? = self.soundGroup
+	if soundGroup then
+		soundGroup.Volume = math.clamp(self.baseVolume * volume / MUSIC_ON_VOLUME, 0, MAXIMUM_GROUP_VOLUME)
+	end
+
 	local enabled: boolean = volume > 0
 	if self.isEnabled == enabled then
 		return
@@ -141,6 +154,12 @@ function BackgroundMusicController:Init(): ()
 
 	local soundGroup: SoundGroup = soundGroupInstance
 	self.soundGroup = soundGroup
+
+	local recordedVolume: unknown = soundGroup:GetAttribute(BASE_VOLUME_ATTRIBUTE)
+	self.baseVolume = type(recordedVolume) == "number" and math.max(recordedVolume, 0) or soundGroup.Volume
+
+	soundGroup:SetAttribute(BASE_VOLUME_ATTRIBUTE, self.baseVolume)
+
 	self:RefreshSounds()
 
 	self.maid:GiveTask(soundGroup.ChildAdded:Connect(function(child: Instance): ()

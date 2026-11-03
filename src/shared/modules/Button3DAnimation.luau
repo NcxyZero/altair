@@ -7,7 +7,10 @@ local Maid = require(ReplicatedStorage.package.Maid)
 export type Button3DAnimation = {
 	type: string,
 	tag: string,
+	isPressed: boolean,
 	instance: BasePart,
+	restCFrame: CFrame?,
+	restColor: Color3?,
 	maid: Maid.Maid,
 	__index: Button3DAnimation,
 	new: (instance: BasePart, path: any) -> Button3DAnimation,
@@ -22,13 +25,26 @@ Button3DAnimation.type = "tag"
 Button3DAnimation.tag = script.Name
 
 local BUTTON_CAN_COLLIDE: boolean = false
+local BUTTON_STEP_SOUND_NAME: string = "ButtonStep" -- optional Sound in LocalEffects; without it presses stay silent
+local LOCAL_EFFECTS_NAME: string = "LocalEffects" -- optional Studio-authored SoundService folder of client-only sounds
 local PRESS_DEPTH_MULTIPLIER: number = 0.5
 local PRESS_TIME: number = 0.08
 local RELEASE_TIME: number = 0.3
 
+local function playButtonStep(): ()
+	local localEffects: Instance? = SoundService:FindFirstChild(LOCAL_EFFECTS_NAME)
+	local buttonStepSound: Sound = (localEffects and localEffects:FindFirstChild(BUTTON_STEP_SOUND_NAME)) :: any
+	if not buttonStepSound or not buttonStepSound:IsA("Sound") then
+		return
+	end
+
+	SoundService:PlayLocalSound(buttonStepSound)
+end
+
 function Button3DAnimation.new(instance: BasePart, path: any): Button3DAnimation
 	local self = setmetatable({}, Button3DAnimation)
 	self.instance = instance
+	self.isPressed = false -- true from a press until its release finishes, while the part is away from its rest pose
 	self.path = path
 	self.maid = Maid.new()
 
@@ -74,13 +90,22 @@ function Button3DAnimation:Animate(): ()
 		return
 	end
 
+	-- an unfinished press has moved and whitened the part, so its stored rest pose is kept instead of re-read
+	if not self.isPressed then
+		self.restCFrame = button.CFrame
+		self.restColor = button.Color
+	end
+
 	cancelTweens(self)
 
-	button:SetAttribute("RaycastIgnore", true)
-	SoundService:PlayLocalSound(SoundService.LocalEffects.ButtonStep)
+	-- set after cancelling: with immediate signals the cancelled release can finish the previous press
+	self.isPressed = true
 
-	local originalCFrame: CFrame = button.CFrame
-	local originalColor: Color3 = button.Color
+	button:SetAttribute("RaycastIgnore", true)
+	playButtonStep()
+
+	local originalCFrame: CFrame = self.restCFrame :: CFrame
+	local originalColor: Color3 = self.restColor :: Color3
 
 	local pressDirection: Vector3 = -originalCFrame.UpVector
 	local pressDepth: number = math.max(0.05, button.Size.Y * PRESS_DEPTH_MULTIPLIER)
@@ -108,7 +133,8 @@ function Button3DAnimation:Animate(): ()
 	)
 	self.growColorTween = growColorTween
 
-	self.maid:GiveTask(shrinkTween.Completed:Connect(function(): ()
+	-- keyed tasks replace the previous press's connections instead of accumulating them until Destroy
+	self.maid.shrinkCompleted = shrinkTween.Completed:Connect(function(): ()
 		if self.shrinkTween ~= shrinkTween then
 			return
 		end
@@ -121,13 +147,14 @@ function Button3DAnimation:Animate(): ()
 			self.growTween = nil
 			self.growColorTween = nil
 		end
-	end))
+	end)
 
 	local posDone: boolean = false
 	local colorDone: boolean = false
 
 	local function tryFinish(): ()
 		if posDone and colorDone then
+			self.isPressed = false
 			self.shrinkTween = nil
 			self.growTween = nil
 			self.growColorTween = nil
@@ -136,19 +163,19 @@ function Button3DAnimation:Animate(): ()
 		end
 	end
 
-	self.maid:GiveTask(growTween.Completed:Connect(function(): ()
+	self.maid.growCompleted = growTween.Completed:Connect(function(): ()
 		if self.growTween == growTween then
 			posDone = true
 			tryFinish()
 		end
-	end))
+	end)
 
-	self.maid:GiveTask(growColorTween.Completed:Connect(function(): ()
+	self.maid.growColorCompleted = growColorTween.Completed:Connect(function(): ()
 		if self.growColorTween == growColorTween then
 			colorDone = true
 			tryFinish()
 		end
-	end))
+	end)
 
 	shrinkTween:Play()
 end

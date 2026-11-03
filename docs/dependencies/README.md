@@ -1,6 +1,6 @@
 # Altair - Utility Dependencies
 
-Altair ships only its core utilities, in `src/util/Core`. Everything else lives in separate dependency repositories (by default [altair-utils](https://github.com/NcxyZero/altair-utils)) and is installed on demand, so a fresh project stays small and only contains the utilities it actually uses.
+Altair ships its core utilities, in `src/util/Core`, and one installed package, `Effects`, because `SettingsUI` requires its `ClickRipple`. Everything else lives in separate dependency repositories (by default [altair-utils](https://github.com/NcxyZero/altair-utils)) and is installed on demand, so a fresh project stays small and only contains the utilities it actually uses.
 
 ## How It Works
 
@@ -9,7 +9,7 @@ Altair ships only its core utilities, in `src/util/Core`. Everything else lives 
 - `require-dependency.sh` (bash) or `require-dependency.ps1` (PowerShell) downloads the repositories, finds the requested packages and copies them into `src/util/<Package>`
 - Rojo maps `src/util` to `ReplicatedStorage.util`, so installed modules are required as `ReplicatedStorage.util.<Package>.<Module>`
 - `src/util` contains only folders: `Core` for the core utilities and one folder per installed package
-- Installed files are plain source files in your project: commit them, edit them, or delete the folder to uninstall
+- Installed files are plain source files in your project: commit them, edit them, or delete the folder to uninstall. Keep `src/util/Effects`: without it `SettingsUI` fails to load and the settings window never starts
 
 ```luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -24,9 +24,9 @@ local value: number = LerpNumber(0, 10, 0.5)
 Bash (macOS, Linux, Git Bash):
 
 ```bash
-./require-dependency.sh Math
-./require-dependency.sh Math Camera Audio
-./require-dependency.sh --list
+bash require-dependency.sh Math
+bash require-dependency.sh Math Camera Audio
+bash require-dependency.sh --list
 ```
 
 PowerShell (Windows):
@@ -107,7 +107,9 @@ If the file is missing, only `altair-utils` is used. Only single-line values are
 
 These are always part of Altair, live in `src/util/Core` and are required as `ReplicatedStorage.util.Core.<Module>`, because Altair itself uses them. `Core` is reserved and cannot be installed as a package:
 
-`BuildStockConfig`, `CalculateTargetMass`, `CanSendGameInvite`, `ConvertCurrency`, `ConvertHexToInt`, `ConvertToSentenceCase`, `ConvertToTextTime`, `CreateInstance`, `CreatePrompt`, `DeepClone`, `EscapeRichText`, `GetBridge`, `GetFunctionBridge`, `GetInstanceCFrame`, `GetSignal`, `IsPlayerOnMobile`, `IsValidUTF8`, `LocalPlayer`, `Logger`, `MergeDictionaries`, `OpenGui`, `PlayerGui`, `SFX`, `SecurePlayerAsync`, `SetCharacterControlsEnabled`, `SetInstanceCFrame`, `WaitForGameToLoad`, `WithoutPlayer`
+`AssetPreloader`, `BuildStockConfig`, `CalculateTargetMass`, `CanSendGameInvite`, `ConvertCurrency`, `ConvertHexToInt`, `ConvertToSentenceCase`, `ConvertToTextTime`, `CreateInstance`, `CreatePrompt`, `DeepClone`, `EscapeRichText`, `GetBridge`, `GetFunctionBridge`, `GetInstanceCFrame`, `GetSignal`, `IsPlayerOnMobile`, `IsValidUTF8`, `LocalPlayer`, `Logger`, `MergeDictionaries`, `OpenGui`, `PlayerGui`, `SFX`, `SecurePlayerAsync`, `SetCharacterControlsEnabled`, `SetInstanceCFrame`, `WaitForGameToLoad`, `WithoutPlayer`
+
+Altair also ships the [Effects](Effects.md) package, installed in `src/util/Effects` like any other package, because `SettingsUI` requires `ReplicatedStorage.util.Effects.ClickRipple`. `bash require-dependency.sh --force Effects` reinstalls it.
 
 ## Packages In altair-utils
 

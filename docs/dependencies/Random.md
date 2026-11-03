@@ -5,7 +5,7 @@ Random selection helpers: weighted picks by chance or rarity, random array eleme
 ## Installation
 
 ```bash
-./require-dependency.sh Random
+bash require-dependency.sh Random
 ```
 
 ```powershell

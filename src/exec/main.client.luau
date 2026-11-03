@@ -11,6 +11,10 @@ local Maid = require(ReplicatedStorage.package.Maid)
 local OpenGui = require(ReplicatedStorage.util.Core.OpenGui)
 local Promise = require(ReplicatedStorage.package.Promise)
 
+local CLIENT_BOOTSTRAP_READY_ATTRIBUTE: string = "ClientBootstrapReady" -- true once every client controller has been initialized and started
+
+LocalPlayer:SetAttribute(CLIENT_BOOTSTRAP_READY_ATTRIBUTE, false)
+
 local sharedFolder: Folder = ReplicatedStorage:WaitForChild("shared") :: Folder
 sharedFolder:WaitForChild("types")
 sharedFolder:WaitForChild("reflex")
@@ -50,6 +54,10 @@ for _index: number, folder: Folder in folders do
 		end
 
 		local moduleName: string = module.Name
+		if table.find(ClientInitConfig, moduleName) then
+			continue
+		end
+
 		if moduleName:lower():find("template") then
 			continue
 		end
@@ -85,11 +93,11 @@ for _index: number, folder: Folder in folders do
 		end
 
 		if moduleType == "tag" then
-			moduleTags[module.Name] = required
+			moduleTags[moduleName] = required
 		elseif moduleType == "local_tag" then
-			moduleTagsLocal[module.Name] = required
+			moduleTagsLocal[moduleName] = required
 		else
-			path[moduleType][module.Name] = required
+			path[moduleType][moduleName] = required
 		end
 
 		if moduleType == "other" then
@@ -790,3 +798,5 @@ LocalPlayer.PlayerGui.ChildAdded:Connect(function(ui: Instance): ()
 		ui.ResetOnSpawn = false
 	end
 end)
+
+LocalPlayer:SetAttribute(CLIENT_BOOTSTRAP_READY_ATTRIBUTE, true)

@@ -1,0 +1,41 @@
+diff --git a/Packages/_Index/ncxyzero_bridgenet2-fork@1.1.5/bridgenet2-fork/src/Server/ServerProcess.luau b/Packages/_Index/ncxyzero_bridgenet2-fork@1.1.5/bridgenet2-fork/src/Server/ServerProcess.luau
+--- a/Packages/_Index/ncxyzero_bridgenet2-fork@1.1.5/bridgenet2-fork/src/Server/ServerProcess.luau
++++ b/Packages/_Index/ncxyzero_bridgenet2-fork@1.1.5/bridgenet2-fork/src/Server/ServerProcess.luau
+@@ -20,6 +20,12 @@ local inboundQueue: Types.Map<Player, Types.Array<Types.Array<Types.Content>>> =
+ local callbackMap: Types.Map<Types.Identifier, Types.Array<Types.ServerConnectionCallback>> = {}
+ 
+ local function playerAdded(player)
++	if playerList[player] then
++		inboundQueue[player] = inboundQueue[player] or {}
++
++		return
++	end
++
+ 	-- playerList is for data structure optimization
+ 	playerList[player] = true
+ 
+@@ -66,6 +70,9 @@ function ServerProcess.start()
+ 		end
+ 
+ 		Players.PlayerAdded:Connect(playerAdded)
++		for _, player in Players:GetPlayers() do
++			playerAdded(player)
++		end
+ 
+ 		Players.PlayerRemoving:Connect(function(plr)
+ 			-- Remove player from every internal data structure
+@@ -92,7 +99,13 @@ function ServerProcess.start()
+ 				return
+ 			end
+ 
+-			table.insert(inboundQueue[plr], tbl)
++			local playerQueue = inboundQueue[plr]
++			if not playerQueue then
++				playerAdded(plr)
++				playerQueue = inboundQueue[plr]
++			end
++
++			table.insert(playerQueue, tbl)
+ 		end)
+ 
+ 		local sendStructure: { [Player]: { [Types.Identifier]: { any } } } = {}

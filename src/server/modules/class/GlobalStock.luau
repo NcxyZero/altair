@@ -65,7 +65,22 @@ export type Default = {
 	ClearForcedStockInStore: (self: Default, stockName: string) -> (),
 	GetRemainingStockStore: (self: Default) -> any,
 	GetRemainingStockAmount: (self: Default, stockName: string, itemName: string) -> number?,
+	RefreshRemainingStockAmount: (self: Default, stockName: string, itemName: string) -> number?,
 	EnsureRemainingStockAmount: (self: Default, stockName: string, itemName: string, initialAmount: number) -> number,
+	TryConsumeRemainingStockAmount: (
+		self: Default,
+		stockName: string,
+		itemName: string,
+		amount: number,
+		initialAmount: number
+	) -> (boolean, number?),
+	RestoreRemainingStockAmount: (
+		self: Default,
+		stockName: string,
+		itemName: string,
+		amount: number,
+		maximumAmount: number
+	) -> number?,
 	ConsumeRemainingStockAmount: (
 		self: Default,
 		stockName: string,
@@ -514,6 +529,23 @@ function GlobalStock:GetRemainingStockAmount(stockName: string, itemName: string
 	return
 end
 
+function GlobalStock:RefreshRemainingStockAmount(stockName: string, itemName: string): number?
+	local key: string = makeRemainingStockKey(stockName, itemName)
+	local store: DataStore = self:GetRemainingStockStore()
+	local success: boolean, value: any = xpcall(function(): any
+		return store:GetAsync(key)
+	end, Logger.warn)
+
+	if success and type(value) == "number" then
+		local remaining: number = math.max(0, value // 1)
+		self.cachedRemainingByStockItem[key] = remaining
+
+		return remaining
+	end
+
+	return
+end
+
 function GlobalStock:EnsureRemainingStockAmount(stockName: string, itemName: string, initialAmount: number): number
 	local key: string = makeRemainingStockKey(stockName, itemName)
 	local cached: any = self.cachedRemainingByStockItem[key]
@@ -542,6 +574,72 @@ function GlobalStock:EnsureRemainingStockAmount(stockName: string, itemName: str
 	self.cachedRemainingByStockItem[key] = finalValue
 
 	return finalValue
+end
+
+function GlobalStock:TryConsumeRemainingStockAmount(
+	stockName: string,
+	itemName: string,
+	amount: number,
+	initialAmount: number
+): (boolean, number?)
+	local toConsume: number = math.max(1, (tonumber(amount) or 0) // 1)
+	local initial: number = math.max(0, (tonumber(initialAmount) or 0) // 1)
+	local key: string = makeRemainingStockKey(stockName, itemName)
+	local accepted: boolean = false
+
+	local store: DataStore = self:GetRemainingStockStore()
+	local success: boolean, value: any = xpcall(function(): any
+		return store:UpdateAsync(key, function(oldValue: any): number
+			local current: number = type(oldValue) == "number" and oldValue or initial
+			current = math.max(0, current // 1)
+
+			accepted = current >= toConsume
+			if not accepted then
+				return current
+			end
+
+			return current - toConsume
+		end)
+	end, Logger.warn)
+
+	if success and type(value) == "number" then
+		local remaining: number = math.max(0, value // 1)
+		self.cachedRemainingByStockItem[key] = remaining
+
+		return accepted, remaining
+	end
+
+	return false, nil
+end
+
+function GlobalStock:RestoreRemainingStockAmount(
+	stockName: string,
+	itemName: string,
+	amount: number,
+	maximumAmount: number
+): number?
+	local toRestore: number = math.max(1, (tonumber(amount) or 0) // 1)
+	local maximum: number = math.max(0, (tonumber(maximumAmount) or 0) // 1)
+	local key: string = makeRemainingStockKey(stockName, itemName)
+
+	local store: DataStore = self:GetRemainingStockStore()
+	local success: boolean, value: any = xpcall(function(): any
+		return store:UpdateAsync(key, function(oldValue: any): number
+			local current: number = type(oldValue) == "number" and oldValue or maximum
+			current = math.clamp(current // 1, 0, maximum)
+
+			return math.min(maximum, current + toRestore)
+		end)
+	end, Logger.warn)
+
+	if success and type(value) == "number" then
+		local remaining: number = math.max(0, value // 1)
+		self.cachedRemainingByStockItem[key] = remaining
+
+		return remaining
+	end
+
+	return
 end
 
 function GlobalStock:ConsumeRemainingStockAmount(

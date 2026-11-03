@@ -5,7 +5,7 @@ Number helpers for interpolation, range mapping and normalization, plus quadrati
 ## Installation
 
 ```bash
-./require-dependency.sh Math
+bash require-dependency.sh Math
 ```
 
 ```powershell

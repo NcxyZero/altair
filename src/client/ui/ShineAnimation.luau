@@ -11,7 +11,7 @@ export type Default = {
 	shine: Frame,
 	tween: Tween,
 	__index: Default,
-	new: (instance: TextLabel, path: InitializerTypes.ClientPath) -> Default,
+	new: (instance: GuiObject, path: InitializerTypes.ClientPath) -> Default,
 	BuildShineVFX: (self: Default) -> (),
 	Animate: (self: Default) -> (),
 	Destroy: (self: Default) -> (),
@@ -22,8 +22,8 @@ ShineAnimation.__index = ShineAnimation
 ShineAnimation.type = "local_tag"
 ShineAnimation.tag = script.Name
 
-function ShineAnimation.new(instance: TextLabel, path: InitializerTypes.ClientPath): Default
-	local self = setmetatable({}, ShineAnimation)
+function ShineAnimation.new(instance: GuiObject, path: InitializerTypes.ClientPath): Default
+	local self: Default = setmetatable({}, ShineAnimation) :: any
 	self.instance = instance
 	self.path = path
 
@@ -72,6 +72,7 @@ end
 
 function ShineAnimation:Destroy(): ()
 	self.tween:Destroy()
+	self.shine:Destroy()
 end
 
 return ShineAnimation

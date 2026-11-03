@@ -1,6 +1,6 @@
 return {
 	Name = "SubtractMoney",
-	Aliases = { "removemoney", "moneyremove", "subtractmoney", "moneysubtract" },
+	Aliases = { "removemoney", "moneyremove", "subtractmoney", "substractmoney", "moneysubtract", "moneysubstract" },
 	Description = "Subtract money from player account.",
 	Group = "Admin",
 	Args = {

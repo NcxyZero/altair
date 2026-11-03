@@ -5,7 +5,7 @@ Visual feedback effects: expanding ripples at a screen position, a full-screen c
 ## Installation
 
 ```bash
-./require-dependency.sh Effects
+bash require-dependency.sh Effects
 ```
 
 ```powershell

@@ -5,7 +5,7 @@ Helpers for computing the mass of a model and welding all of its parts to the pr
 ## Installation
 
 ```bash
-./require-dependency.sh Physics
+bash require-dependency.sh Physics
 ```
 
 ```powershell

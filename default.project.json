@@ -45,6 +45,7 @@
 			"MainUI": {
 				"$className": "ScreenGui",
 				"$properties": {
+					"DisplayOrder": 1,
 					"ResetOnSpawn": false
 				}
 			}
@@ -53,7 +54,7 @@
 			"$className": "StarterPlayer",
 			"StarterPlayerScripts": {
 				"$className": "StarterPlayerScripts",
-				"$path": "src/client/exec"
+				"$path": "src/exec"
 			}
 		},
 		"SoundService": {

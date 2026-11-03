@@ -60,6 +60,23 @@ local NEGATIVE_GRADIENT: ColorSequence = ColorSequence.new({
 	ColorSequenceKeypoint.new(1, Color3.fromRGB(216, 68, 31)),
 })
 
+local function getAmountValue(amount: number | string?): number
+	if type(amount) == "number" then
+		return amount
+	end
+
+	if type(amount) ~= "string" then
+		return 0
+	end
+
+	return ConvertCurrency.StringToNumber(amount)
+end
+
+-- the Currency attribute is matched as written (camelCase state keys), then in lowercase ("Money" reads money)
+local function getCurrencyAmount(playerState: any, currencyKey: string): number | string?
+	return playerState and (playerState[currencyKey] or playerState[currencyKey:lower()])
+end
+
 function MoneyCounter.new(instance: TextLabel, path: InitializerTypes.ClientPath): Default
 	local self = setmetatable({}, MoneyCounter)
 	self.instance = instance
@@ -74,12 +91,12 @@ function MoneyCounter.new(instance: TextLabel, path: InitializerTypes.ClientPath
 	local currencyKey: string = "money"
 
 	if typeof(currencyAttr) == "string" then
-		currencyKey = currencyAttr:lower()
+		currencyKey = currencyAttr
 	end
 
 	self.currencyKey = currencyKey
 
-	self.prefix = instance:GetAttribute(NO_PREFIX_ATTR) and "" or DEFAULT_PREFIXES[currencyKey] or ""
+	self.prefix = instance:GetAttribute(NO_PREFIX_ATTR) and "" or DEFAULT_PREFIXES[currencyKey:lower()] or ""
 	self.moneyChangeDisabled = instance:GetAttribute(DISABLE_MONEY_CHANGE_INDICATOR_ATTR)
 
 	if not self.moneyChangeDisabled then
@@ -115,11 +132,9 @@ function MoneyCounter.new(instance: TextLabel, path: InitializerTypes.ClientPath
 	end)
 
 	self.maid:GiveTask(ClientData:GetPlayerProducerAsync():expect():subscribe(function(state): any
-		local playerState: any = state.player
-
-		return playerState and playerState[self.currencyKey]
-	end, function(amount: string): ()
-		local currentAmount: number = ConvertCurrency.StringToNumber(amount)
+		return getCurrencyAmount(state.player, self.currencyKey)
+	end, function(amount: number | string): ()
+		local currentAmount: number = getAmountValue(amount)
 
 		instance.Text = `{self.prefix}{ConvertCurrency.SuffixFormat(currentAmount)}`
 
@@ -133,8 +148,7 @@ function MoneyCounter.new(instance: TextLabel, path: InitializerTypes.ClientPath
 	end))
 
 	ClientData:GetPlayerProducerAsync():andThen(function(producer): ()
-		local playerState: any = producer:getState().player
-		local currentAmount: number = ConvertCurrency.StringToNumber(playerState and playerState[self.currencyKey])
+		local currentAmount: number = getAmountValue(getCurrencyAmount(producer:getState().player, self.currencyKey))
 
 		instance.Text = `{self.prefix}{ConvertCurrency.SuffixFormat(currentAmount)}`
 

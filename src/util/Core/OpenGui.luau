@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local GameConfig = require(ReplicatedStorage.shared.config.GameConfig)
 local LocalPlayer = require(ReplicatedStorage.util.Core.LocalPlayer)
 
 export type OpenGui = {
@@ -24,6 +25,12 @@ OpenGui.openNormal = {} :: { [Instance]: any }
 OpenGui.openAlwaysOnTop = {} :: { [Instance]: any }
 
 local info: TweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Back)
+local FIELD_OF_VIEW_RESTORE_INFO: TweenInfo = TweenInfo.new(0.15, Enum.EasingStyle.Back) -- restore after the last window closes
+
+local isFieldOfViewZoomed: boolean = false -- true while open windows keep the camera at windowFieldOfView.open
+
+local fieldOfViewTween: Tween? -- zoom or restore tween OpenGui played last
+local savedFieldOfView: number? -- camera field of view from before the first window opened
 
 local guiBlur: BlurEffect = Instance.new("BlurEffect")
 guiBlur.Size = 10
@@ -85,6 +92,43 @@ local function updateBlur(): ()
 	guiBlur.Enabled = false
 end
 
+-- zooms the camera in when the first window opens and restores the saved field of view when the last one closes
+local function updateFieldOfView(): ()
+	if not GameConfig.ui.windowFieldOfView.enabled then
+		return
+	end
+
+	local hasOpenWindow: boolean = next(OpenGui.openNormal) ~= nil or next(OpenGui.openAlwaysOnTop) ~= nil
+	if hasOpenWindow == isFieldOfViewZoomed then
+		return
+	end
+
+	local camera: Camera = workspace.CurrentCamera
+	local previousTween: Tween? = fieldOfViewTween
+	local isPreviousTweenPlaying: boolean = previousTween ~= nil
+		and previousTween.PlaybackState == Enum.PlaybackState.Playing
+
+	if previousTween then
+		previousTween:Cancel()
+	end
+
+	-- while the restore tween still plays, the camera has not reached the saved value yet, so that value is kept
+	if hasOpenWindow and not isPreviousTweenPlaying then
+		savedFieldOfView = camera.FieldOfView
+	end
+
+	isFieldOfViewZoomed = hasOpenWindow
+
+	local tween: Tween = if hasOpenWindow
+		then TweenService:Create(camera, info, { FieldOfView = GameConfig.ui.windowFieldOfView.open })
+		else TweenService:Create(camera, FIELD_OF_VIEW_RESTORE_INFO, {
+			FieldOfView = savedFieldOfView or camera.FieldOfView,
+		})
+	fieldOfViewTween = tween
+
+	tween:Play()
+end
+
 local function bindMainUI(gui: ScreenGui): ()
 	mainUI = gui
 	if mainUIConnection then
@@ -110,6 +154,10 @@ playerGui.ChildAdded:Connect(function(child: Instance): ()
 end)
 
 local function OpenAnimation(UIModule: any, openArg: any?): ()
+	if UIModule.BeforeOpen then
+		UIModule:BeforeOpen(openArg)
+	end
+
 	local UIElement: Frame = getUIElement(UIModule)
 	if not UIElement:GetAttribute("OgSize") then
 		UIElement:SetAttribute("OgSize", UIElement.Size)
@@ -119,7 +167,9 @@ local function OpenAnimation(UIModule: any, openArg: any?): ()
 	UIElement.Size = UDim2.fromScale(ogSize.X.Scale * 0.8, ogSize.Y.Scale * 0.8)
 	UIElement.Visible = true
 
-	TweenService:Create(workspace.CurrentCamera, info, { FieldOfView = 40 }):Play()
+	-- the window is already tracked as open here, so the zoom starts together with the size tween
+	updateFieldOfView()
+
 	TweenService:Create(UIElement, info, { Size = UIElement:GetAttribute("OgSize") }):Play()
 
 	if UIModule.OnOpen then
@@ -138,9 +188,6 @@ local function CloseAnimation(UIModule: any, closeArg: any?): ()
 	end
 
 	local ogSize: UDim2 = UIElement:GetAttribute("OgSize") :: UDim2
-	TweenService:Create(workspace.CurrentCamera, TweenInfo.new(0.15, Enum.EasingStyle.Back), { FieldOfView = 60 })
-		:Play()
-
 	TweenService:Create(UIElement, TweenInfo.new(0.1, Enum.EasingStyle.Linear), {
 		Size = UDim2.fromScale(ogSize.X.Scale * 0.8, ogSize.Y.Scale * 0.8),
 	}):Play()
@@ -164,6 +211,7 @@ function OpenGui:Register(UIModule: any): ()
 		self.openNormal[element] = nil
 		self.openAlwaysOnTop[element] = nil
 		updateBlur()
+		updateFieldOfView()
 	end)
 
 	table.insert(self.registered, UIModule)
@@ -233,6 +281,7 @@ function OpenGui:Close(UIModule: ModuleScript & any, closeArg: any?): ()
 	self.openAlwaysOnTop[element] = nil
 
 	updateBlur()
+	updateFieldOfView()
 end
 
 function OpenGui:CloseCurrent(): boolean

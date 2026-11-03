@@ -68,9 +68,12 @@ ContextActionService:BindAction(
 			return Enum.ContextActionResult.Pass
 		end
 
-		if OpenGui:CloseCurrent() then
-			GuiService.SelectedObject = nil
+		-- ButtonB is only consumed when it closed a window, so other ButtonB actions keep working
+		if not OpenGui:CloseCurrent() then
+			return Enum.ContextActionResult.Pass
 		end
+
+		GuiService.SelectedObject = nil
 
 		return Enum.ContextActionResult.Sink
 	end,
@@ -84,6 +87,7 @@ function CloseGuiButton.new(instance: GuiButton, path: InitializerTypes.ClientPa
 	self.path = path
 	self.maid = Maid.new()
 
+	instance.Active = true
 	instance.Selectable = true
 
 	local attr: any = instance:GetAttribute(TARGET_ATTR)

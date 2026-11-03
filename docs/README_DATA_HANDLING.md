@@ -52,14 +52,101 @@ reported as failures without kicking that player or waiting indefinitely.
 The command uses the existing Admin permission hook and automatic command
 registration. It does not depend on a `secureResetData` producer action.
 
+The Admin commands `AddRebirths`, `SetRebirths`, and `SubtractRebirths` take
+`<players> <amount>` with a non-negative whole amount. Subtraction clamps at
+`0`, and every change goes through the server-owned `secureAddRebirth`,
+`secureSetRebirth`, and `secureSubtractRebirth` player profile actions.
+
 The same persistence and reset flow covers `settings`, `inventory`, `player`,
 and `monetization` discovered from this project's own profile modules.
 `settingsProfile.CLIENT_ACTIONS` registers the supported preference setters
-and their validators. Extra PaintPictures preferences and its painting/tutorial
-profiles are game-specific features rather than requirements of this data layer.
+and their validators. Game-specific preferences and progression profiles belong
+to each game rather than to this data layer.
 Monetization grants clone their nested ownership tables before updating them;
 an existing offer with value `false` is a configured, unowned offer and can be
 granted without enabling arbitrary offer creation.
+
+Game passes are granted only when the purchase prompt reports a purchase, and a
+pass the profile already owns is not prompted again. A pass named `VIP` also
+sets the `IsVIP` player attribute. Game-pass grants synchronize the profile
+immediately. Before a developer product is prompted, the server refuses it when
+one of its offers is already owned or is not declared in the monetization
+profile's `offers`, unless `GameConfig.core.monetizationOfferCreationAllowed` is
+enabled. An owned pass or offer is refused with a "You already own this!"
+notification. The server accepts one `MonetizationPrompt` request per player
+every 0.75 seconds, and `MonetizationButton`, `MonetizationPrompt`, and
+`RaycastActions` share the 1-second client cooldown `PromptPurchase`.
+
+`ProcessReceipt` grants synchronously. It waits for the buyer's profile, runs
+the product's execs with `(player, data, config, receiptInfo)`, grants its
+offers, and synchronizes the profile. Each granted offer runs its
+`MonetizationExecs.offers[offerName]` hook with
+`(player, offerName, receiptInfo)`; an offer granted by a redeem code runs the
+same hook with `receiptInfo = nil`. Products configured as a plain ID and as a
+table are both supported. It returns `NotProcessedYet`, so Roblox retries the
+receipt later, when the buyer leaves before the profile loads, the product is
+unknown, an offer is not declared, an exec errors or returns `false`, or the
+profile cannot be synchronized after the grant. An exec name missing from
+`MonetizationExecs.execs` is skipped with a warning. After every exec and offer
+succeeded, the receipt's `PurchaseId` is added to `monetization.purchaseIds`
+(the last 50 granted receipts) in the same profile synchronization as the
+grant; any failure returns `NotProcessedYet`. Roblox never delivers an
+acknowledged receipt again, so `PurchaseGranted` waits for the DataStore: the
+`PurchaseId` is also added to the profile's ProfileService MetaTag
+`purchaseIds` (the last 50), an early profile save is requested, and
+`ProcessReceipt` yields until `MetaData.MetaTagsLatest` shows a save that holds
+it (usually a few seconds; longer while DataStore writes fail). When the
+profile is released first, for example because the buyer left, it returns
+`NotProcessedYet` and Roblox delivers the receipt again later. A re-delivered
+receipt whose `PurchaseId` is already in either list is acknowledged, once
+saved, without granting again, on any server, and concurrent deliveries of one
+receipt on a server get `NotProcessedYet` while the first one is granted or
+waits. A rejected receipt is retried in full, so an exec that can return
+`false` must do so before granting anything: the execs listed before it run
+again. `Reset` clears `monetization.purchaseIds` with the rest of the slice but
+keeps the MetaTag, so a reset does not grant a pending receipt twice.
+
+Prompt limited products and products with offers through `ServerMonetization`,
+which `MonetizationButton`, `MonetizationPrompt`, and `RaycastActions` reach
+through the `MonetizationPrompt` bridge. `BuyDevProduct` prompts raw product IDs
+from the client and skips the offer checks and the stock reservation; a limited
+product bought that way takes its stock unit only when its receipt is granted.
+
+### Built-In Profile Fields
+
+Besides `userId`, `lastSeen`, `money`, and `rebirth`, the player profile keeps:
+
+- `tutorialCompleted` (default `false`) and `tutorialStep` (default `1`): a
+  generic tutorial state. `secureRestartTutorial()` resets both;
+  `secureCompleteTutorial()` sets `tutorialCompleted = true` and keeps the step.
+  A game that advances steps adds its own setter. Existing saves receive these
+  defaults through ProfileService reconciliation, so returning players start
+  with `tutorialCompleted = false`; add a migration before gating content on it.
+- `redeemedCodes`: a map from each redeemed code to its Unix timestamp, written
+  by `secureRedeemCode(code, timestamp)`, which ignores empty and
+  already-redeemed codes. `RedeemCodeController` owns this flow.
+- `rebirth`: `secureAddRebirth(amount?)` adds `1` without an amount, rounds other
+  amounts down, ignores amounts that are not positive, and caps the total at
+  2^53 - 1.
+- `money`: `secureAddMoney` and `secureSpendMoney` leave the balance unchanged
+  when the new total is not a finite number.
+
+Never add a player field named exactly `tutorial`: `ServerData` discards the
+loaded profile data when `data.player.tutorial` exists.
+
+The settings profile also stores `clickRippleEnabled` (default `true`),
+`hideOtherPlayers` (`false`), `mapDetailsEnabled` (`true`), and
+`shadowsEnabled` (`true`). Their setters (`setClickRippleEnabled`,
+`setHideOtherPlayers`, `setMapDetailsEnabled`, `setShadowsEnabled`) are
+registered in `CLIENT_ACTIONS` and accept only booleans. `SettingsUI` applies
+them on the client.
+
+The game profile replicates `limitedItems`, the remaining stock of each limited
+product by its `itemKey`. Only `LimitedStockController` writes it, through
+`secureSetStock(itemKey, amount)`, which stores the amount rounded down with a
+minimum of `0`. `GameConfig.game.limitedItems` is keyed by the
+`MonetizationConfig` product name, and each entry also declares `amount` and
+`stockName`; see [Server Modules](README_SERVER_MODULES.md).
 
 ### Server-Side Game Data Management
 
@@ -117,11 +204,11 @@ local profileYielded = ServerData:WaitForPlayerProfile(player):expect()
 -- Wait for a player's profile.producer to be loaded
 ServerData:GetPlayerProducerAsync(player):andThen(function(producer)
     -- Use producer
-    local coins = producer:getState().coins
-    print("Player has", coins, "coins")
+    local money = producer:getState().player.money
+    print("Player has", money, "money")
 
-    -- Modify profile data
-    producer.addCoins(100)
+    -- Modify profile data (Reflex actions are called with a dot, not a colon)
+    producer.secureAddMoney(100)
 end)
 
 -- Access game data
@@ -129,7 +216,7 @@ local activePlayers = ServerData.gameProducer:getState().activePlayers
 print("Active players:", activePlayers)
 
 -- Modify game data
-ServerData.gameProducer:setActivePlayers(10)
+ServerData.gameProducer.setActivePlayers(10)
 ```
 
 ### Client-Side

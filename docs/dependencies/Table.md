@@ -5,7 +5,7 @@ Small table helpers: find by predicate, count dictionary entries, get keys or va
 ## Installation
 
 ```bash
-./require-dependency.sh Table
+bash require-dependency.sh Table
 ```
 
 ```powershell

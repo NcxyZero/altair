@@ -5,7 +5,7 @@ Helpers for finding player characters, moving and teleporting them, and running 
 ## Installation
 
 ```bash
-./require-dependency.sh Character
+bash require-dependency.sh Character
 ```
 
 ```powershell

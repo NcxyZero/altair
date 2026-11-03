@@ -59,7 +59,7 @@ print_targets() {
 usage() {
   cat <<'EOF'
 Usage: bash scaffold.sh <target> <Name>
-       bash scaffold.sh --install-completion   # enable TAB completion for targets
+       bash scaffold.sh --install-completion   # print Bash setup for TAB completion of targets
        bash scaffold.sh                        # interactive mode (prompts)
 
 Targets:
@@ -133,6 +133,10 @@ create_from_template() {
     fail "Destination already exists: $destination"
   fi
 
+  if [[ -e "${destination%.luau}" ]]; then
+    fail "A module directory already exists: ${destination%.luau}"
+  fi
+
   mkdir -p "$(dirname "$destination")"
 
   local content
@@ -182,23 +186,16 @@ prompt_name() {
   done
 }
 
-install_completion() {
-  if [[ -n "${BASH-}" ]]; then
-    local fn
-    fn="_scaffold_complete_${RANDOM}"
-    # shellcheck disable=SC2139
-    alias scaffold.sh="$SCRIPT_DIR/scaffold.sh"
-    eval "
-		${fn}() {
-			local cur=\${COMP_WORDS[COMP_CWORD]}
-			COMPREPLY=(\$(compgen -W \"${COMPLETION_WORDS}\" -- \"\$cur\"))
-		}
-		complete -F ${fn} scaffold.sh
-	"
-    echo "Bash completion installed for scaffold.sh (current shell only)."
-  else
-    echo "Completion install is only supported in Bash."
-  fi
+# Completion cannot be installed from here: this script runs in a child shell, so anything it
+# defines is gone when it exits. Print the setup instead for the user's own shell to load.
+print_completion() {
+  cat <<EOF
+# Bash: run scaffold.sh from the project root with TAB completion of its targets.
+# Current shell: eval "\$(bash scaffold.sh --install-completion)"
+# New shells:    bash scaffold.sh --install-completion >> ~/.bashrc
+alias scaffold.sh='bash ./scaffold.sh'
+complete -W "${COMPLETION_WORDS}" scaffold.sh
+EOF
 }
 
 main() {
@@ -211,10 +208,14 @@ main() {
 
     set -- "$target" "$name"
   elif [[ ${1-} == "--install-completion" ]]; then
-    install_completion
+    print_completion
 
     exit 0
-  elif [[ $# -lt 2 ]]; then
+  elif [[ ${1-} == "--help" || ${1-} == "-h" ]]; then
+    usage
+
+    exit 0
+  elif [[ $# -ne 2 ]]; then
     usage
 
     exit 1

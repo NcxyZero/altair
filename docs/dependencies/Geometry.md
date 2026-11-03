@@ -5,7 +5,7 @@ Closest-part searches around the local character and checks whether a point lies
 ## Installation
 
 ```bash
-./require-dependency.sh Geometry
+bash require-dependency.sh Geometry
 ```
 
 ```powershell

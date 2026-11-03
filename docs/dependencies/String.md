@@ -5,7 +5,7 @@ UTF-8 aware case conversion with Polish diacritics support, number formatting wi
 ## Installation
 
 ```bash
-./require-dependency.sh String
+bash require-dependency.sh String
 ```
 
 ```powershell

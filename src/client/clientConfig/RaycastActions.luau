@@ -1,103 +1,13 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local SoundService = game:GetService("SoundService")
 
-local ClientData = require(ReplicatedStorage.client.modules.ClientData)
 local CooldownManager = require(ReplicatedStorage.shared.modules.CooldownManager)
 local GetBridge = require(ReplicatedStorage.util.Core.GetBridge)
 local Logger = require(ReplicatedStorage.util.Core.Logger)
-local MonetizationConfig = require(ReplicatedStorage.shared.config.MonetizationConfig)
+local NotificationUI = require(ReplicatedStorage.client.ui.NotificationUI)
 local OpenGui = require(ReplicatedStorage.util.Core.OpenGui)
 local TagManager = require(ReplicatedStorage.shared.modules.TagManager)
 
-local LockBridge = GetBridge("LockBridge")
 local MonetizationPrompt = GetBridge("MonetizationPrompt")
-
-local function onLockBridge(payload: any): ()
-	if typeof(payload) ~= "table" then
-		return
-	end
-
-	local action: any = payload.action
-	if action ~= "locked" then
-		return
-	end
-
-	local localEffects: Instance? = SoundService:FindFirstChild("LocalEffects")
-	local laserGateSound: Sound? = localEffects and localEffects:FindFirstChild("LaserGate") :: any
-	if laserGateSound and laserGateSound:IsA("Sound") then
-		SoundService:PlayLocalSound(laserGateSound)
-	else
-		Logger.warn("RaycastActions: SoundService.LocalEffects.LaserGate missing or not a Sound")
-	end
-end
-
-LockBridge:Connect(onLockBridge)
-
-local function _getLimitedItemEntry(name: string?, productName: string?): (string?, any?)
-	local itemsConfig = MonetizationConfig.products and MonetizationConfig.products.Items
-	local data: any = itemsConfig and itemsConfig.data
-	if type(data) ~= "table" then
-		return
-	end
-
-	if type(productName) == "string" and data[productName] then
-		return productName, data[productName]
-	end
-
-	if type(name) == "string" and data[name] then
-		return name, data[name]
-	end
-
-	local lookup: string? = if type(productName) == "string"
-		then productName
-		else type(name) == "string" and name or nil
-	if not lookup then
-		return
-	end
-
-	for key: string, entry: any in data do
-		if type(entry) == "table" then
-			local itemName: any = entry.item
-			local stockItemName: any = entry.stockItemName
-			if itemName == lookup or stockItemName == lookup then
-				return key, entry
-			end
-		end
-	end
-
-	return
-end
-
-local function _getOfferName(entry: any?): string?
-	local offers: any = entry and (entry.offer or entry.offers)
-	if type(offers) == "string" and offers ~= "" then
-		return offers
-	end
-	if type(offers) == "table" then
-		for index: number = 1, #offers do
-			local offerName: any = offers[index]
-			if type(offerName) == "string" and offerName ~= "" then
-				return offerName
-			end
-		end
-	end
-
-	return
-end
-
-local function _isOfferOwned(offerName: string?): boolean
-	if not offerName then
-		return false
-	end
-
-	local producer: any = ClientData.playerProducer
-	if not producer then
-		return false
-	end
-
-	local offers: any = producer:getState().monetization.offers
-	return offers and offers[offerName] == true or false
-end
 
 local function safeRequireUiModule(uiName: string, actionName: string): any?
 	local clientFolder: Instance? = ReplicatedStorage:FindFirstChild("client")
@@ -148,7 +58,11 @@ local RaycastActions = {
 		if not CooldownManager:IsReady("Notification") then
 			return
 		end
-		CooldownManager:Set("Notification", (instance:GetAttribute("seconds") :: number) + 2 or 5)
+
+		local secondsAttribute: unknown = instance:GetAttribute("seconds")
+		local seconds: number = typeof(secondsAttribute) == "number" and math.max(0, secondsAttribute) or 3
+
+		CooldownManager:Set("Notification", seconds + 2)
 
 		local payload: any = {
 			text = raycastActionValue,
@@ -162,7 +76,7 @@ local RaycastActions = {
 			payload[key] = value
 		end
 
-		GetBridge("Notification"):Fire(payload)
+		NotificationUI.Send(payload)
 
 		return true
 	end,

@@ -30,7 +30,7 @@ WORK_DIR=""
 
 usage() {
   cat <<'EOF'
-Usage: ./require-dependency.sh [options] <dependency> [dependency...]
+Usage: bash require-dependency.sh [options] <dependency> [dependency...]
 
 Installs dependencies (for example Math, Camera, Audio) from the repositories
 listed in altair-dependencies.toml into the configured install path.
@@ -44,9 +44,9 @@ Options:
   -h, --help     Show this help
 
 Examples:
-  ./require-dependency.sh Math
-  ./require-dependency.sh Math Camera Audio
-  ./require-dependency.sh --list
+  bash require-dependency.sh Math
+  bash require-dependency.sh Math Camera Audio
+  bash require-dependency.sh --list
 EOF
 }
 

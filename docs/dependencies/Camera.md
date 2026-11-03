@@ -5,7 +5,7 @@ Client-side camera effects: a reference-counted, render-step driven "nudge" (sma
 ## Installation
 
 ```bash
-./require-dependency.sh Camera
+bash require-dependency.sh Camera
 ```
 
 ```powershell
@@ -28,13 +28,17 @@ Singleton that applies a small additive rotation (pitch/yaw) and FOV offset to `
 
 `Nudge` sets a random target rotation: yaw in `[-amplitude, amplitude]` and pitch in `[-amplitude * 1.2, amplitude * 1.2]` (radians), plus a FOV change of `-fovDeltaDeg` (zoom in). `amplitude` defaults to `0.008` and is clamped to `[0, 0.02]`; `fovDeltaDeg` defaults to `1.2` and is clamped to `[0, 4]`. The target decays back to zero (rate 3/s) while the current value eases toward the target (rate 10/s).
 
+`PulseFov` (pending, like `ReleaseFovPulse`: not yet in the published altair-utils Camera package) plays a hold-and-release field-of-view pulse: the FOV snaps in by `peakDeltaDeg` (default `16`, clamped to `[0, 32]`) over 0.22 s with a back-out overshoot and holds there until `ReleaseFovPulse` eases it back over 0.5 s. While a pulse is active it overrides the `Nudge` FOV change; the rotation keeps working. Calling `PulseFov` again restarts the pulse, and `ReleaseFovPulse` without an active, unreleased pulse does nothing.
+
 ```luau
 CameraNudge:StartRef(maid: Maid.Maid?): () -> ()
 CameraNudge:Nudge(amplitude: number?, fovDeltaDeg: number?): ()
+CameraNudge:PulseFov(peakDeltaDeg: number?): ()
+CameraNudge:ReleaseFovPulse(): ()
 CameraNudge:StopAll(): ()
 ```
 
-Notes: client only. `Nudge` has no visible effect until a reference is held (targets are stored and applied once a ref starts the render step). `StopAll` does not invalidate release functions already handed out; calling them afterwards is harmless.
+Notes: client only. `Nudge` has no visible effect until a reference is held (targets are stored and applied once a ref starts the render step). `PulseFov` starts the render step by itself, and the binding stops after the release when no reference is held. `StopAll` does not invalidate release functions already handed out; calling them afterwards is harmless.
 
 ```luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

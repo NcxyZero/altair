@@ -1,5 +1,7 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+*.sh text eol=lf
+*.patch text eol=lf
 
 # Linguist overrides for previews on GitHub
 .vscode/*.json linguist-language=jsonc

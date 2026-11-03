@@ -20,7 +20,7 @@ my-utils/
       SortItems.luau
 ```
 
-- The folder name is the package name users type, for example `./require-dependency.sh Inventory`
+- The folder name is the package name users type, for example `bash require-dependency.sh Inventory`
 - A folder counts as a package when it has a `dependency.toml` or contains at least one `.luau` file
 - Folders starting with `.` are ignored
 - Everything inside the folder except `dependency.toml` is copied to `src/util/<Package>`, including subfolders
@@ -85,8 +85,8 @@ url = "C:/Users/<user>/my-utils"
 ```
 
 ```bash
-./require-dependency.sh --list
-./require-dependency.sh --force Inventory
+bash require-dependency.sh --list
+bash require-dependency.sh --force Inventory
 ```
 
 The installer clones repositories with git, so only committed files are installed. Then refresh the sourcemap if needed (`bash refresh-sourcemap.sh`) and check the installed files with `./luau-lsp.exe analyze src/util/Inventory/GetItemCount.luau`.

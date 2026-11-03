@@ -5,7 +5,7 @@ GUI helpers: changing a `GuiObject`'s anchor point while repositioning it, revea
 ## Installation
 
 ```bash
-./require-dependency.sh UI
+bash require-dependency.sh UI
 ```
 
 ```powershell

@@ -8,27 +8,24 @@ export type DevProductSet = {
 
 export type DevProductData = number | Data | { data: { [any]: Data } }
 
-export type DevProduct =
-	DevProductData
-	& ({
-		exec: Exec? | { Exec }?,
-	} | {
-		execs: Exec? | { Exec }?,
-	})
-	& ({
-		offer: string? | { string }?,
-	} | {
-		offers: string? | { string }?,
-	})
+export type DevProduct = DevProductData & ({
+	exec: Exec? | { Exec }?,
+} | {
+	execs: Exec? | { Exec }?,
+}) & ({
+	offer: string? | { string }?,
+} | {
+	offers: string? | { string }?,
+})
 
 export type Data = {
 	id: number,
 	[any]: any?,
 }
 
-export type Exec = string | (...any) -> () | {
+export type Exec = string | ((...any) -> any) | {
 	name: string?,
-	func: (...any) -> ()?,
+	func: ((...any) -> any)?,
 	value: any?,
 }
 
@@ -65,10 +62,9 @@ local MonetizationConfig: MonetizationConfig = {
 			},
 			execs = {
 				"Exec1",
-				"NonExistantExecTest",
 				function() end,
 			},
-			offer = "Offer1",
+			offer = "starterPack", -- must be declared in monetizationProfile DEFAULT_STATE.offers
 		},
 	},
 }

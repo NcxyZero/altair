@@ -14,14 +14,14 @@ export type FloatActionTarget = {
 
 export type FloatActionUI = {
 	animationTime: number,
-	instance: GuiButton,
+	instance: GuiObject,
 	maid: Maid.Maid,
 	path: InitializerTypes.ClientPath,
 	tag: string,
 	targets: { FloatActionTarget },
 	type: string,
 	__index: FloatActionUI,
-	new: (instance: GuiButton, path: InitializerTypes.ClientPath) -> FloatActionUI?,
+	new: (instance: GuiObject, path: InitializerTypes.ClientPath) -> FloatActionUI?,
 	TweenTo: (self: FloatActionUI, targetEntry: FloatActionTarget, position: UDim2) -> (),
 	Show: (self: FloatActionUI) -> (),
 	Hide: (self: FloatActionUI) -> (),
@@ -97,7 +97,7 @@ local function resolveTargets(instance: GuiObject): { GuiObject }
 	return targets
 end
 
-function FloatActionUI.new(instance: GuiButton, path: InitializerTypes.ClientPath): FloatActionUI?
+function FloatActionUI.new(instance: GuiObject, path: InitializerTypes.ClientPath): FloatActionUI?
 	local targets: { GuiObject } = resolveTargets(instance)
 	if #targets == 0 then
 		return

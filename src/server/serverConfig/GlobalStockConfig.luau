@@ -92,16 +92,18 @@ local globalStockConfig: GlobalStockConfig = {
 	},
 
 	stocks = {
-		-- LimitedSlot1 = {
+		-- optional stock for a GameConfig.game.limitedItems entry (add a GameConfig require first);
+		-- LimitedStockController reads only GameConfig.game.limitedItems and does not need this stock
+		-- [GameConfig.game.limitedItems.Test1.stockName] = {
 		-- 	minItems = 1,
 		-- 	maxItems = 1,
 		-- 	restockInterval = 0,
 		-- 	items = {
 		-- 		{
-		-- 			name = "Example",
+		-- 			name = GameConfig.game.limitedItems.Test1.itemKey,
 		-- 			chance = 100,
-		-- 			minAmount = 500,
-		-- 			maxAmount = 500,
+		-- 			minAmount = GameConfig.game.limitedItems.Test1.amount,
+		-- 			maxAmount = GameConfig.game.limitedItems.Test1.amount,
 		-- 		},
 		-- 	},
 		-- },
