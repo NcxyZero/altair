@@ -187,8 +187,9 @@ game. Default controls:
 - Up / D-pad up shows the mode overlay and Down / D-pad down cycles its modes: Movement, Rotation, Roll, Field of View, Custom Post Processing, Player Lock, Point Lock, UI (Screen GUIs, Leaderboard and Watermark), Controls and the Reset Freecam action. Left and Right adjust the selected mode.
 
 `src/exec/Freecam.client.luau` is vendored third-party code (FreeCameraIAS,
-about 2,650 lines). It is exempt from the `.junie/guidelines.md` style rules:
-only replace deprecated APIs and fix real bugs; do not restyle it. Its four
+about 2,650 lines). It is exempt from the
+[Luau style rules](GUIDELINES.md#5-luau-code-style) of the guidelines: only
+replace deprecated APIs and fix real bugs; do not restyle it. Its four
 luau-lsp errors (`Enum.KeyCode.MouseDelta`, `TrackpadPan`, `MouseWheel` and
 `TrackpadPinch`) are gaps in the definitions, not bugs.
 

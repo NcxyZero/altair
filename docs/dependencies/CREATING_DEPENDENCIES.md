@@ -46,7 +46,7 @@ Keep every value on a single line.
 
 ## Writing Modules
 
-- Follow `.junie/guidelines.md`, the same as for code inside Altair
+- Follow the [development guidelines](../GUIDELINES.md), the same as for code inside Altair
 - One module per `.luau` file, named after what it returns, for example `Clamp01.luau`
 - Require other modules of the same package through the install path: `require(ReplicatedStorage.util.Math.Clamp01)`
 - Require modules of other packages the same way and list those packages in `dependencies`

@@ -194,7 +194,7 @@ Detailed documentation is available in the `docs/` directory:
 
 ## Development Guidelines
 
-Comprehensive development guidelines are available in the `.junie/guidelines.md` file. These guidelines cover:
+Comprehensive development guidelines are available in [docs/GUIDELINES.md](docs/GUIDELINES.md). These guidelines cover:
 
 - Code style and organization
 - Type checking and linting
@@ -203,6 +203,8 @@ Comprehensive development guidelines are available in the `.junie/guidelines.md`
 - Networking
 - Data persistence
 - Troubleshooting
+
+AI agents load [AGENTS.md](AGENTS.md) automatically: it lists the start steps and hard rules and links to the guidelines. [docs/WORKING_CONTEXT.md](docs/WORKING_CONTEXT.md) is the short handoff of current work.
 
 ## Testing
 

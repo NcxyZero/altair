@@ -17,7 +17,7 @@ performing the work.
 
 ## Checklist
 
-1. Read `.junie/guidelines.md` and then `.junie/working-context.md`.
+1. Read `docs/GUIDELINES.md` and then `docs/WORKING_CONTEXT.md`.
 2. Inspect `git status --short`. Preserve all unrelated and user-owned changes.
 3. Run the repository bootstrap when a full setup is requested:
 
