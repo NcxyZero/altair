@@ -70,6 +70,7 @@ Where the rest of the documentation lives:
 
 ### Roblox Studio
 
+- Roblox Studio MCP: `.mcp.json` gives AI agents that read it (such as Claude Code) Studio's built-in MCP server on Windows: `%LOCALAPPDATA%\Roblox\mcp.bat`, which runs Studio's `StudioMCP.exe`. Turn the server on once in Studio (Assistant, Manage MCP Servers, Enable Studio as MCP server) and approve it when the agent asks about `.mcp.json`. On macOS `.mcp.json` cannot start it: add it for this project in your local scope, which wins over `.mcp.json`, with `claude mcp add --scope local Roblox_Studio -- /Applications/RobloxStudio.app/Contents/MacOS/StudioMCP`. Other MCP clients take the same command in their own configuration.
 - When the user says that instances are selected in Roblox Studio, immediately read the current Studio selection before other inspection or changes and report the exact DataModel paths so the user can safely deselect them. If names are duplicated, also record a stable distinguishing detail such as a child name or relevant attribute; do not assume the selection will remain available later in the task.
 - Treat selected or Workspace-only Roblox assets as authoring sources, not runtime dependencies. When gameplay code needs a reusable visual template, place the source asset under `ReplicatedStorage.shared.model` (a Studio-owned folder that Rojo keeps) and clone or reference it there; do not make runtime behavior depend on an object remaining in `Workspace`.
 
