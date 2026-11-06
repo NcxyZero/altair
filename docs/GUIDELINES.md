@@ -826,7 +826,8 @@ coins = {
 ### Tools
 
 - Tools are managed by Rokit in `rokit.toml` (see [Prerequisites](#prerequisites)). After changing `rokit.toml`, run `bash update.sh`; it runs `rokit install`.
-- When you change the luau-lsp version in `rokit.toml`, change the definitions version in [Running luau-lsp](#running-luau-lsp) and in `AGENTS.md` in the same change.
+- When you change a version in `rokit.toml`, update the table in [Prerequisites](#prerequisites) in the same change; for luau-lsp, also change the definitions version in [Running luau-lsp](#running-luau-lsp), in `AGENTS.md` and in the Testing example of `README.md`.
+- VS Code (`.vscode/`) and the pinned tools: the StyLua extension formats with the `stylua` that Rokit pins (`stylua.searchBinaryInPATH`) when VS Code finds it on its PATH (restart VS Code after `bash init.sh` installs Rokit; otherwise the extension falls back to its own copy). The luau-lsp extension writes `sourcemap.json` with the Rokit `rojo` but runs its own server with the newest Roblox definitions and flags, so its diagnostics can differ from the pinned luau-lsp; the checks in [Testing and validation](#7-testing-and-validation) decide. The selene extension is not recommended: it downloads its own selene, and all selene versions share one Roblox standard library cache that an older selene cannot read once a newer one wrote it (`Could not collect standard library`). To lint in the editor anyway, set `selene.selenePath` in your user settings to the absolute path of the Rokit shim (`C:/Users/<name>/.rokit/bin/selene.exe` on Windows, `/Users/<name>/.rokit/bin/selene` or `/home/<name>/.rokit/bin/selene` elsewhere).
 
 ### Wally packages
 

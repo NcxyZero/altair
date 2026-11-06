@@ -95,5 +95,6 @@
 	"powershell.codeFormatting.whitespaceAroundOperator": true,
 	"powershell.codeFormatting.whitespaceBeforeOpenBrace": true,
 	"powershell.codeFormatting.whitespaceBeforeOpenParen": true,
-	"stylua.targetReleaseVersion": "latest",
+	"stylua.searchBinaryInPATH": true, // format with the stylua that rokit.toml pins, not a downloaded copy
+	"stylua.disableVersionCheck": true,
 }
