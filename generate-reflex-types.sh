@@ -66,9 +66,9 @@ done
 
 } > "$OUTPUT_FILE"
 
-if command -v StyLua >/dev/null 2>&1; then
+if command -v stylua >/dev/null 2>&1; then
   echo "Formatting $OUTPUT_FILE with StyLua..."
-  StyLua "$OUTPUT_FILE" || true
+  stylua "$OUTPUT_FILE" || true
 else
   echo "StyLua not found in PATH. Skipping formatting..."
 fi

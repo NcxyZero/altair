@@ -92,13 +92,12 @@ Rokit installs the other tools, pinned in `rokit.toml`:
 
 | Tool | Version | Used for |
 | --- | --- | --- |
-| `rojo` | 7.6.0 | syncs files into Studio, builds places, writes `sourcemap.json` |
+| `rojo` | 7.7.1 | syncs files into Studio, builds places, writes `sourcemap.json` |
 | `wally` | 0.3.2 | installs Wally packages |
-| `wally-package-types` | 1.3.2 | re-exports Wally package types for luau-lsp |
-| `selene` | 0.29.0 | linting |
-| `StyLua` | 0.20.0 | formatting |
-
-`rokit.toml` does not pin luau-lsp. The repository ships `luau-lsp.exe` (version 1.52.1, for Windows) in the project root; see [Running luau-lsp](#running-luau-lsp).
+| `wally-package-types` | 1.7.0 | re-exports Wally package types for luau-lsp |
+| `selene` | 0.32.0 | linting |
+| `stylua` | 2.6.0 | formatting |
+| `luau-lsp` | 1.70.1 | type checking (see [Running luau-lsp](#running-luau-lsp)) |
 
 ### Initial setup
 
@@ -168,8 +167,10 @@ rokit.toml                   tool versions
 wally.toml                   Wally packages
 altair-dependencies.toml     repositories of utility packages
 selene.toml, stylua.toml     linter and formatter settings
+.styluaignore                what `stylua .` skips: the vendored Freecam and the Wally packages
+.luaurc                      Luau settings: nonstrict type checking
 .editorconfig                tabs for code, two spaces for Markdown and YAML
-luau-lsp.exe                 luau-lsp 1.52.1 for Windows
+.gitattributes               LF line endings in every checkout
 *.sh, *.ps1                  setup and helper scripts (see Scripts)
 scripts/                     apply-package-patches.sh, lib/platform.sh
 patches/                     git patches for installed Wally packages
@@ -482,13 +483,14 @@ These rules apply to all code in `src/`. Vendored third-party code is exempt: in
 
 ### Formatting
 
-- The project uses StyLua 0.20.0 for formatting: `stylua.toml` turns on sorted requires, and StyLua's defaults indent with tabs and wrap lines at 120 columns. Run it before committing changes:
+- The project uses StyLua 2.6.0 for formatting. `stylua.toml` spells out its settings (tabs, 120 columns, LF line endings, double quotes, parentheses on every call) and turns on sorted requires. Run it before committing changes:
 
   ```bash
   stylua .
   ```
 
-  Inside the Git repository it skips what `.gitignore` lists (`Packages/`, `ServerPackages/`). Outside a Git repository it formats them as well, so format only the files you changed there. `stylua <paths>` is enough whenever you changed a few files.
+  `.styluaignore` makes it skip the vendored `src/exec/Freecam.client.luau` and the Wally packages, also outside a Git repository. `stylua <paths>` is enough whenever you changed a few files.
+- `.gitattributes` checks out every text file with LF line endings on every platform, whatever `core.autocrlf` says. A checkout made before that rule keeps its CRLF files until Git writes them again: `stylua --check` fails on such a file, and `stylua <path>` rewrites it with LF without changing its content in Git.
 - Do not use multiple statements in one line.
 - Do not use section title comments in code (e.g., "-- Constants", "-- Private functions").
 - Do not describe a file in a comment at its top.
@@ -737,7 +739,7 @@ coins = {
 
 ## 6. Typing
 
-- Do not add `--!strict` at the top of files, but also do not remove it when already present. Keep the `--!nocheck` of the loaders and `Logger` and the `--!nonstrict` of the vendored Freecam.
+- `.luaurc` sets nonstrict type checking for the whole project. Do not add `--!strict` at the top of files, but also do not remove it when already present. Keep the `--!nocheck` of the loaders and `Logger` and the `--!nonstrict` of the vendored Freecam.
 - Use type annotations for function parameters and return values, for example: `local function foo(bar: string): boolean`; use `()` for functions that return nothing.
 - Use `any`, `unknown`, or `never` when appropriate for types that can't be determined precisely.
 - Type local variables at declaration (except for `game:GetService()` and `require()` calls).
@@ -763,25 +765,25 @@ coins = {
 
 ### Running luau-lsp
 
-- The project uses luau-lsp for type checking. The repository ships `luau-lsp.exe` 1.52.1 for Windows in the project root, and `rokit.toml` does not pin luau-lsp. A `luau-lsp` that Rokit installed for another project does not run here (`Failed to find tool 'luau-lsp' in any project manifest file`). On macOS and Linux, use a luau-lsp 1.52.1 binary on your PATH that is not a Rokit shim, and run `luau-lsp` instead of `./luau-lsp.exe`.
-- `luau-lsp analyze` needs the Roblox definitions that match its version. Download them once to a folder outside the repository (`.gitignore` does not list a definitions file):
+- The project uses luau-lsp for type checking. Rokit installs it on Windows, macOS and Linux (version 1.70.1, pinned in `rokit.toml`); there is no executable in the repository.
+- `luau-lsp analyze` needs the Roblox definitions that match its version. Download them once to a folder outside the repository. The file name carries the version: when the version in `rokit.toml` changes, download the file of the new version.
 
   ```bash
-  curl -fsSL --create-dirs -o "$HOME/.luau-lsp/globalTypes-1.52.1.d.luau" https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/1.52.1/scripts/globalTypes.None.d.luau
+  curl -fsSL --create-dirs -o "$HOME/.luau-lsp/globalTypes-1.70.1.d.luau" https://raw.githubusercontent.com/JohnnyMorganz/luau-lsp/1.70.1/scripts/globalTypes.None.d.luau
   ```
 
-  On Windows PowerShell use `curl.exe` with the same arguments. Definitions of newer luau-lsp versions, such as 1.70.1, fail to load in 1.52.1 (`Failed to load definitions`).
+  On Windows PowerShell use `curl.exe` with the same arguments. Definitions of another luau-lsp version can fail to load (`Failed to load definitions`).
 - Run it from the project root on a single file, after `bash refresh-sourcemap.sh` so that `sourcemap.json` contains every file:
 
   ```bash
-  ./luau-lsp.exe analyze --platform=roblox --sourcemap=sourcemap.json --definitions="$HOME/.luau-lsp/globalTypes-1.52.1.d.luau" --ignore="Packages/**" src/server/modules/ServerData.luau
+  luau-lsp analyze --platform=roblox --sourcemap=sourcemap.json --definitions="$HOME/.luau-lsp/globalTypes-1.70.1.d.luau" --ignore="Packages/**" src/server/modules/ServerData.luau
   ```
 
-  In PowerShell start the command with `.\luau-lsp.exe` and keep the other arguments.
+  The same command works in PowerShell.
 - **Important:** run `luau-lsp analyze` on a single file path only. Do not pass folders (e.g. `src` or `.`), do not pass multiple file paths in one command, and do not batch it with `foreach` or other loops; run it once per file.
-- `--ignore="Packages/**"` hides the diagnostics inside the Wally packages, which are noise. Every other diagnostic names the file, line and column (`path(12,5): TypeError: ...`) and must be fixed. A clean file prints nothing and exits with 0.
+- `--ignore="Packages/**"` hides the diagnostics inside the Wally packages, which are noise. A clean file prints only `[INFO]` lines (the definitions and the `.luaurc` it loaded) and `[WARN] client does not allow didChangeWatchedFiles registration`, and exits with 0. Every other line is a diagnostic that names the file, line and column (`path(12,5): TypeError: ...`) and must be fixed.
 - Without `--platform=roblox`, the sourcemap and the definitions, luau-lsp reports noise such as `Unknown global 'game'` and unknown Roblox types or requires. Fix the command line instead of the code, and do not spend time on editor setup during normal development tasks. Without network access to download the definitions, use luau-lsp as a best-effort checker and ignore that noise.
-- The 1.52.1 definitions predate some Roblox APIs that Altair uses. luau-lsp therefore reports `Player.IsFriendsWithAsync` (`FriendBoostController`), `Enum.ExperienceEventStatus` (`UpdateSchedule`) and four `Enum.KeyCode` items in `Freecam.client.luau` (`MouseDelta`, `TrackpadPan`, `MouseWheel`, `TrackpadPinch`) as unknown. These are gaps in the definitions, not bugs.
+- Definitions older than a Roblox API make luau-lsp report that API as unknown (`Key '<name>' not found in class '<class>'`). With the 1.70.1 definitions no such gap is known in Altair's code; when you meet one, check the API in the Roblox documentation and name the gap in your report instead of changing working code.
 - A scratch file outside the repository can be type-checked the same way, from the project root.
 
 ---
@@ -824,7 +826,7 @@ coins = {
 ### Tools
 
 - Tools are managed by Rokit in `rokit.toml` (see [Prerequisites](#prerequisites)). After changing `rokit.toml`, run `bash update.sh`; it runs `rokit install`.
-- When you replace `luau-lsp.exe`, update the definitions version in [Running luau-lsp](#running-luau-lsp) in the same change.
+- When you change the luau-lsp version in `rokit.toml`, change the definitions version in [Running luau-lsp](#running-luau-lsp) and in `AGENTS.md` in the same change.
 
 ### Wally packages
 
@@ -872,5 +874,5 @@ coins = {
 13. **A window or button does nothing:** the GUI must carry its module's tag and be under the local player's `PlayerGui`, and the button's `TargetTag` (or `Target`) attribute must match the window's tag.
 14. **The Cmdr console has no commands:** only players with the Cmdr permission (and every Studio session) can use Cmdr. Client code that requires `ReplicatedStorage.CmdrClient` before its attribute `Registered` is set gets no commands until the player rejoins.
 15. **`Rejected client profile action for <player>: action_not_registered`:** the client dispatched an action that no profile lists in `CLIENT_ACTIONS`. Register it with a validator, or move the change to a server-validated bridge.
-16. **`stylua .` formats `Packages/`:** the project is not a Git repository, so `.gitignore` does not count. Format only the files you changed.
+16. **selene stops with `Could not collect standard library` (`unknown field lua_versions`):** all selene versions share one Roblox standard library cache, and an older selene cannot read the cache that a newer one wrote. Run selene from the project root, so that Rokit runs the version in `rokit.toml`.
 17. **`selene .` reports thousands of errors:** it lints the Wally packages. Lint one file at a time.

@@ -1,4 +1,14 @@
 std = "roblox"
 
 [lints]
+deprecated = "warn"
+duplicate_keys = "deny"
+empty_if = "warn"
 global_usage = "allow"
+mixed_table = "deny"
+must_use = "deny"
+roblox_manual_fromscale_or_fromoffset = "deny"
+roblox_suspicious_udim2_new = "deny"
+shadowing = "warn"
+suspicious_reverse_loop = "deny"
+unused_variable = "warn"

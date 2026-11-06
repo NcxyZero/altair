@@ -1,6 +1,6 @@
 # Working context
 
-Last updated: 2026-11-05
+Last updated: 2026-11-06
 
 Read this after `docs/GUIDELINES.md`. It is a short handoff for facts that are useful when resuming work but do not belong in stable documentation. Verify time-sensitive statements against the code, documentation, and Git status before acting on them.
 
@@ -13,7 +13,8 @@ Read this after `docs/GUIDELINES.md`. It is a short handoff for facts that are u
 
 ## Recent changes
 
-- Guidelines: `docs/GUIDELINES.md` is reorganized into ten numbered sections and states the loader order, module types, placement, bridge, data, receipt and loading rules as the code implements them, with a tested `luau-lsp analyze` command (luau-lsp 1.52.1 needs its own version's definitions; newer ones fail to load). `docs/README_SIGNALS_AND_BRIDGES.md` is outdated, and the guidelines say so. See [Guidelines](GUIDELINES.md).
+- Guidelines: `docs/GUIDELINES.md` is reorganized into ten numbered sections and states the loader order, module types, placement, bridge, data, receipt and loading rules as the code implements them, with a tested `luau-lsp analyze` command. `docs/README_SIGNALS_AND_BRIDGES.md` is outdated, and the guidelines say so. See [Guidelines](GUIDELINES.md).
+- Tools: `rokit.toml` pins rojo 7.7.1, selene 0.32.0, StyLua 2.6.0 (tool name `stylua`, which `generate-reflex-types.sh` now calls), wally-package-types 1.7.0 and luau-lsp 1.70.1; Rokit's luau-lsp replaces the committed `luau-lsp.exe` 1.52.1 and also runs on macOS and Linux. `selene.toml` raises several lints to errors (duplicate keys, mixed tables, ignored results that must be used, suspicious UDim2 calls, reverse loops) and keeps `global_usage = "allow"` (the Reflex profiles declare global `CreateProducer` functions), `stylua.toml` spells out its settings, `.styluaignore` skips Freecam and the Wally packages, `.luaurc` sets nonstrict mode and `.gitattributes` checks out LF on every platform. With these versions selene reports nothing in `src/`, StyLua 2.6.0 reformatted one type in `MonetizationConfig.luau`, and luau-lsp 1.70.1 passes every file in `src/` once `SettingsUI` watches `Enabled` through its `any`-typed `effect` (the newer definitions check the property name that `GetPropertyChangedSignal` gets); the gaps of the 1.52.1 definitions (`Player.IsFriendsWithAsync`, `Enum.ExperienceEventStatus`, four `Enum.KeyCode` items in Freecam) are gone.
 - Documentation layout: `AGENTS.md` is the entry point that AI agents load (start steps, hard rules, project map, scripts, checks before finishing), the full rules are `docs/GUIDELINES.md` and this handoff is `docs/WORKING_CONTEXT.md`; there are no tool-specific rule folders or files. Agents read the whole output and exit code of every script they run and report its results (see [Script output](GUIDELINES.md#script-output)).
 - Loading: the Initializer sets the `LocalPlayer` attribute `LoadingReleased` as the last release step on every path, right before `PlayerReady`; code that waits for the loading screen waits for it instead of looking for `LoadingUI`. See [Preload](README_PRELOAD.md).
 - Security: the server's bridge remotes confirm only bridges the server itself created and never create one for a client (with request limits); Cmdr's `BeforeRun` is an allow-list, so without the role only the `Help` group runs; developer product receipts are deduplicated through `monetization.purchaseIds` and the profile MetaTag `purchaseIds`, and acknowledged only once a DataStore save holds the grant; purchase prompts have server and client cooldowns; the client-written `BreakBarrierBaseNumber` attribute is gone; redeem input and `FriendBoost` payloads are validated.
@@ -24,6 +25,7 @@ Read this after `docs/GUIDELINES.md`. It is a short handoff for facts that are u
 
 ## Games that take this version
 
+- Tools: run `bash update.sh` (it runs `rokit install`) and `rojo plugin install`, so that the Studio plugin matches Rojo 7.7.1, and download the luau-lsp 1.70.1 definitions ([Running luau-lsp](GUIDELINES.md#running-luau-lsp)). A checkout made before the new `.gitattributes` keeps CRLF files until Git writes them again; `stylua <path>` rewrites one with LF without changing its content in Git.
 - Set `core.resetButtonDisabled = false` in games where `true` kept the reset button, and turn on the new switches the game relies on.
 - `MonetizationButton` lost the implicit `Shop` ancestor rule, the default `ONLY` price prefix and the StudPattern greying: set `KeepVisibleWhenOwned` and `PricePrefix` where needed; owned-offer buttons now hide only with `HideOnComplete` (otherwise they show the greyed `OWNED` state, as owned game-pass buttons now do too), so add `HideOnComplete` to offer buttons that should disappear once owned.
 - Double `FloatSpeed` values: `FloatAnimation` no longer renders twice per frame.

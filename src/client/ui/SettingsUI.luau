@@ -256,7 +256,7 @@ function SettingsUI:ApplyMapDetail(instance: Instance, enabled: boolean): ()
 			self.mapDetailStates[instance] = newState
 
 			-- An effect that game code turns on while details are off stays off and comes back with the details.
-			self.mapDetailMaid[instance] = instance:GetPropertyChangedSignal("Enabled"):Connect(function(): ()
+			self.mapDetailMaid[instance] = effect:GetPropertyChangedSignal("Enabled"):Connect(function(): ()
 				if not effect.Enabled then
 					return
 				end

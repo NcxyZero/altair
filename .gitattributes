@@ -1,11 +1,16 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Keep LF in the repository and in every checkout, on every platform (StyLua and the shell scripts expect LF)
+* text=auto eol=lf
 *.sh text eol=lf
 *.patch text eol=lf
 
+# Binary files
+*.rbxm binary
+*.rbxl binary
+*.png binary
+*.jpg binary
+*.ogg binary
+*.mp3 binary
+
 # Linguist overrides for previews on GitHub
 .vscode/*.json linguist-language=jsonc
-.eslintrc linguist-language=jsonc
-.prettierrc linguist-language=jsonc
-.yarnrc linguist-language=sh
 wally.lock linguist-language=TOML

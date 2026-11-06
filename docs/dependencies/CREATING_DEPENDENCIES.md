@@ -89,7 +89,7 @@ bash require-dependency.sh --list
 bash require-dependency.sh --force Inventory
 ```
 
-The installer clones repositories with git, so only committed files are installed. Then refresh the sourcemap if needed (`bash refresh-sourcemap.sh`) and check the installed files with `./luau-lsp.exe analyze src/util/Inventory/GetItemCount.luau`.
+The installer clones repositories with git, so only committed files are installed. Then refresh the sourcemap if needed (`bash refresh-sourcemap.sh`) and type-check the installed files with luau-lsp, one file per command, as [Running luau-lsp](../GUIDELINES.md#running-luau-lsp) shows (for example `src/util/Inventory/GetItemCount.luau`).
 
 ## Adding A Repository To A Project
 

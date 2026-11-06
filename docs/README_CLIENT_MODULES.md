@@ -189,9 +189,8 @@ game. Default controls:
 `src/exec/Freecam.client.luau` is vendored third-party code (FreeCameraIAS,
 about 2,650 lines). It is exempt from the
 [Luau style rules](GUIDELINES.md#5-luau-code-style) of the guidelines: only
-replace deprecated APIs and fix real bugs; do not restyle it. Its four
-luau-lsp errors (`Enum.KeyCode.MouseDelta`, `TrackpadPan`, `MouseWheel` and
-`TrackpadPinch`) are gaps in the definitions, not bugs.
+replace deprecated APIs and fix real bugs; do not restyle it (`.styluaignore`
+keeps `stylua .` away from it).
 
 ---
 

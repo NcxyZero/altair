@@ -210,17 +210,16 @@ AI agents load [AGENTS.md](AGENTS.md) automatically: it lists the start steps an
 
 - Do not create test files in the project directory
 - This prohibition applies even when a task mode would otherwise require writing tests or repro scripts
-- Use `luau-lsp.exe` to analyze files individually (do not analyze the entire workspace). Examples:
+- Type-check files one at a time with luau-lsp, which Rokit installs (do not analyze the entire workspace). [Running luau-lsp](docs/GUIDELINES.md#running-luau-lsp) shows how to download the definitions it needs. Example:
 
   ```text
-  .\luau-lsp.exe analyze src\exec\main.client.luau
-  .\luau-lsp.exe analyze src\server\main.server.luau
+  luau-lsp analyze --platform=roblox --sourcemap=sourcemap.json --definitions="$HOME/.luau-lsp/globalTypes-1.70.1.d.luau" --ignore="Packages/**" src/server/modules/ServerData.luau
   ```
 
-- **Important**: Do not run `selene .` as it is not supported in this project environment. Instead, analyze files individually: `selene path/to/file.luau`
+- **Important**: Do not run `selene .`: it also lints the Wally packages. Instead, lint files individually: `selene path/to/file.luau`
 
-- Important: After creating any new file, run `bash refresh-sourcemap.sh` (or the full `bash update.sh`) before analyzing with `luau-lsp.exe` so that the sourcemap includes it
-- For functionality verification, use the existing type checking tools (`luau-lsp.exe` and `selene`)
+- Important: After creating any new file, run `bash refresh-sourcemap.sh` (or the full `bash update.sh`) before analyzing with luau-lsp so that the sourcemap includes it
+- For functionality verification, use the existing type checking tools (luau-lsp and selene)
 
 ## Dependencies
 
