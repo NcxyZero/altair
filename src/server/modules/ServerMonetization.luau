@@ -1,6 +1,7 @@
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local APIDictionaries = require(ReplicatedStorage.shared.types.APIDictionaries)
@@ -86,6 +87,8 @@ local SUPPORT_NOTIFICATION_COLOR: Color3 = Color3.new(0.85, 0.5, 0.9)
 local PURCHASE_FAILURE_NOTIFICATION_COLOR: Color3 = Color3.fromRGB(255, 110, 110) -- colour of refused purchase notices
 local GAMEPASS_OWNERSHIP_RETRY_COUNT: number = 3
 local GAMEPASS_OWNERSHIP_RETRY_DELAY_SECONDS: number = 1
+local GAMEPASS_PURCHASE_CONFIRM_ATTEMPTS: number = 12 -- ownership checks after a reported pass purchase; Roblox caches UserOwnsGamePassAsync, so the first ones can still say false
+local GAMEPASS_PURCHASE_CONFIRM_DELAY_SECONDS: number = 5 -- seconds between those checks
 local MAXIMUM_SAVED_PURCHASE_IDS: number = 50 -- PurchaseIds kept in the profile MetaTag; the oldest is dropped first
 local PURCHASE_ID_META_TAG: string = "purchaseIds" -- ProfileService MetaTag whose saved copy confirms that a grant reached the DataStore
 local PURCHASE_REQUEST_COOLDOWN: number = 0.75 -- minimum seconds between two purchase requests of one player; clients wait 1 s
@@ -94,6 +97,7 @@ local VIP_ATTRIBUTE: string = "IsVIP" -- player attribute that mirrors ownership
 local VIP_PASS_NAME: string = "VIP" -- MonetizationConfig.passes name that sets the VIP attribute
 
 local processingPurchaseIds: { [string]: boolean } = {} -- receipts being granted or waiting for their save (up to one autosave); a concurrent call is retried later
+local confirmingGamePasses: { [string]: boolean } = {} -- "<userId>:<passName>" of reported pass purchases whose ownership is being confirmed
 
 local function notifyPurchaseRefused(player: Player, text: string): ()
 	Notify:Fire(Bridgenet2.Players({ player }), {
@@ -134,10 +138,18 @@ local function applyGamePassOwnership(player: Player, producer: any, passName: s
 	end
 end
 
-local function ownsGamePassWithRetry(player: Player, passName: string, passId: number): boolean
+local function ownsGamePassWithRetry(
+	player: Player,
+	passName: string,
+	passId: number,
+	attempts: number?,
+	delaySeconds: number?
+): boolean
+	local attemptCount: number = attempts or GAMEPASS_OWNERSHIP_RETRY_COUNT
+	local retryDelay: number = delaySeconds or GAMEPASS_OWNERSHIP_RETRY_DELAY_SECONDS
 	local attempt: number = 1
 	local lastError: any = nil
-	while attempt <= GAMEPASS_OWNERSHIP_RETRY_COUNT do
+	while attempt <= attemptCount and player.Parent do
 		local success: boolean, ownsOrError: any = pcall(function(): boolean
 			return MarketplaceService:UserOwnsGamePassAsync(player.UserId, passId)
 		end)
@@ -150,8 +162,8 @@ local function ownsGamePassWithRetry(player: Player, passName: string, passId: n
 			lastError = ownsOrError
 		end
 
-		if attempt < GAMEPASS_OWNERSHIP_RETRY_COUNT then
-			task.wait(GAMEPASS_OWNERSHIP_RETRY_DELAY_SECONDS)
+		if attempt < attemptCount then
+			task.wait(retryDelay)
 		end
 
 		attempt += 1
@@ -166,6 +178,51 @@ local function ownsGamePassWithRetry(player: Player, passName: string, passId: n
 	end
 
 	return false
+end
+
+-- Roblox caches UserOwnsGamePassAsync, so right after a purchase it can still say false: the check repeats for about a
+-- minute, and a pass it never confirms is granted on the next join (PlayerAdded). Studio test purchases create no
+-- ownership, so there the prompt's report is enough.
+local function confirmAndApplyGamePass(player: Player, passName: string, passId: number): ()
+	local producer: any = ServerData:GetPlayerProducerAsync(player):expect()
+	local state: any = producer:getState()
+	if state.monetization and state.monetization.passes and state.monetization.passes[passName] == true then
+		return
+	end
+
+	local confirmed: boolean = RunService:IsStudio()
+		or ownsGamePassWithRetry(
+			player,
+			passName,
+			passId,
+			GAMEPASS_PURCHASE_CONFIRM_ATTEMPTS,
+			GAMEPASS_PURCHASE_CONFIRM_DELAY_SECONDS
+		)
+	if not confirmed then
+		Logger.warn(`ServerMonetization: unconfirmed purchase of passName={passName} by player={player.Name}`)
+
+		return
+	end
+
+	if player.Parent then
+		applyGamePassOwnership(player, producer, passName, true)
+	end
+end
+
+local function grantReportedGamePass(player: Player, passName: string, passId: number): ()
+	local confirmationKey: string = `{player.UserId}:{passName}`
+	if confirmingGamePasses[confirmationKey] then
+		return
+	end
+
+	confirmingGamePasses[confirmationKey] = true
+
+	local success: boolean, errorMessage: any = pcall(confirmAndApplyGamePass, player, passName, passId)
+	confirmingGamePasses[confirmationKey] = nil
+
+	if not success then
+		Logger.warn(`ServerMonetization: granting passName={passName} to player={player.Name} failed: {errorMessage}`)
+	end
 end
 
 local function hasPurchaseId(metaTags: any, purchaseId: string): boolean
@@ -289,11 +346,9 @@ function ServerMonetization:PromptGamePassByNameAsync(player: Player, name: stri
 			return
 		end
 
+		-- The PromptGamePassPurchaseFinished handler in Init grants the pass once the purchase is confirmed
 		local status: boolean, value: boolean =
 			SecurePlayerAsync(player, self:ProceedGamePassPurchaseAsync(player, passId)):await()
-		if status and value then
-			applyGamePassOwnership(player, producer, name, false)
-		end
 
 		resolve(status and value)
 	end):catch(warn)
@@ -705,10 +760,9 @@ function ServerMonetization:Init(): ()
 				return
 			end
 
-			local producer = ServerData:GetPlayerProducerAsync(player):expect()
 			local passName: string? = self.idIndexedMonetizationReference.passes[tostring(passId)]
 			if passName then
-				applyGamePassOwnership(player, producer, passName, true)
+				grantReportedGamePass(player, passName, passId)
 			end
 		end
 	)

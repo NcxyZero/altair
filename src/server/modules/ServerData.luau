@@ -129,8 +129,11 @@ local function handleClientProfileAction(player: Player, payload: unknown): ()
 		return
 	end
 
-	local action: any = (profile.producer :: any)[actionName]
-	if type(action) ~= "function" then
+	-- Only a real action may run: a CLIENT_ACTIONS entry named like a producer method (resetState, setState) would
+	-- otherwise call that method
+	local producer: any = profile.producer
+	local action: any = producer[actionName]
+	if type(producer:getActions()[actionName]) ~= "function" or type(action) ~= "function" then
 		warnRejectedClientAction(player, "registered_action_missing")
 
 		return

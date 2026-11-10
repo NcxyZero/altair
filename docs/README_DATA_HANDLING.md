@@ -66,7 +66,10 @@ Monetization grants clone their nested ownership tables before updating them;
 an existing offer with value `false` is a configured, unowned offer and can be
 granted without enabling arbitrary offer creation.
 
-Game passes are granted only when the purchase prompt reports a purchase, and a
+Game passes are granted only when the purchase prompt reports a purchase and
+`UserOwnsGamePassAsync` confirms it. Roblox caches that call, so the server
+checks again for about a minute and otherwise grants the pass on the next join;
+in Studio, where test purchases create no ownership, the report is enough. A
 pass the profile already owns is not prompted again. A pass named `VIP` also
 sets the `IsVIP` player attribute. Game-pass grants synchronize the profile
 immediately. Before a developer product is prompted, the server refuses it when
@@ -263,6 +266,7 @@ ClientData.clientProducer.setLocalSetting("musicVolume", 0.8)
 ## Security Considerations
 
 - Client-originated actions are denied unless a profile exports them through `CLIENT_ACTIONS`
+- A registered name must also be one of the producer's actions (`getActions()`), so producer methods such as `resetState` or `setState` are never reachable from a client
 - Every registered action validates its argument count, types, and allowed ranges on the server
 - Prefixes such as `secure` are naming conventions, not authorization controls
 - Gameplay, inventory, progression, and monetization changes use dedicated server-validated bridges
