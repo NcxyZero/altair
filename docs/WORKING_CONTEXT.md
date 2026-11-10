@@ -8,7 +8,7 @@ Read this after `docs/GUIDELINES.md`. It is a short handoff for facts that are u
 
 - The commit after the upstream "deboat altair" commit ports generic fixes from games built on Altair, together with the fixes from a review of that port (summarized below).
 - Utility layout since the deboat merge: Altair's own utilities live in `src/util/Core`, everything else is an `altair-utils` package installed with `bash require-dependency.sh`, and `src/util/Effects` is installed and committed because `SettingsUI` requires `ClickRipple`. See [Utility Dependencies](dependencies/README.md).
-- The removed `src/util/CameraNudge` FOV pulse (`PulseFov` / `ReleaseFovPulse`) is committed in the local `altair-utils` clone (`85c6f89`, `Camera/CameraNudge.luau`) but not pushed, so `bash require-dependency.sh Camera` installs it only after that push (a user action). `docs/dependencies/Camera.md` and `docs/README_CLIENT_MODULES.md` already document it and mark it pending; drop those notes after the push.
+- The FOV pulse removed from `src/util/CameraNudge` (`PulseFov` / `ReleaseFovPulse`) is in the published `altair-utils` Camera package since 2026-11-10 (`85c6f89`), so `bash require-dependency.sh Camera` installs it.
 - Before testing in Studio, run `bash update.sh` (it reapplies `patches/`), then restart `bash serve.sh` and reconnect Studio, so that a fresh Rojo session also removes an old `ReplicatedStorage.client.exec` copy of the entry scripts. `wally.toml` pins `bridgenet2-fork` (`=1.1.5`) and `cmdr` (`=1.12.0`) to the versions the `patches/` files target; regenerate a patch before raising its pin.
 
 ## Recent changes
