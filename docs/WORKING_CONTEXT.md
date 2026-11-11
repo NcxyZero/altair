@@ -32,7 +32,7 @@ Read this after `docs/GUIDELINES.md`. It is a short handoff for facts that are u
 - `RaycastActions` no longer listens to `LockBridge` or plays `SoundService.LocalEffects.LaserGate`; a game that fires `LockBridge` needs its own client listener.
 - Create every bridge clients use on the server during startup; a client that asks for a bridge before the server created it keeps an inert bridge.
 - Game client code that requires `ReplicatedStorage.CmdrClient` itself must wait for its `Registered` attribute as `ClientCmdr` does: the first require on a client fixes which commands that client gets.
-- A game pass bought in the experience now reaches the profile once its ownership is confirmed: at once, or up to about a minute later (later in the session if Roblox's cache holds longer, otherwise on the next join), and "Thanks for your support!" shows then. Game code that grants extras for a pass reads them from the profile instead of the prompt's result.
+- A game pass bought in the experience now reaches the profile once its ownership is confirmed: at once, or up to about a minute later (later in the session if Roblox's cache holds longer, otherwise on the next join), and "Thanks for your support!" shows when it is confirmed during the session. Game code that grants extras for a pass reads them from the profile instead of the prompt's result.
 
 ## Open
 

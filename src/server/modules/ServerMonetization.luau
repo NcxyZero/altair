@@ -32,6 +32,7 @@ export type ServerMonetization = {
 	Start: (self: ServerMonetization) -> (),
 	Init: (self: ServerMonetization) -> (),
 	PlayerAdded: (self: ServerMonetization, player: Player) -> (),
+	PlayerRemoving: (self: ServerMonetization, player: Player) -> (),
 	CheckGamePass: (self: ServerMonetization, player: Player, name: string) -> boolean,
 	CheckOffer: (self: ServerMonetization, player: Player, name: string) -> boolean,
 	GrantOffer: (
@@ -87,6 +88,7 @@ local SUPPORT_NOTIFICATION_COLOR: Color3 = Color3.new(0.85, 0.5, 0.9)
 local PURCHASE_FAILURE_NOTIFICATION_COLOR: Color3 = Color3.fromRGB(255, 110, 110) -- colour of refused purchase notices
 local GAMEPASS_OWNERSHIP_RETRY_COUNT: number = 3
 local GAMEPASS_OWNERSHIP_RETRY_DELAY_SECONDS: number = 1
+local GAMEPASS_PROFILE_WAIT_SECONDS: number = 30 -- longest wait for the buyer's profile before a reported pass purchase is dropped (the next join grants it)
 local GAMEPASS_PURCHASE_CONFIRM_ATTEMPTS: number = 12 -- ownership checks after a reported pass purchase; Roblox caches UserOwnsGamePassAsync, so the first ones can still say false
 local GAMEPASS_PURCHASE_CONFIRM_DELAY_SECONDS: number = 5 -- seconds between those checks
 local GAMEPASS_PURCHASE_RECHECK_DELAY_SECONDS: number = 30 -- seconds between the later checks of a purchase still unconfirmed, while the player stays
@@ -98,7 +100,7 @@ local VIP_ATTRIBUTE: string = "IsVIP" -- player attribute that mirrors ownership
 local VIP_PASS_NAME: string = "VIP" -- MonetizationConfig.passes name that sets the VIP attribute
 
 local processingPurchaseIds: { [string]: boolean } = {} -- receipts being granted or waiting for their save (up to one autosave); a concurrent call is retried later
-local confirmingGamePasses: { [string]: boolean } = {} -- "<userId>:<passName>" of reported pass purchases whose ownership is being confirmed
+local confirmingGamePasses: { [Player]: { [string]: boolean } } = {} -- pass names whose reported purchase is being confirmed, by player
 
 local function notifyPurchaseRefused(player: Player, text: string): ()
 	Notify:Fire(Bridgenet2.Players({ player }), {
@@ -184,8 +186,8 @@ end
 -- Roblox caches UserOwnsGamePassAsync, so right after a purchase it can still say false: the check repeats every 5 s for
 -- a minute and then every 30 s while the player stays, and a pass it never confirms is granted on the next join
 -- (PlayerAdded). Studio test purchases create no ownership, so there the prompt's report is enough.
-local function confirmAndApplyGamePass(player: Player, passName: string, passId: number): ()
-	local producer: any = ServerData:GetPlayerProducerAsync(player):expect()
+local function confirmAndApplyGamePass(player: Player, passName: string, passId: number, showNotification: boolean): ()
+	local producer: any = ServerData:GetPlayerProducerAsync(player):timeout(GAMEPASS_PROFILE_WAIT_SECONDS):expect()
 	local state: any = producer:getState()
 	if state.monetization and state.monetization.passes and state.monetization.passes[passName] == true then
 		return
@@ -199,7 +201,12 @@ local function confirmAndApplyGamePass(player: Player, passName: string, passId:
 			GAMEPASS_PURCHASE_CONFIRM_ATTEMPTS,
 			GAMEPASS_PURCHASE_CONFIRM_DELAY_SECONDS
 		)
-		or ownsGamePassWithRetry(player, passName, passId, math.huge, GAMEPASS_PURCHASE_RECHECK_DELAY_SECONDS)
+	if not confirmed and player.Parent then
+		task.wait(GAMEPASS_PURCHASE_RECHECK_DELAY_SECONDS)
+
+		confirmed = ownsGamePassWithRetry(player, passName, passId, math.huge, GAMEPASS_PURCHASE_RECHECK_DELAY_SECONDS)
+	end
+
 	if not confirmed then
 		Logger.warn(`ServerMonetization: unconfirmed purchase of passName={passName} by player={player.Name}`)
 
@@ -207,20 +214,22 @@ local function confirmAndApplyGamePass(player: Player, passName: string, passId:
 	end
 
 	if player.Parent then
-		applyGamePassOwnership(player, producer, passName, true)
+		applyGamePassOwnership(player, producer, passName, showNotification)
 	end
 end
 
-local function grantReportedGamePass(player: Player, passName: string, passId: number): ()
-	local confirmationKey: string = `{player.UserId}:{passName}`
-	if confirmingGamePasses[confirmationKey] then
+local function grantReportedGamePass(player: Player, passName: string, passId: number, showNotification: boolean): ()
+	local pendingPasses: { [string]: boolean } = confirmingGamePasses[player] or {}
+	if pendingPasses[passName] then
 		return
 	end
 
-	confirmingGamePasses[confirmationKey] = true
+	pendingPasses[passName] = true
+	confirmingGamePasses[player] = pendingPasses
 
-	local success: boolean, errorMessage: any = pcall(confirmAndApplyGamePass, player, passName, passId)
-	confirmingGamePasses[confirmationKey] = nil
+	local success: boolean, errorMessage: any =
+		pcall(confirmAndApplyGamePass, player, passName, passId, showNotification)
+	pendingPasses[passName] = nil
 
 	if not success then
 		Logger.warn(`ServerMonetization: granting passName={passName} to player={player.Name} failed: {errorMessage}`)
@@ -348,7 +357,8 @@ function ServerMonetization:PromptGamePassByNameAsync(player: Player, name: stri
 			return
 		end
 
-		if confirmingGamePasses[`{player.UserId}:{name}`] then
+		local pendingPasses: { [string]: boolean }? = confirmingGamePasses[player]
+		if pendingPasses and pendingPasses[name] then
 			notifyPurchaseRefused(player, "Your purchase is being confirmed.")
 			resolve(false)
 
@@ -358,10 +368,10 @@ function ServerMonetization:PromptGamePassByNameAsync(player: Player, name: stri
 		local status: boolean, value: boolean =
 			SecurePlayerAsync(player, self:ProceedGamePassPurchaseAsync(player, passId)):await()
 
-		-- The PromptGamePassPurchaseFinished handler in Init grants the name indexed for this pass ID; this grants the
-		-- prompted name as well, which differs when two names share the ID
-		if status and value then
-			task.spawn(grantReportedGamePass, player, name, passId)
+		-- The PromptGamePassPurchaseFinished handler in Init grants the name indexed for this pass ID, with the
+		-- notification; when two names share the ID, the prompted one is granted here as well, without a second one
+		if status and value and self.idIndexedMonetizationReference.passes[tostring(passId)] ~= name then
+			task.spawn(grantReportedGamePass, player, name, passId, false)
 		end
 
 		resolve(status and value)
@@ -515,6 +525,10 @@ function ServerMonetization:PlayerAdded(player: Player): ()
 			end
 		end
 	end)
+end
+
+function ServerMonetization:PlayerRemoving(player: Player): ()
+	confirmingGamePasses[player] = nil
 end
 
 function ServerMonetization:CheckOffer(player: Player, name: string): boolean
@@ -776,7 +790,7 @@ function ServerMonetization:Init(): ()
 
 			local passName: string? = self.idIndexedMonetizationReference.passes[tostring(passId)]
 			if passName then
-				grantReportedGamePass(player, passName, passId)
+				grantReportedGamePass(player, passName, passId, true)
 			end
 		end
 	)
