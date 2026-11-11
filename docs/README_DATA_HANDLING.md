@@ -66,11 +66,14 @@ Monetization grants clone their nested ownership tables before updating them;
 an existing offer with value `false` is a configured, unowned offer and can be
 granted without enabling arbitrary offer creation.
 
-Game passes are granted only when the purchase prompt reports a purchase and
-`UserOwnsGamePassAsync` confirms it. Roblox caches that call, so the server
-checks again for about a minute and otherwise grants the pass on the next join;
-in Studio, where test purchases create no ownership, the report is enough. A
-pass the profile already owns is not prompted again. A pass named `VIP` also
+A game pass bought in the experience is granted once `UserOwnsGamePassAsync`
+confirms the purchase that the prompt reported. Roblox caches that call, so the
+server checks every 5 seconds for a minute and then every 30 seconds while the
+player stays, and a purchase it never confirms is granted on the next join; in
+Studio, where test purchases create no ownership, the report is enough. On join,
+every pass the player owns or the profile records (for example a pass granted as
+a gift) is granted. A pass the profile already owns, or one whose purchase is
+still being confirmed, is not prompted again. A pass named `VIP` also
 sets the `IsVIP` player attribute. Game-pass grants synchronize the profile
 immediately. Before a developer product is prompted, the server refuses it when
 one of its offers is already owned or is not declared in the monetization
