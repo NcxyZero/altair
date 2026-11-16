@@ -247,6 +247,20 @@ also after a failed registration, it sets the attribute `Registered` of
 that many, because Cmdr's client registers only what `CmdrClient` holds when it
 is required (see [Client Modules](README_CLIENT_MODULES.md)).
 
+Cmdr's default `announce` command (alias `m`, group `DefaultAdmin`) runs with
+`patches/cmdr-announce-text-chat.patch`. In Cmdr 1.12.0 it showed nothing under
+TextChatService: it filtered with `GetChatForUserAsync`, which is deprecated and
+returns an empty string, and its client called
+`SetCore("ChatMakeSystemMessage")`, which only the legacy chat shows. Patched,
+the server sends each player a copy filtered for that player
+(`GetNonChatStringForUserAsync`) when `TextChatService:CanUsersChatAsync` lets
+the executor and that player exchange messages. A filter or check that fails
+skips the player, so unfiltered text is never sent, and the reply says how many
+players got the announcement. The client shows `[Announcement] <text>` in yellow
+in the `RBXSystem` channel, with the text escaped for rich text, and uses
+`SetCore` only under the legacy chat. Cmdr hides the chat window while its
+console is open, so the executor sees the announcement once the console closes.
+
 When the module loads, it also requires the server parts of Cmdr's `var` and
 `var=` (`varServer`, `varSetServer`). Each checks Cmdr's DataStore once when
 first required, and a call that arrives before that check ends waits in a

@@ -1,6 +1,6 @@
 # Working context
 
-Last updated: 2026-11-11
+Last updated: 2026-11-16
 
 Read this after `docs/GUIDELINES.md`. It is a short handoff for facts that are useful when resuming work but do not belong in stable documentation. Verify time-sensitive statements against the code, documentation, and Git status before acting on them.
 
@@ -10,6 +10,7 @@ Read this after `docs/GUIDELINES.md`. It is a short handoff for facts that are u
 - Utility layout since the deboat merge: Altair's own utilities live in `src/util/Core`, everything else is an `altair-utils` package installed with `bash require-dependency.sh`, and `src/util/Effects` is installed and committed because `SettingsUI` requires `ClickRipple`. See [Utility Dependencies](dependencies/README.md).
 - The FOV pulse removed from `src/util/CameraNudge` (`PulseFov` / `ReleaseFovPulse`) is in the published `altair-utils` Camera package since 2026-11-10 (`85c6f89`), so `bash require-dependency.sh Camera` installs it.
 - Before testing in Studio, run `bash update.sh` (it reapplies `patches/`), then restart `bash serve.sh` and reconnect Studio, so that a fresh Rojo session also removes an old `ReplicatedStorage.client.exec` copy of the entry scripts. `wally.toml` pins `bridgenet2-fork` (`=1.1.5`) and `cmdr` (`=1.12.0`) to the versions the `patches/` files target; regenerate a patch before raising its pin.
+- Cmdr stays at 1.12.0 in Altair (the user's decision of 2026-11-16). `patches/cmdr-announce-text-chat.patch` makes its `announce` work under TextChatService: one copy filtered for each player who may receive the executor's messages, shown in `RBXSystem` and escaped for rich text (see [Server Modules](README_SERVER_MODULES.md)). Cmdr 1.13 fixes `announce` itself, but with one broadcast copy, no chat permission check and no escaping, so decide what this patch keeps before raising the pin. Play-tested in Studio (Altair Testing) on 2026-11-16; Studio gives every player the Cmdr permission, so the refusal for a player without it was checked only by running the `BeforeRun` hook with `IsStudio` stubbed.
 
 ## Recent changes
 

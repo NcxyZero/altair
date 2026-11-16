@@ -1,0 +1,103 @@
+diff --git a/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/BuiltInCommands/Admin/announceServer.lua b/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/BuiltInCommands/Admin/announceServer.lua
+--- a/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/BuiltInCommands/Admin/announceServer.lua
++++ b/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/BuiltInCommands/Admin/announceServer.lua
+@@ -1,15 +1,43 @@
+ local TextService = game:GetService("TextService")
+ local Players = game:GetService("Players")
+-local Chat = game:GetService("Chat")
++local TextChatService = game:GetService("TextChatService")
+ 
+ return function (context, text)
+-	local filterResult = TextService:FilterStringAsync(text, context.Executor.UserId, Enum.TextFilterContext.PublicChat)
++	if not text:find("%S") then
++		return "The announcement text is empty."
++	end
++
++	local executorId = context.Executor.UserId
++	local filterSuccess, filterResult = pcall(function ()
++		return TextService:FilterStringAsync(text, executorId, Enum.TextFilterContext.PublicChat)
++	end)
++
++	if not filterSuccess then
++		return ("Failed to filter the announcement: %s"):format(tostring(filterResult))
++	end
++
++	local players = Players:GetPlayers()
++	local shownCount = 0
++
++	-- The announcement shows in each recipient's own chat window, so each gets a copy filtered for them (the
++	-- deprecated GetChatForUserAsync returns ""), and only if TextChatService lets the two users exchange messages.
++	-- A check or filter that fails skips that recipient, so the unfiltered text is never sent.
++	for _, player in ipairs(players) do
++		local checkSuccess, canChat = pcall(function ()
++			return TextChatService:CanUsersChatAsync(executorId, player.UserId)
++		end)
++
++		if checkSuccess and canChat then
++			local textSuccess, filteredText = pcall(function ()
++				return filterResult:GetNonChatStringForUserAsync(player.UserId)
++			end)
+ 
+-	for _, player in ipairs(Players:GetPlayers()) do
+-		if Chat:CanUsersChatAsync(context.Executor.UserId, player.UserId) then
+-			context:SendEvent(player, "Message", filterResult:GetChatForUserAsync(player.UserId), context.Executor)
++			if textSuccess and type(filteredText) == "string" and filteredText ~= "" and player.Parent == Players then
++				context:SendEvent(player, "Message", filteredText, context.Executor)
++				shownCount = shownCount + 1
++			end
+ 		end
+ 	end
+ 
+-	return "Created announcement."
++	return ("Created announcement for %d of %d players."):format(shownCount, #players)
+ end
+\ No newline at end of file
+diff --git a/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/CmdrClient/DefaultEventHandlers.lua b/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/CmdrClient/DefaultEventHandlers.lua
+--- a/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/CmdrClient/DefaultEventHandlers.lua
++++ b/Packages/_Index/evaera_cmdr@1.12.0/cmdr/Cmdr/CmdrClient/DefaultEventHandlers.lua
+@@ -1,11 +1,44 @@
+ local StarterGui = game:GetService("StarterGui")
++local TextChatService = game:GetService("TextChatService")
+ local Window = require(script.Parent.CmdrInterface.Window)
+ 
++local ANNOUNCEMENT_COLOR = Color3.fromRGB(249, 217, 56)
++local SYSTEM_CHANNEL_TIMEOUT = 5 -- seconds to wait for TextChatService's RBXSystem channel
++
++-- Rich text reads these characters as markup; escaped, an announcement shows them and cannot add tags of its own.
++local function escapeRichText(text)
++	return (text:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"):gsub("\"", "&quot;"):gsub("'", "&apos;"))
++end
++
++-- Under TextChatService, SetCore's ChatMakeSystemMessage shows nothing, so the announcement goes to RBXSystem.
++local function displaySystemMessage(text)
++	local textChannels = TextChatService:WaitForChild("TextChannels", SYSTEM_CHANNEL_TIMEOUT)
++	local systemChannel = textChannels and textChannels:WaitForChild("RBXSystem", SYSTEM_CHANNEL_TIMEOUT)
++	if not systemChannel or not systemChannel:IsA("TextChannel") then
++		warn("[Cmdr] An announcement was not shown: TextChatService has no RBXSystem channel.")
++		return
++	end
++
++	systemChannel:DisplaySystemMessage(('<font color="#%s">[Announcement] %s</font>'):format(
++		ANNOUNCEMENT_COLOR:ToHex(),
++		escapeRichText(text)
++	))
++end
++
+ return function (Cmdr)
+ 	Cmdr:HandleEvent("Message", function (text)
++		if type(text) ~= "string" or text == "" then
++			return
++		end
++
++		if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
++			displaySystemMessage(text)
++			return
++		end
++
+ 		StarterGui:SetCore("ChatMakeSystemMessage", {
+ 			Text = ("[Announcement] %s"):format(text);
+-			Color = Color3.fromRGB(249, 217, 56);
++			Color = ANNOUNCEMENT_COLOR;
+ 		})
+ 	end)
+ 
